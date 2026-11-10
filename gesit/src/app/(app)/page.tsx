@@ -143,7 +143,7 @@ async function Indicadores() {
         rotulo="Em uso"
         valor={c.notebook.em_uso + c.telefone.em_uso}
         icone={UserRoundCheckIcon}
-        corIcone="text-sky-600 dark:text-sky-400"
+        corIcone="text-brand-blue dark:text-primary"
         detalhe={porTipo(c, "em_uso")}
         href="/dispositivos?status=em_uso"
       />
@@ -151,7 +151,7 @@ async function Indicadores() {
         rotulo="Disponíveis"
         valor={c.notebook.disponivel + c.telefone.disponivel}
         icone={CircleCheckIcon}
-        corIcone="text-emerald-600 dark:text-emerald-400"
+        corIcone="text-brand-green"
         detalhe={porTipo(c, "disponivel")}
         href="/dispositivos?status=disponivel"
       />

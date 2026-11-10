@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { CheckIcon, ChevronsUpDownIcon, Loader2Icon, SearchIcon } from "lucide-react";
+import { CheckIcon, ChevronsUpDownIcon, SearchIcon } from "lucide-react";
 import {
   useEffect,
   useId,
@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { Carregando } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { MINIMO_BUSCA } from "@/lib/busca";
@@ -149,7 +150,7 @@ export function ComboboxBusca<T>({
   } else if (estado.tipo === "carregando") {
     mensagem = (
       <span className="inline-flex items-center gap-2">
-        <Loader2Icon className="size-4 animate-spin" /> Buscando...
+        <Carregando decorativo tamanho="sm" /> Buscando...
       </span>
     );
   } else if (estado.tipo === "erro") {

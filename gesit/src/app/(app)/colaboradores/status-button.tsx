@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { Carregando } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -68,7 +69,7 @@ export function StatusButton({ id, nome, ativo, size = "sm" }: Props) {
         onClick={alternar}
         disabled={isPending}
       >
-        {ativo ? <UserXIcon /> : <UserCheckIcon />}
+        {isPending ? <Carregando decorativo tamanho="sm" /> : ativo ? <UserXIcon /> : <UserCheckIcon />}
         {isPending ? "Salvando..." : ativo ? "Inativar" : "Reativar"}
         {!isPending && <span className="sr-only"> {nome}</span>}
       </Button>

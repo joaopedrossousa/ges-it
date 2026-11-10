@@ -1,8 +1,7 @@
 "use client";
 
-import { Loader2Icon } from "lucide-react";
-
 import { CampoBusca } from "@/components/campo-busca";
+import { Carregando } from "@/components/carregando";
 import {
   Select,
   SelectContent,
@@ -78,12 +77,7 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
         </Select>
       </div>
 
-      {isPending && (
-        <Loader2Icon
-          className="size-4 animate-spin text-muted-foreground"
-          aria-label="Atualizando..."
-        />
-      )}
+      {isPending && <Carregando rotulo="Atualizando..." tamanho="sm" />}
     </div>
   );
 }

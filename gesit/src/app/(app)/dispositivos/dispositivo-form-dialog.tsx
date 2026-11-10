@@ -15,6 +15,7 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import { Carregando } from "@/components/carregando";
 import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import {
@@ -454,6 +455,7 @@ function Rodape({
           Cancelar
         </Button>
         <Button type="submit" disabled={isPending}>
+          {isPending && <Carregando decorativo tamanho="sm" />}
           {isPending ? "Salvando..." : "Salvar"}
         </Button>
       </DialogFooter>

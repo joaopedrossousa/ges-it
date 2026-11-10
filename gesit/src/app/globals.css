@@ -6,9 +6,14 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-green: var(--brand-green);
+  --color-brand-green-strong: var(--brand-green-strong);
+  --color-primary-hover: var(--primary-hover);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -49,72 +54,105 @@
 }
 
 :root {
+  /* Identidade visual Produtécnica Agro (ver "Identidade visual" no CLAUDE.md). */
+  --brand-blue: oklch(0.415 0.143 257.46); /* #084897 */
+  --brand-navy: oklch(0.273 0.111 259.98); /* #00225C */
+  --brand-green: oklch(0.609 0.136 160.75); /* #009B67: ícones, bordas, detalhes */
+  --brand-green-strong: oklch(0.466 0.103 161.52); /* #006B47: verde para texto (AA) */
+
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.259 0.031 260.43); /* #1B2433 */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.259 0.031 260.43);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.259 0.031 260.43);
+  --primary: var(--brand-blue);
+  --primary-foreground: oklch(1 0 0);
+  --primary-hover: var(--brand-navy);
+  --secondary: oklch(0.953 0.013 255.51); /* #EAF0F8 */
+  --secondary-foreground: var(--brand-navy);
+  --muted: oklch(0.966 0.005 247.88); /* #F1F4F7 */
+  --muted-foreground: oklch(0.524 0.022 241.05); /* #5F6C76: família do #AAB7C0, 5,4:1 no branco */
+  /* Fundo de foco/hover em menus: tinta clara do verde, texto no verde escuro. */
+  --accent: oklch(0.957 0.018 170.09); /* #E6F5EF */
+  --accent-foreground: var(--brand-green-strong);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: oklch(0.913 0.012 252.09); /* #DDE3EA */
+  --input: oklch(0.913 0.012 252.09);
+  --ring: var(--brand-blue);
+  --chart-1: var(--brand-blue);
+  --chart-2: var(--brand-green);
+  --chart-3: var(--brand-navy);
+  --chart-4: oklch(0.772 0.019 237.85); /* #AAB7C0 */
+  --chart-5: oklch(0.763 0.094 258.13); /* #8DB4EE */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.978 0.005 258.32); /* #F6F8FB */
+  --sidebar-foreground: oklch(0.259 0.031 260.43);
+  --sidebar-primary: var(--brand-blue);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.953 0.013 255.51);
+  --sidebar-accent-foreground: var(--brand-navy);
+  --sidebar-border: oklch(0.913 0.012 252.09);
+  --sidebar-ring: var(--brand-blue);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --brand-green-strong: oklch(0.776 0.135 164.72); /* #4FD1A0 */
+
+  --background: oklch(0.2 0.028 262.33); /* #0F1623 */
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.255 0.031 260.42);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.255 0.031 260.42);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.763 0.094 258.13); /* #8DB4EE */
+  --primary-foreground: var(--brand-navy);
+  --primary-hover: oklch(0.82 0.08 258);
+  --secondary: oklch(0.318 0.046 263.59);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --muted: oklch(0.318 0.046 263.59);
+  --muted-foreground: oklch(0.722 0.023 245.96); /* #9AA7B3 */
+  --accent: oklch(0.32 0.06 165);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
+  --ring: oklch(0.763 0.094 258.13);
+  --chart-1: oklch(0.763 0.094 258.13);
+  --chart-2: var(--brand-green);
+  --chart-3: oklch(0.6 0.12 258);
+  --chart-4: oklch(0.722 0.023 245.96);
+  --chart-5: oklch(0.85 0.06 258);
+  --sidebar: oklch(0.255 0.031 260.42);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-primary: oklch(0.763 0.094 258.13);
+  --sidebar-primary-foreground: var(--brand-navy);
+  --sidebar-accent: oklch(0.318 0.046 263.59);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.763 0.094 258.13);
+}
+
+/* Indicador de carregamento da marca: três pontos (azul, verde, azul). */
+@keyframes carregando-ponto {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility animate-carregando-ponto {
+  animation: carregando-ponto 1.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 2.4s;
+  }
 }
 
 @layer base {

@@ -3,6 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { Carregando } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -147,6 +148,7 @@ export function StatusDialog({ dispositivo, trigger }: Props) {
               onClick={salvar}
               disabled={isPending || novo === dispositivo.status}
             >
+              {isPending && <Carregando decorativo tamanho="sm" />}
               {isPending ? "Salvando..." : "Salvar"}
             </Button>
           )}

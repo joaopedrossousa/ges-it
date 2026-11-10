@@ -102,7 +102,7 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
               {v.data_fim ? (
                 formatarDataHora(v.data_fim)
               ) : (
-                <Badge className="border-transparent bg-sky-500/15 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400">
+                <Badge className="border-transparent bg-brand-blue/10 text-brand-blue dark:bg-primary/20 dark:text-primary">
                   Em uso
                 </Badge>
               )}

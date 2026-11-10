@@ -4,6 +4,7 @@ import { InfoIcon, TriangleAlertIcon } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { Carregando } from "@/components/carregando";
 import { ComboboxBusca, type OpcaoCombobox } from "@/components/combobox";
 import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
@@ -351,6 +352,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
             Cancelar
           </Button>
           <Button type="button" onClick={salvar} disabled={ocupado}>
+            {ocupado && <Carregando decorativo tamanho="sm" />}
             {etapa === "enviando"
               ? "Enviando termo..."
               : etapa === "salvando"

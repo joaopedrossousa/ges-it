@@ -3,6 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { Carregando } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -141,6 +142,7 @@ export function DevolverDialog({ dispositivo, colaboradorNome, trigger }: Props)
             Cancelar
           </Button>
           <Button type="button" onClick={salvar} disabled={isPending}>
+            {isPending && <Carregando decorativo tamanho="sm" />}
             {isPending ? "Salvando..." : "Registrar devolução"}
           </Button>
         </DialogFooter>

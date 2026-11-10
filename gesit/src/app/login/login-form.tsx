@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 
+import { Carregando } from "@/components/carregando";
 import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,7 @@ export function LoginForm() {
       )}
 
       <Button type="submit" size="lg" disabled={isPending} className="w-full">
+        {isPending && <Carregando decorativo tamanho="sm" />}
         {isPending ? "Entrando..." : "Entrar"}
       </Button>
     </form>

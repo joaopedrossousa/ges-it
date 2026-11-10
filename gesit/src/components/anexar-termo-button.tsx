@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { anexarTermo } from "@/app/(app)/dispositivos/actions";
+import { Carregando } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
 import { executarAcao } from "@/lib/executar-acao";
 import { enviarTermo, validarArquivoTermo } from "@/lib/termos";
@@ -80,7 +81,11 @@ export function AnexarTermoButton({
         disabled={etapa !== null}
         onClick={() => inputRef.current?.click()}
       >
-        <PaperclipIcon />
+        {etapa !== null ? (
+          <Carregando decorativo tamanho="sm" />
+        ) : (
+          <PaperclipIcon />
+        )}
         {etapa === "enviando"
           ? "Enviando..."
           : etapa === "salvando"
