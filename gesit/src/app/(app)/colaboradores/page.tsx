@@ -19,7 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { mascararCPF, somenteDigitos } from "@/lib/validators";
 
 import { ColaboradorFormDialog } from "./colaborador-form-dialog";
-import { listarLojasOpcoes } from "./dados";
+import { listarLojasOpcoes } from "@/lib/lojas";
 import { Filtros } from "./filtros";
 import { StatusButton } from "./status-button";
 

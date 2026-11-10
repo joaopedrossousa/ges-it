@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatarCPF } from "@/lib/validators";
 
 import { ColaboradorFormDialog } from "../colaborador-form-dialog";
-import { listarLojasOpcoes } from "../dados";
+import { listarLojasOpcoes } from "@/lib/lojas";
 import { StatusButton } from "../status-button";
 
 export const metadata: Metadata = { title: "Detalhes do usuário" };

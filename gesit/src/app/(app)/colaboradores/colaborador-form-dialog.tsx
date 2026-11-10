@@ -32,7 +32,7 @@ import {
 } from "@/lib/validators";
 
 import { atualizarColaborador, criarColaborador } from "./actions";
-import type { LojaOpcao } from "./dados";
+import type { LojaOpcao } from "@/lib/lojas";
 
 type Props = {
   lojas: LojaOpcao[];

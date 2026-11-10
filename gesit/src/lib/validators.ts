@@ -105,6 +105,16 @@ export function formatarIMEI(valor: string): string {
   return imei.replace(/^(\d{2})(\d{6})(\d{6})(\d)$/, "$1-$2-$3-$4");
 }
 
+/**
+ * Formata enquanto o usuário digita (aceita IMEI incompleto).
+ * Ex.: "35209900" → "35-209900"; limita a 15 dígitos.
+ */
+export function formatarIMEIDigitando(valor: string): string {
+  const imei = somenteDigitos(valor).slice(0, 15);
+  const partes = [imei.slice(0, 2), imei.slice(2, 8), imei.slice(8, 14), imei.slice(14)];
+  return partes.filter(Boolean).join("-");
+}
+
 // ===========================================================================
 // Campos reutilizáveis
 // ===========================================================================
@@ -279,6 +289,10 @@ export type VinculoFormData = z.output<typeof vinculoSchema>;
  *
  * formatarIMEI("352099001761481")         // "35-209900-176148-1"
  * formatarIMEI("12345")                   // "12345" (inalterado)
+ *
+ * formatarIMEIDigitando("35")             // "35"
+ * formatarIMEIDigitando("35209900")       // "35-209900"
+ * formatarIMEIDigitando("3520990017614819") // "35-209900-176148-1" (corta em 15)
  *
  * --- Schemas ---
  * lojaSchema.parse({ nome: " Filial Gurupi ", cidade: "" })
