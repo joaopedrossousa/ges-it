@@ -21,6 +21,8 @@ export function useFiltrosUrl() {
     const params = new URLSearchParams(searchParams.toString());
     if (novo && novo !== TODOS) params.set(chave, novo);
     else params.delete(chave);
+    // Filtro novo muda o total: volta para a primeira página.
+    if (chave !== "page") params.delete("page");
     const qs = params.toString();
     startTransition(() => {
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });

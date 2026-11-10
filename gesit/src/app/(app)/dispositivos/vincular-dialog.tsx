@@ -1,10 +1,10 @@
 "use client";
 
 import { InfoIcon, TriangleAlertIcon } from "lucide-react";
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
-import { Combobox, type OpcaoCombobox } from "@/components/combobox";
+import { ComboboxBusca, type OpcaoCombobox } from "@/components/combobox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,22 +18,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { ColaboradorOpcao } from "@/lib/colaboradores";
-import type { DispositivoOpcao } from "@/lib/dispositivos-vinculaveis";
+import type { ColaboradorOpcao, DispositivoOpcao } from "@/lib/opcoes-vinculo";
 import { enviarTermo, validarArquivoTermo } from "@/lib/termos";
 import { STATUS_DISPOSITIVO_LABEL, TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
 
 import { vincularDispositivo } from "./actions";
 
 type Props = {
-  /** Só status disponível/em uso (ver listarDispositivosVinculaveis). */
-  dispositivos: DispositivoOpcao[];
-  /** Só colaboradores ativos (ver listarColaboradoresAtivos). */
-  colaboradores: ColaboradorOpcao[];
   /** Pré-seleção ao abrir pelo detalhe do dispositivo. */
-  dispositivoInicialId?: string;
+  dispositivoInicial?: DispositivoOpcao;
   /** Pré-seleção ao abrir pelo detalhe do colaborador. */
-  colaboradorInicialId?: string;
+  colaboradorInicial?: ColaboradorOpcao;
   trigger: ReactNode;
 };
 
@@ -47,21 +42,55 @@ type Enviado = {
   colaboradorId: string;
 };
 
+// ---------------------------------------------------------------------------
+// Busca no servidor (Route Handlers /api/busca/*)
+// ---------------------------------------------------------------------------
+
+async function buscarItens<T>(url: string, signal: AbortSignal): Promise<T[]> {
+  const res = await fetch(url, {
+    signal,
+    redirect: "manual", // sem sessão o proxy redireciona para /login
+    headers: { Accept: "application/json" },
+  });
+  if (res.type === "opaqueredirect" || res.status === 401) {
+    throw new Error("Sua sessão expirou. Recarregue a página e entre novamente.");
+  }
+  if (!res.ok) throw new Error("Não foi possível buscar. Tente novamente.");
+  const json = (await res.json()) as { itens: T[] };
+  return json.itens;
+}
+
+function opcaoDispositivo(d: DispositivoOpcao): OpcaoCombobox<DispositivoOpcao> {
+  return {
+    value: d.id,
+    label: `${d.marca} ${d.modelo} · ${d.identificador}`,
+    descricao: `${TIPO_DISPOSITIVO_LABEL[d.tipo]} · ${
+      d.colaborador_nome ? `com ${d.colaborador_nome}` : STATUS_DISPOSITIVO_LABEL[d.status]
+    }`,
+    dados: d,
+  };
+}
+
+function opcaoColaborador(c: ColaboradorOpcao): OpcaoCombobox<ColaboradorOpcao> {
+  return {
+    value: c.id,
+    label: c.nome,
+    descricao: `${c.loja_nome ?? "—"} · ${c.email}`,
+    dados: c,
+  };
+}
+
+// ---------------------------------------------------------------------------
+
 /**
  * Vincular dispositivo — usado para vincular e para transferir.
  * Fluxo: valida → envia o PDF do navegador para o bucket "termos" →
  * Server Action chama rpc("vincular_dispositivo") com o termo_path.
  */
-export function VincularDialog({
-  dispositivos,
-  colaboradores,
-  dispositivoInicialId,
-  colaboradorInicialId,
-  trigger,
-}: Props) {
+export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger }: Props) {
   const [open, setOpen] = useState(false);
-  const [dispositivoId, setDispositivoId] = useState<string | null>(null);
-  const [colaboradorId, setColaboradorId] = useState<string | null>(null);
+  const [dispositivo, setDispositivo] = useState<OpcaoCombobox<DispositivoOpcao> | null>(null);
+  const [colaborador, setColaborador] = useState<OpcaoCombobox<ColaboradorOpcao> | null>(null);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [observacao, setObservacao] = useState("");
   const [erros, setErros] = useState<Erros>({});
@@ -71,52 +100,18 @@ export function VincularDialog({
   const [, startTransition] = useTransition();
   const ocupado = etapa !== null;
 
-  const dispositivo = dispositivos.find((d) => d.id === dispositivoId) ?? null;
-  const usuarioAtual = dispositivo?.colaborador_id
-    ? { id: dispositivo.colaborador_id, nome: dispositivo.colaborador_nome ?? "usuário atual" }
+  const usuarioAtual = dispositivo?.dados.colaborador_id
+    ? {
+        id: dispositivo.dados.colaborador_id,
+        nome: dispositivo.dados.colaborador_nome ?? "usuário atual",
+      }
     : null;
-
-  const opcoesDispositivo = useMemo<OpcaoCombobox[]>(
-    () =>
-      dispositivos.map((d) => ({
-        value: d.id,
-        label: `${d.marca} ${d.modelo} · ${d.identificador}`,
-        descricao: `${TIPO_DISPOSITIVO_LABEL[d.tipo]} · ${
-          d.colaborador_nome
-            ? `com ${d.colaborador_nome}`
-            : STATUS_DISPOSITIVO_LABEL[d.status]
-        }`,
-        busca: d.busca,
-      })),
-    [dispositivos],
-  );
-
-  // O usuário atual do dispositivo não pode receber o mesmo dispositivo.
-  const opcoesColaborador = useMemo<OpcaoCombobox[]>(
-    () =>
-      colaboradores
-        .filter((c) => c.id !== usuarioAtual?.id)
-        .map((c) => ({
-          value: c.id,
-          label: c.nome,
-          descricao: `${c.loja_nome ?? "—"} · ${c.email}`,
-          busca: `${c.email} ${c.loja_nome ?? ""}`,
-        })),
-    [colaboradores, usuarioAtual?.id],
-  );
 
   function onOpenChange(next: boolean) {
     if (ocupado) return;
     if (next) {
-      const inicial = dispositivos.some((d) => d.id === dispositivoInicialId)
-        ? dispositivoInicialId!
-        : null;
-      setDispositivoId(inicial);
-      setColaboradorId(
-        colaboradores.some((c) => c.id === colaboradorInicialId)
-          ? colaboradorInicialId!
-          : null,
-      );
+      setDispositivo(dispositivoInicial ? opcaoDispositivo(dispositivoInicial) : null);
+      setColaborador(colaboradorInicial ? opcaoColaborador(colaboradorInicial) : null);
       setArquivo(null);
       setObservacao("");
       setErros({});
@@ -126,27 +121,27 @@ export function VincularDialog({
     setOpen(next);
   }
 
-  function escolherDispositivo(id: string) {
-    setDispositivoId(id);
+  function escolherDispositivo(opcao: OpcaoCombobox<DispositivoOpcao>) {
+    setDispositivo(opcao);
     setErros((e) => ({ ...e, dispositivo: undefined }));
-    // Se o colaborador escolhido é o usuário atual do novo dispositivo, limpa.
-    const novo = dispositivos.find((d) => d.id === id);
-    if (novo?.colaborador_id && novo.colaborador_id === colaboradorId) {
-      setColaboradorId(null);
+    // O usuário atual do dispositivo não pode recebê-lo de novo.
+    if (opcao.dados.colaborador_id && opcao.dados.colaborador_id === colaborador?.value) {
+      setColaborador(null);
     }
   }
 
   function salvar() {
     const erroArquivo = validarArquivoTermo(arquivo);
-    const novosErros: Erros = {
-      dispositivo: dispositivoId ? undefined : "Selecione o dispositivo.",
-      colaborador: colaboradorId ? undefined : "Selecione o colaborador.",
-      termo: erroArquivo ?? undefined,
-    };
-    if (!dispositivoId || !colaboradorId || erroArquivo) {
-      setErros(novosErros);
+    if (!dispositivo || !colaborador || erroArquivo) {
+      setErros({
+        dispositivo: dispositivo ? undefined : "Selecione o dispositivo.",
+        colaborador: colaborador ? undefined : "Selecione o colaborador.",
+        termo: erroArquivo ?? undefined,
+      });
       return;
     }
+    const dispositivoId = dispositivo.value;
+    const colaboradorId = colaborador.value;
     setErros({});
     setOrfao(null);
 
@@ -196,11 +191,10 @@ export function VincularDialog({
         return;
       }
 
-      const nome = colaboradores.find((c) => c.id === colaboradorId)?.nome;
       toast.success(
         usuarioAtual
-          ? `Dispositivo transferido para ${nome}.`
-          : `Dispositivo vinculado a ${nome}.`,
+          ? `Dispositivo transferido para ${colaborador.label}.`
+          : `Dispositivo vinculado a ${colaborador.label}.`,
       );
       setOpen(false);
     });
@@ -220,14 +214,21 @@ export function VincularDialog({
         <div className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="vinc-dispositivo">Dispositivo</Label>
-            <Combobox
+            <ComboboxBusca
               id="vinc-dispositivo"
-              opcoes={opcoesDispositivo}
-              value={dispositivoId}
+              value={dispositivo}
               onChange={escolherDispositivo}
+              buscar={async (termo, signal) =>
+                (
+                  await buscarItens<DispositivoOpcao>(
+                    `/api/busca/dispositivos?q=${encodeURIComponent(termo)}`,
+                    signal,
+                  )
+                ).map(opcaoDispositivo)
+              }
               placeholder="Selecione o dispositivo"
-              placeholderBusca="Marca, modelo, serial ou IMEI"
-              vazio="Nenhum dispositivo disponível ou em uso."
+              placeholderBusca="Marca, modelo, serial, IMEI ou usuário"
+              vazio="Nenhum dispositivo disponível ou em uso encontrado."
               disabled={ocupado}
               invalid={Boolean(erros.dispositivo)}
             />
@@ -251,16 +252,27 @@ export function VincularDialog({
 
           <div className="grid gap-2">
             <Label htmlFor="vinc-colaborador">Colaborador</Label>
-            <Combobox
+            <ComboboxBusca
+              // Remonta ao trocar de dispositivo: a exclusão do usuário atual muda.
+              key={usuarioAtual?.id ?? "sem-usuario"}
               id="vinc-colaborador"
-              opcoes={opcoesColaborador}
-              value={colaboradorId}
-              onChange={(id) => {
-                setColaboradorId(id);
+              value={colaborador}
+              onChange={(opcao) => {
+                setColaborador(opcao);
                 setErros((e) => ({ ...e, colaborador: undefined }));
               }}
+              buscar={async (termo, signal) => {
+                const params = new URLSearchParams({ q: termo });
+                if (usuarioAtual) params.set("excluir", usuarioAtual.id);
+                return (
+                  await buscarItens<ColaboradorOpcao>(
+                    `/api/busca/colaboradores?${params}`,
+                    signal,
+                  )
+                ).map(opcaoColaborador);
+              }}
               placeholder="Selecione o colaborador"
-              placeholderBusca="Nome, e-mail ou loja"
+              placeholderBusca="Nome ou e-mail"
               vazio="Nenhum colaborador ativo encontrado."
               disabled={ocupado}
               invalid={Boolean(erros.colaborador)}

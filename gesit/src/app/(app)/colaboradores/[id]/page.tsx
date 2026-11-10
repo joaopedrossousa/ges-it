@@ -32,9 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listarColaboradoresAtivos } from "@/lib/colaboradores";
 import { identificadorDispositivo } from "@/lib/dispositivos";
-import { listarDispositivosVinculaveis } from "@/lib/dispositivos-vinculaveis";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
@@ -74,7 +72,7 @@ async function DetalheColaborador({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [colaboradorRes, vinculosRes, lojas, ativos, vinculaveis] = await Promise.all([
+  const [colaboradorRes, vinculosRes, lojas] = await Promise.all([
     supabase
       .from("colaboradores")
       .select(
@@ -91,8 +89,6 @@ async function DetalheColaborador({
       .order("data_inicio", { ascending: false })
       .order("created_at", { ascending: false }),
     listarLojasOpcoes(),
-    listarColaboradoresAtivos(),
-    listarDispositivosVinculaveis(),
   ]);
 
   if (colaboradorRes.error || vinculosRes.error) {
@@ -197,9 +193,12 @@ async function DetalheColaborador({
           {colaborador.ativo && (
             <CardAction>
               <VincularDialog
-                dispositivos={vinculaveis}
-                colaboradores={ativos}
-                colaboradorInicialId={colaborador.id}
+                colaboradorInicial={{
+                  id: colaborador.id,
+                  nome: colaborador.nome,
+                  email: colaborador.email,
+                  loja_nome: colaborador.loja?.nome ?? null,
+                }}
                 trigger={
                   <Button variant="outline" size="sm">
                     <UserRoundPlusIcon />

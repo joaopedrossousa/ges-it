@@ -29,9 +29,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { listarColaboradoresAtivos } from "@/lib/colaboradores";
-import { listarDispositivosVinculaveis } from "@/lib/dispositivos-vinculaveis";
-import { descricaoDispositivo } from "@/lib/dispositivos";
+import { descricaoDispositivo, identificadorDispositivo } from "@/lib/dispositivos";
+import type { DispositivoOpcao } from "@/lib/opcoes-vinculo";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
@@ -72,7 +71,7 @@ async function DetalheDispositivo({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [dispositivoRes, vinculosRes, colaboradores, vinculaveis] = await Promise.all([
+  const [dispositivoRes, vinculosRes] = await Promise.all([
     supabase.from("dispositivos").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("vinculos")
@@ -82,8 +81,6 @@ async function DetalheDispositivo({
       .eq("dispositivo_id", id)
       .order("data_inicio", { ascending: false })
       .order("created_at", { ascending: false }),
-    listarColaboradoresAtivos(),
-    listarDispositivosVinculaveis(),
   ]);
 
   if (dispositivoRes.error || vinculosRes.error) {
@@ -121,6 +118,18 @@ async function DetalheDispositivo({
   const lojaAtualColaborador = aberto?.colaborador?.loja?.nome ?? null;
 
   const podeVincular = d.status === "disponivel" || d.status === "em_uso";
+
+  // Pré-seleção do diálogo de vincular/transferir.
+  const opcaoDispositivo: DispositivoOpcao = {
+    id: d.id,
+    tipo: d.tipo,
+    marca: d.marca,
+    modelo: d.modelo,
+    identificador: identificadorDispositivo(d),
+    status: d.status,
+    colaborador_id: aberto?.colaborador_id ?? null,
+    colaborador_nome: aberto?.colaborador?.nome ?? null,
+  };
 
   return (
     <div className="space-y-6">
@@ -208,9 +217,7 @@ async function DetalheDispositivo({
             {aberto?.colaborador && (
               <CardAction className="flex gap-2">
                 <VincularDialog
-                  dispositivos={vinculaveis}
-                  colaboradores={colaboradores}
-                  dispositivoInicialId={d.id}
+                  dispositivoInicial={opcaoDispositivo}
                   trigger={
                     <Button variant="outline" size="sm">
                       <ArrowRightLeftIcon />
@@ -288,9 +295,7 @@ async function DetalheDispositivo({
                 </p>
                 {podeVincular ? (
                   <VincularDialog
-                    dispositivos={vinculaveis}
-                    colaboradores={colaboradores}
-                    dispositivoInicialId={d.id}
+                    dispositivoInicial={opcaoDispositivo}
                     trigger={
                       <Button>
                         <UserRoundPlusIcon />

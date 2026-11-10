@@ -15,11 +15,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Paginacao, PaginaInexistente } from "@/components/paginacao";
+import {
+  faixaDaPagina,
+  limparBusca,
+  paginaDoParametro,
+  primeiro,
+} from "@/lib/busca";
+import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
 import { mascararCPF, somenteDigitos } from "@/lib/validators";
 
 import { ColaboradorFormDialog } from "./colaborador-form-dialog";
-import { listarLojasOpcoes } from "@/lib/lojas";
 import { Filtros } from "./filtros";
 import { StatusButton } from "./status-button";
 
@@ -68,15 +75,6 @@ async function BarraDeFerramentas() {
   );
 }
 
-function primeiro(valor: string | string[] | undefined) {
-  return Array.isArray(valor) ? valor[0] : valor;
-}
-
-/** Remove caracteres com significado na sintaxe de filtros do PostgREST. */
-function limparBusca(valor: string) {
-  return valor.replace(/[,()"'\\%*]/g, " ").replace(/\s+/g, " ").trim();
-}
-
 async function TabelaColaboradores({
   searchParams,
 }: {
@@ -87,11 +85,16 @@ async function TabelaColaboradores({
   const lojaParam = primeiro(params.loja);
   const lojaId = z.uuid().safeParse(lojaParam).success ? lojaParam : undefined;
 
+  const pagina = paginaDoParametro(primeiro(params.page));
+  const { de, ate } = faixaDaPagina(pagina);
+
   const supabase = await createClient();
   let query = supabase
     .from("colaboradores")
-    .select("id, nome, cpf, email, ativo, loja:lojas(nome)")
-    .order("nome");
+    .select("id, nome, cpf, email, ativo, loja:lojas(nome)", { count: "exact" })
+    .order("nome")
+    .order("id") // desempate estável entre páginas
+    .range(de, ate);
 
   if (lojaId) query = query.eq("loja_id", lojaId);
 
@@ -102,8 +105,11 @@ async function TabelaColaboradores({
     query = query.or(filtros.join(","));
   }
 
-  const { data, error } = await query;
+  const { data, count, error } = await query;
 
+  if (error?.code === "PGRST103") {
+    return <PaginaInexistente pathname="/colaboradores" params={params} />;
+  }
   if (error) {
     console.error("Erro ao listar colaboradores:", error);
     return (
@@ -180,9 +186,13 @@ async function TabelaColaboradores({
           </TableBody>
         </Table>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {linhas.length} {linhas.length === 1 ? "usuário" : "usuários"}
-      </p>
+      <Paginacao
+        pathname="/colaboradores"
+        params={params}
+        pagina={pagina}
+        total={count ?? linhas.length}
+        rotulo={["usuário", "usuários"]}
+      />
     </div>
   );
 }

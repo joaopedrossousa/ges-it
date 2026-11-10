@@ -21,9 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { listarColaboradoresAtivos } from "@/lib/colaboradores";
+import { Paginacao, PaginaInexistente } from "@/components/paginacao";
+import {
+  faixaDaPagina,
+  limparBusca,
+  paginaDoParametro,
+  primeiro,
+} from "@/lib/busca";
 import { identificadorDispositivo } from "@/lib/dispositivos";
-import { listarDispositivosVinculaveis } from "@/lib/dispositivos-vinculaveis";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -57,16 +62,14 @@ export default function DispositivosPage({
           <p className="text-muted-foreground">Notebooks e telefones.</p>
         </div>
         <div className="flex gap-2">
-          <Suspense
-            fallback={
-              <Button variant="outline" disabled>
+          <VincularDialog
+            trigger={
+              <Button variant="outline">
                 <UserRoundPlusIcon />
                 Vincular
               </Button>
             }
-          >
-            <BotaoVincular />
-          </Suspense>
+          />
           <DispositivoFormDialog
             trigger={
               <Button>
@@ -89,37 +92,9 @@ export default function DispositivosPage({
   );
 }
 
-async function BotaoVincular() {
-  const [dispositivos, colaboradores] = await Promise.all([
-    listarDispositivosVinculaveis(),
-    listarColaboradoresAtivos(),
-  ]);
-  return (
-    <VincularDialog
-      dispositivos={dispositivos}
-      colaboradores={colaboradores}
-      trigger={
-        <Button variant="outline">
-          <UserRoundPlusIcon />
-          Vincular
-        </Button>
-      }
-    />
-  );
-}
-
 async function BarraDeFiltros() {
   const lojas = await listarLojasOpcoes();
   return <Filtros lojas={lojas} />;
-}
-
-function primeiro(valor: string | string[] | undefined) {
-  return Array.isArray(valor) ? valor[0] : valor;
-}
-
-/** Remove caracteres com significado na sintaxe de filtros do PostgREST. */
-function limparBusca(valor: string) {
-  return valor.replace(/[,()"'\\%*]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 const tipoSchema = z.enum(TIPOS_DISPOSITIVO);
@@ -152,13 +127,18 @@ async function TabelaDispositivos({
   const lojaParam = primeiro(params.loja);
   const lojaId = z.uuid().safeParse(lojaParam).success ? lojaParam : undefined;
 
+  const pagina = paginaDoParametro(primeiro(params.page));
+  const { de, ate } = faixaDaPagina(pagina);
+
   const supabase = await createClient();
   let query = supabase
     .from("vw_dispositivos")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("tipo")
     .order("marca")
-    .order("modelo");
+    .order("modelo")
+    .order("id") // desempate estável entre páginas
+    .range(de, ate);
 
   if (tipo) query = query.eq("tipo", tipo);
   if (status) query = query.eq("status", status);
@@ -179,8 +159,11 @@ async function TabelaDispositivos({
     query = query.or(filtros.join(","));
   }
 
-  const { data, error } = await query;
+  const { data, count, error } = await query;
 
+  if (error?.code === "PGRST103") {
+    return <PaginaInexistente pathname="/dispositivos" params={params} />;
+  }
   if (error) {
     console.error("Erro ao listar dispositivos:", error);
     return (
@@ -297,9 +280,13 @@ async function TabelaDispositivos({
           </TableBody>
         </Table>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {data.length} {data.length === 1 ? "dispositivo" : "dispositivos"}
-      </p>
+      <Paginacao
+        pathname="/dispositivos"
+        params={params}
+        pagina={pagina}
+        total={count ?? data.length}
+        rotulo={["dispositivo", "dispositivos"]}
+      />
     </div>
   );
 }
