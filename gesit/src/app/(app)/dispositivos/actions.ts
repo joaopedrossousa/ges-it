@@ -48,6 +48,7 @@ const statusSchema = z.enum(["disponivel", "manutencao", "baixado"], {
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 function revalidar() {
+  revalidatePath("/"); // Dashboard
   revalidatePath("/dispositivos");
   revalidatePath("/dispositivos/[id]", "page");
 }
