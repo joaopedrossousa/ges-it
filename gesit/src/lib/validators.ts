@@ -47,6 +47,28 @@ export function formatarCPF(valor: string): string {
   return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
 }
 
+/**
+ * Máscara de privacidade para listagens: ***.456.789-**.
+ * Se não houver exatamente 11 dígitos, devolve "***.***.***-**".
+ */
+export function mascararCPF(valor: string): string {
+  const cpf = somenteDigitos(valor);
+  if (cpf.length !== 11) return "***.***.***-**";
+  return `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**`;
+}
+
+/**
+ * Formata enquanto o usuário digita (aceita CPF incompleto).
+ * Ex.: "5299822" → "529.982.2"; limita a 11 dígitos.
+ */
+export function formatarCPFDigitando(valor: string): string {
+  const cpf = somenteDigitos(valor).slice(0, 11);
+  return cpf
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
+}
+
 // ===========================================================================
 // IMEI
 // ===========================================================================
@@ -240,6 +262,13 @@ export type VinculoFormData = z.output<typeof vinculoSchema>;
  * formatarCPF("52998224725")              // "529.982.247-25"
  * formatarCPF("529.982.247-25")           // "529.982.247-25"
  * formatarCPF("123")                      // "123" (inalterado)
+ *
+ * mascararCPF("12345678909")              // "***.456.789-**"
+ * mascararCPF("123")                      // "***.***.***-**"
+ *
+ * formatarCPFDigitando("529")             // "529"
+ * formatarCPFDigitando("5299822")         // "529.982.2"
+ * formatarCPFDigitando("529982247251234") // "529.982.247-25" (corta em 11)
  *
  * --- IMEI ---
  * validarIMEI("490154203237518")          // true

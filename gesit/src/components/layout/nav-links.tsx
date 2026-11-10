@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
@@ -23,13 +24,31 @@ function isActive(pathname: string, href: string) {
     : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function NavLinks({
-  orientation = "vertical",
-}: {
-  orientation?: "vertical" | "horizontal";
-}) {
-  const pathname = usePathname();
+type Orientation = "vertical" | "horizontal";
 
+/**
+ * Em rotas dinâmicas o pathname só existe em tempo de execução; o fallback
+ * (menu sem item destacado) entra no shell estático pré-renderizado.
+ */
+export function NavLinks({ orientation = "vertical" }: { orientation?: Orientation }) {
+  return (
+    <Suspense fallback={<Links orientation={orientation} pathname={null} />}>
+      <LinksComDestaque orientation={orientation} />
+    </Suspense>
+  );
+}
+
+function LinksComDestaque({ orientation }: { orientation: Orientation }) {
+  return <Links orientation={orientation} pathname={usePathname()} />;
+}
+
+function Links({
+  orientation,
+  pathname,
+}: {
+  orientation: Orientation;
+  pathname: string | null;
+}) {
   return (
     <nav
       aria-label="Menu principal"
@@ -39,7 +58,7 @@ export function NavLinks({
       )}
     >
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = isActive(pathname, href);
+        const active = pathname !== null && isActive(pathname, href);
         return (
           <Link
             key={href}
