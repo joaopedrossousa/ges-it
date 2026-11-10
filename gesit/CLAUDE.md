@@ -18,6 +18,11 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
 - Termos de responsabilidade: PDF, até 5 MB, bucket privado "termos", enviados direto do navegador para o Storage.
 - Antes de concluir uma tarefa: npm run lint e npm run build sem erros.
 
+## Git
+- Ao concluir cada tarefa, com lint e build passando, faça commit local com mensagem no padrão Conventional Commits em português (ex.: "feat: dashboard de ativos").
+- Antes do commit, mostre o git status e confira que .env.local e arquivos de cache não estão incluídos.
+- Nunca rode git push, nunca use --force e nunca reescreva o histórico (rebase, reset --hard, amend em commits antigos).
+
 ## Tipos do banco
 - Depois de alterar o SQL: rodar npm run gen:types.
 - Colunas de vw_dispositivos vêm anuláveis nos tipos; tratar null ao exibir.
