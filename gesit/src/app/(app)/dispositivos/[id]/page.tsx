@@ -30,6 +30,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { listarColaboradoresAtivos } from "@/lib/colaboradores";
+import { listarDispositivosVinculaveis } from "@/lib/dispositivos-vinculaveis";
 import { descricaoDispositivo } from "@/lib/dispositivos";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -71,17 +72,18 @@ async function DetalheDispositivo({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [dispositivoRes, vinculosRes, colaboradores] = await Promise.all([
+  const [dispositivoRes, vinculosRes, colaboradores, vinculaveis] = await Promise.all([
     supabase.from("dispositivos").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("vinculos")
       .select(
-        "id, dispositivo_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome), colaborador:colaboradores(id, nome, email, loja:lojas(nome))",
+        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome), colaborador:colaboradores(id, nome, email, loja:lojas(nome))",
       )
       .eq("dispositivo_id", id)
       .order("data_inicio", { ascending: false })
       .order("created_at", { ascending: false }),
     listarColaboradoresAtivos(),
+    listarDispositivosVinculaveis(),
   ]);
 
   if (dispositivoRes.error || vinculosRes.error) {
@@ -206,10 +208,9 @@ async function DetalheDispositivo({
             {aberto?.colaborador && (
               <CardAction className="flex gap-2">
                 <VincularDialog
-                  modo="transferir"
-                  dispositivo={resumo}
+                  dispositivos={vinculaveis}
                   colaboradores={colaboradores}
-                  colaboradorAtualId={aberto.colaborador.id}
+                  dispositivoInicialId={d.id}
                   trigger={
                     <Button variant="outline" size="sm">
                       <ArrowRightLeftIcon />
@@ -265,6 +266,7 @@ async function DetalheDispositivo({
                       <AnexarTermoButton
                         vinculoId={aberto.id}
                         dispositivoId={d.id}
+                        colaboradorId={aberto.colaborador_id}
                         size="sm"
                       />
                     </span>
@@ -286,9 +288,9 @@ async function DetalheDispositivo({
                 </p>
                 {podeVincular ? (
                   <VincularDialog
-                    modo="vincular"
-                    dispositivo={resumo}
+                    dispositivos={vinculaveis}
                     colaboradores={colaboradores}
+                    dispositivoInicialId={d.id}
                     trigger={
                       <Button>
                         <UserRoundPlusIcon />

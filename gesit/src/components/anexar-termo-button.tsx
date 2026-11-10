@@ -11,11 +11,21 @@ import { enviarTermo, validarArquivoTermo } from "@/lib/termos";
 type Props = {
   vinculoId: string;
   dispositivoId: string;
+  colaboradorId: string;
   size?: "xs" | "sm";
 };
 
-/** Escolhe o PDF, envia para o Storage e grava no vínculo (só se estiver sem termo). */
-export function AnexarTermoButton({ vinculoId, dispositivoId, size = "xs" }: Props) {
+/**
+ * Escolhe o PDF, envia para o Storage em
+ * {dispositivo_id}/{timestamp}_{colaborador_id}.pdf e grava no vínculo
+ * (a função SQL anexar_termo só aceita se termo_path estiver nulo).
+ */
+export function AnexarTermoButton({
+  vinculoId,
+  dispositivoId,
+  colaboradorId,
+  size = "xs",
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [etapa, setEtapa] = useState<"enviando" | "salvando" | null>(null);
   const [, startTransition] = useTransition();
@@ -32,7 +42,7 @@ export function AnexarTermoButton({ vinculoId, dispositivoId, size = "xs" }: Pro
 
     startTransition(async () => {
       setEtapa("enviando");
-      const envio = await enviarTermo(dispositivoId, arquivo);
+      const envio = await enviarTermo(dispositivoId, colaboradorId, arquivo);
       if ("erro" in envio) {
         setEtapa(null);
         toast.error(envio.erro);
@@ -43,7 +53,10 @@ export function AnexarTermoButton({ vinculoId, dispositivoId, size = "xs" }: Pro
       const result = await anexarTermo(vinculoId, envio.path);
       setEtapa(null);
       if (!result.ok) {
-        toast.error(result.error);
+        toast.error(result.error, {
+          description: `O PDF enviado ficou órfão em termos/${envio.path} (não foi apagado).`,
+          duration: 15000,
+        });
         return;
       }
       toast.success("Termo anexado.");

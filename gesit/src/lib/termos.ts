@@ -14,15 +14,21 @@ export function validarArquivoTermo(arquivo: File | null): string | null {
   return null;
 }
 
+/** Caminho no bucket: {dispositivo_id}/{timestamp}_{colaborador_id}.pdf */
+export function caminhoTermo(dispositivoId: string, colaboradorId: string) {
+  return `${dispositivoId}/${Date.now()}_${colaboradorId}.pdf`;
+}
+
 /**
- * Envia o PDF direto do navegador para o bucket privado "termos",
- * em <dispositivo_id>/<timestamp>-<uuid>.pdf. Uso apenas em Client Components.
+ * Envia o PDF direto do navegador para o bucket privado "termos".
+ * Uso apenas em Client Components.
  */
 export async function enviarTermo(
   dispositivoId: string,
+  colaboradorId: string,
   arquivo: File,
 ): Promise<{ path: string } | { erro: string }> {
-  const path = `${dispositivoId}/${Date.now()}-${crypto.randomUUID()}.pdf`;
+  const path = caminhoTermo(dispositivoId, colaboradorId);
   const supabase = createClient();
   const { error } = await supabase.storage.from("termos").upload(path, arquivo, {
     contentType: "application/pdf",

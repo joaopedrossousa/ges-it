@@ -235,10 +235,10 @@ export async function vincularDispositivo(
   if (!parsed.success) return errosDoZod(parsed.error);
   const { dispositivo_id, colaborador_id, termo_path, observacao } = parsed.data;
 
-  // Só aceita arquivos enviados para a pasta deste dispositivo.
+  // Só aceita {dispositivo_id}/{timestamp}_{colaborador_id}.pdf deste vínculo.
   if (
     termo_path &&
-    !new RegExp(`^${dispositivo_id}/[\\w-]+\\.pdf$`).test(termo_path)
+    !new RegExp(`^${dispositivo_id}/\\d+_${colaborador_id}\\.pdf$`).test(termo_path)
   ) {
     return {
       ok: false,
@@ -304,7 +304,9 @@ export async function anexarTermo(
   if (
     !idSchema.safeParse(vinculoId).success ||
     typeof termoPath !== "string" ||
-    !/^[0-9a-f-]{36}\/[\w-]+\.pdf$/.test(termoPath)
+    // {dispositivo_id}/{timestamp}_{colaborador_id}.pdf — a pasta do
+    // dispositivo é conferida de novo na função SQL anexar_termo.
+    !/^[0-9a-f-]{36}\/\d+_[0-9a-f-]{36}\.pdf$/.test(termoPath)
   ) {
     return { ok: false, error: "Dados inválidos." };
   }

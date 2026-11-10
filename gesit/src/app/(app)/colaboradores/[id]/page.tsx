@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, PencilIcon } from "lucide-react";
+import { ArrowLeftIcon, PencilIcon, UserRoundPlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,8 +15,10 @@ import {
 import { LinkTermo } from "@/components/link-termo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { VincularDialog } from "@/app/(app)/dispositivos/vincular-dialog";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -30,7 +32,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { listarColaboradoresAtivos } from "@/lib/colaboradores";
 import { identificadorDispositivo } from "@/lib/dispositivos";
+import { listarDispositivosVinculaveis } from "@/lib/dispositivos-vinculaveis";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
@@ -70,7 +74,7 @@ async function DetalheColaborador({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [colaboradorRes, vinculosRes, lojas] = await Promise.all([
+  const [colaboradorRes, vinculosRes, lojas, ativos, vinculaveis] = await Promise.all([
     supabase
       .from("colaboradores")
       .select(
@@ -81,12 +85,14 @@ async function DetalheColaborador({
     supabase
       .from("vinculos")
       .select(
-        "id, dispositivo_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome), dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1)",
+        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome), dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1)",
       )
       .eq("colaborador_id", id)
       .order("data_inicio", { ascending: false })
       .order("created_at", { ascending: false }),
     listarLojasOpcoes(),
+    listarColaboradoresAtivos(),
+    listarDispositivosVinculaveis(),
   ]);
 
   if (colaboradorRes.error || vinculosRes.error) {
@@ -188,6 +194,21 @@ async function DetalheColaborador({
               ? "Nenhum dispositivo vinculado no momento."
               : `${atuais.length} ${atuais.length === 1 ? "dispositivo vinculado" : "dispositivos vinculados"}.`}
           </CardDescription>
+          {colaborador.ativo && (
+            <CardAction>
+              <VincularDialog
+                dispositivos={vinculaveis}
+                colaboradores={ativos}
+                colaboradorInicialId={colaborador.id}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <UserRoundPlusIcon />
+                    Vincular dispositivo
+                  </Button>
+                }
+              />
+            </CardAction>
+          )}
         </CardHeader>
         {atuais.length > 0 && (
           <CardContent>
@@ -225,7 +246,11 @@ async function DetalheColaborador({
                         {v.termo_path ? (
                           <LinkTermo path={v.termo_path} />
                         ) : (
-                          <AnexarTermoButton vinculoId={v.id} dispositivoId={d.id} />
+                          <AnexarTermoButton
+                            vinculoId={v.id}
+                            dispositivoId={d.id}
+                            colaboradorId={colaborador.id}
+                          />
                         )}
                       </TableCell>
                     </TableRow>

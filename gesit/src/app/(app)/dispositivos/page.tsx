@@ -3,6 +3,7 @@ import {
   ChevronRightIcon,
   PencilIcon,
   PlusIcon,
+  UserRoundPlusIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -20,7 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { listarColaboradoresAtivos } from "@/lib/colaboradores";
 import { identificadorDispositivo } from "@/lib/dispositivos";
+import { listarDispositivosVinculaveis } from "@/lib/dispositivos-vinculaveis";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -37,6 +40,7 @@ import {
 } from "./dispositivo-form-dialog";
 import { Filtros } from "./filtros";
 import { StatusDialog } from "./status-dialog";
+import { VincularDialog } from "./vincular-dialog";
 
 export const metadata: Metadata = { title: "Dispositivos" };
 
@@ -52,14 +56,26 @@ export default function DispositivosPage({
           <h1 className="text-2xl font-semibold tracking-tight">Dispositivos</h1>
           <p className="text-muted-foreground">Notebooks e telefones.</p>
         </div>
-        <DispositivoFormDialog
-          trigger={
-            <Button>
-              <PlusIcon />
-              Novo dispositivo
-            </Button>
-          }
-        />
+        <div className="flex gap-2">
+          <Suspense
+            fallback={
+              <Button variant="outline" disabled>
+                <UserRoundPlusIcon />
+                Vincular
+              </Button>
+            }
+          >
+            <BotaoVincular />
+          </Suspense>
+          <DispositivoFormDialog
+            trigger={
+              <Button>
+                <PlusIcon />
+                Novo dispositivo
+              </Button>
+            }
+          />
+        </div>
       </div>
 
       <Suspense fallback={<div className="h-8" />}>
@@ -70,6 +86,25 @@ export default function DispositivosPage({
         <TabelaDispositivos searchParams={searchParams} />
       </Suspense>
     </div>
+  );
+}
+
+async function BotaoVincular() {
+  const [dispositivos, colaboradores] = await Promise.all([
+    listarDispositivosVinculaveis(),
+    listarColaboradoresAtivos(),
+  ]);
+  return (
+    <VincularDialog
+      dispositivos={dispositivos}
+      colaboradores={colaboradores}
+      trigger={
+        <Button variant="outline">
+          <UserRoundPlusIcon />
+          Vincular
+        </Button>
+      }
+    />
   );
 }
 

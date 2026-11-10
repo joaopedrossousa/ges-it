@@ -15,8 +15,9 @@ import { formatarDataHora, formatarDuracao } from "@/lib/format";
 
 export type LinhaHistorico = {
   id: string;
-  /** Usado para anexar termo na pasta do dispositivo. */
+  /** Usados para anexar termo em {dispositivo_id}/{timestamp}_{colaborador_id}.pdf. */
   dispositivo_id: string;
+  colaborador_id: string;
   data_inicio: string;
   data_fim: string | null;
   termo_path: string | null;
@@ -116,7 +117,11 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
               {v.termo_path ? (
                 <LinkTermo path={v.termo_path} />
               ) : (
-                <AnexarTermoButton vinculoId={v.id} dispositivoId={v.dispositivo_id} />
+                <AnexarTermoButton
+                  vinculoId={v.id}
+                  dispositivoId={v.dispositivo_id}
+                  colaboradorId={v.colaborador_id}
+                />
               )}
             </TableCell>
             <TableCell className="min-w-48 text-sm whitespace-normal">
