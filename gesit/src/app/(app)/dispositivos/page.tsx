@@ -1,5 +1,11 @@
-import { ArrowRightLeftIcon, PencilIcon, PlusIcon } from "lucide-react";
+import {
+  ArrowRightLeftIcon,
+  ChevronRightIcon,
+  PencilIcon,
+  PlusIcon,
+} from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { z } from "zod";
 
@@ -14,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { identificadorDispositivo } from "@/lib/dispositivos";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -22,7 +29,7 @@ import {
   TIPO_DISPOSITIVO_LABEL,
   type VwDispositivoRow,
 } from "@/lib/types";
-import { formatarIMEI, somenteDigitos } from "@/lib/validators";
+import { somenteDigitos } from "@/lib/validators";
 
 import {
   DispositivoFormDialog,
@@ -83,11 +90,6 @@ function limparBusca(valor: string) {
 const tipoSchema = z.enum(TIPOS_DISPOSITIVO);
 const statusSchema = z.enum(STATUS_DISPOSITIVO);
 
-function identificador(d: VwDispositivoRow) {
-  if (d.tipo === "telefone" && d.imei1) return formatarIMEI(d.imei1);
-  return d.serial_number ?? (d.imei1 ? formatarIMEI(d.imei1) : "—");
-}
-
 /** Linhas da view vêm com colunas anuláveis; só edita se os dados básicos existirem. */
 function paraEdicao(d: VwDispositivoRow): DispositivoEditavel | null {
   if (!d.id || !d.tipo || d.marca === null || d.modelo === null) return null;
@@ -126,12 +128,8 @@ async function TabelaDispositivos({
   if (tipo) query = query.eq("tipo", tipo);
   if (status) query = query.eq("status", status);
 
-  if (lojaId) {
-    // A view expõe só o nome da loja (único no banco).
-    const lojas = await listarLojasOpcoes();
-    const loja = lojas.find((l) => l.id === lojaId);
-    query = query.eq("loja_nome", loja?.nome ?? "");
-  }
+  // loja_id da view = loja gravada no vínculo aberto (migration 002).
+  if (lojaId) query = query.eq("loja_id", lojaId);
 
   if (busca) {
     const filtros = [
@@ -195,9 +193,19 @@ async function TabelaDispositivos({
                   className={d.status === "baixado" ? "opacity-60" : undefined}
                 >
                   <TableCell>{d.tipo ? TIPO_DISPOSITIVO_LABEL[d.tipo] : "—"}</TableCell>
-                  <TableCell className="font-medium">{d.marca ?? "—"}</TableCell>
+                  <TableCell className="font-medium">
+                    {d.id ? (
+                      <Link href={`/dispositivos/${d.id}`} className="hover:underline">
+                        {d.marca ?? "—"}
+                      </Link>
+                    ) : (
+                      (d.marca ?? "—")
+                    )}
+                  </TableCell>
                   <TableCell>{d.modelo ?? "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{identificador(d)}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {identificadorDispositivo(d)}
+                  </TableCell>
                   <TableCell>
                     <StatusDispositivoBadge status={d.status} />
                   </TableCell>
@@ -228,7 +236,7 @@ async function TabelaDispositivos({
                         <StatusDialog
                           dispositivo={{
                             id: editavel.id,
-                            descricao: `${editavel.marca} ${editavel.modelo} · ${identificador(d)}`,
+                            descricao: `${editavel.marca} ${editavel.modelo} · ${identificadorDispositivo(d)}`,
                             status: d.status,
                             colaboradorNome: d.colaborador_nome,
                           }}
@@ -239,6 +247,12 @@ async function TabelaDispositivos({
                             </Button>
                           }
                         />
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/dispositivos/${editavel.id}`}>
+                            Detalhes
+                            <ChevronRightIcon />
+                          </Link>
+                        </Button>
                       </div>
                     )}
                   </TableCell>

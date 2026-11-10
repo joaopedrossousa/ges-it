@@ -131,6 +131,7 @@ export type Database = {
           dispositivo_id: string
           encerrado_por: string | null
           id: string
+          loja_id: string
           observacao: string | null
           observacao_devolucao: string | null
           termo_path: string | null
@@ -144,6 +145,7 @@ export type Database = {
           dispositivo_id: string
           encerrado_por?: string | null
           id?: string
+          loja_id: string
           observacao?: string | null
           observacao_devolucao?: string | null
           termo_path?: string | null
@@ -157,6 +159,7 @@ export type Database = {
           dispositivo_id?: string
           encerrado_por?: string | null
           id?: string
+          loja_id?: string
           observacao?: string | null
           observacao_devolucao?: string | null
           termo_path?: string | null
@@ -190,6 +193,13 @@ export type Database = {
             referencedRelation: "vw_dispositivos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vinculos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -202,6 +212,7 @@ export type Database = {
           id: string | null
           imei1: string | null
           imei2: string | null
+          loja_id: string | null
           loja_nome: string | null
           marca: string | null
           modelo: string | null
@@ -214,10 +225,22 @@ export type Database = {
           vinculado_em: string | null
           vinculo_id: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vinculos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
+      anexar_termo: {
+        Args: { p_termo_path: string; p_vinculo_id: string }
+        Returns: undefined
+      }
       devolver_dispositivo: {
         Args: {
           p_dispositivo_id: string

@@ -9,8 +9,10 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { createClient } from "@/lib/supabase/server";
+import type { TipoDispositivo } from "@/lib/types";
 import {
   colaboradorSchema,
+  formatarIMEI,
   type ColaboradorFormInput,
 } from "@/lib/validators";
 
@@ -72,21 +74,90 @@ export async function atualizarColaborador(
   return { ok: true };
 }
 
+export type DispositivoPendente = {
+  id: string;
+  tipo: TipoDispositivo;
+  marca: string;
+  modelo: string;
+  /** Ex.: "IMEI 35-209900-176148-1" ou "Serial ABC123". */
+  identificacao: string;
+};
+
+export type ResultadoStatusColaborador =
+  | { ok: true }
+  | {
+      ok: false;
+      error: string;
+      /** Presente quando a inativação foi barrada por vínculos abertos. */
+      dispositivosPendentes?: DispositivoPendente[];
+    };
+
+const MSG_VINCULOS_ABERTOS =
+  "Devolva ou transfira os dispositivos antes de inativar.";
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/** Dispositivos com vínculo aberto (data_fim nula) para o colaborador. */
+async function dispositivosEmAberto(
+  supabase: Supabase,
+  colaboradorId: string,
+): Promise<{ lista: DispositivoPendente[]; erro: ActionResult | null }> {
+  const { data, error } = await supabase
+    .from("vinculos")
+    .select("dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1)")
+    .eq("colaborador_id", colaboradorId)
+    .is("data_fim", null);
+
+  if (error) return { lista: [], erro: erroDoBanco(error) };
+
+  const lista = data.flatMap(({ dispositivo: d }) => {
+    if (!d) return [];
+    const identificacao =
+      d.tipo === "telefone" && d.imei1
+        ? `IMEI ${formatarIMEI(d.imei1)}`
+        : d.serial_number
+          ? `Serial ${d.serial_number}`
+          : "Sem identificador";
+    return [{ id: d.id, tipo: d.tipo, marca: d.marca, modelo: d.modelo, identificacao }];
+  });
+  return { lista, erro: null };
+}
+
 export async function alterarStatusColaborador(
   id: string,
   ativo: boolean,
-): Promise<ActionResult> {
+): Promise<ResultadoStatusColaborador> {
   if (!idSchema.safeParse(id).success || typeof ativo !== "boolean") {
     return { ok: false, error: "Dados inválidos." };
   }
 
   const supabase = await createClient();
+
+  // Regra: não inativar quem ainda está com dispositivos.
+  if (!ativo) {
+    const { lista, erro } = await dispositivosEmAberto(supabase, id);
+    if (erro) return erro;
+    if (lista.length > 0) {
+      return { ok: false, error: MSG_VINCULOS_ABERTOS, dispositivosPendentes: lista };
+    }
+  }
+
   const { data, error } = await supabase
     .from("colaboradores")
     .update({ ativo })
     .eq("id", id)
     .select("id");
-  if (error) return erroDoBanco(error);
+
+  if (error) {
+    // A trigger trg_colaboradores_bloqueia_inativacao (migration 002) barra
+    // a inativação se um vínculo surgiu entre a checagem acima e o update.
+    if (error.code === "P0001" && error.message.startsWith("Devolva ou transfira")) {
+      const { lista } = await dispositivosEmAberto(supabase, id);
+      revalidar(id);
+      return { ok: false, error: MSG_VINCULOS_ABERTOS, dispositivosPendentes: lista };
+    }
+    return erroDoBanco(error);
+  }
   if (!data?.length) return { ok: false, error: "Usuário não encontrado." };
 
   revalidar(id);

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { TIPO_DISPOSITIVO_LABEL, type TipoDispositivo } from "@/lib/types";
 import {
   formatarIMEIDigitando,
@@ -383,12 +384,11 @@ function CampoObservacao({
   return (
     <div className="grid gap-2">
       <Label htmlFor="disp-obs">Observação (opcional)</Label>
-      <textarea
+      <Textarea
         id="disp-obs"
         rows={2}
         aria-invalid={Boolean(erro)}
         disabled={disabled}
-        className="min-h-16 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50 aria-invalid:border-destructive dark:bg-input/30"
         {...register("observacao")}
       />
       {erro && <p className="text-sm text-destructive">{erro}</p>}

@@ -239,6 +239,13 @@ export const vinculoSchema = z.object({
   observacao: textoOpcional(1000),
 });
 
+/** Argumentos de devolver_dispositivo. */
+export const devolucaoSchema = z.object({
+  dispositivo_id: idObrigatorio("Dispositivo inválido."),
+  observacao: textoOpcional(1000),
+  novo_status: statusEditavel,
+});
+
 // Tipos de entrada (formulário) e saída (já normalizada para o banco).
 export type LojaFormInput = z.input<typeof lojaSchema>;
 export type LojaFormData = z.output<typeof lojaSchema>;
@@ -252,6 +259,8 @@ export type DispositivoFormInput = z.input<typeof dispositivoSchema>;
 export type DispositivoFormData = z.output<typeof dispositivoSchema>;
 export type VinculoFormInput = z.input<typeof vinculoSchema>;
 export type VinculoFormData = z.output<typeof vinculoSchema>;
+export type DevolucaoFormInput = z.input<typeof devolucaoSchema>;
+export type DevolucaoFormData = z.output<typeof devolucaoSchema>;
 
 /* ===========================================================================
  * Testes simples (exemplos conferidos manualmente)

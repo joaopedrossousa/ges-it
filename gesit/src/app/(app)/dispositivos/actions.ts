@@ -9,10 +9,15 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { createClient } from "@/lib/supabase/server";
+import { STATUS_DISPOSITIVO_LABEL, type StatusDispositivo } from "@/lib/types";
 import {
+  devolucaoSchema,
   dispositivoSchema,
+  vinculoSchema,
+  type DevolucaoFormInput,
   type DispositivoFormData,
   type DispositivoFormInput,
+  type VinculoFormInput,
 } from "@/lib/validators";
 
 type CampoDispositivo = "marca" | "modelo" | "serial_number" | "imei1" | "imei2";
@@ -44,6 +49,13 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 function revalidar() {
   revalidatePath("/dispositivos");
+  revalidatePath("/dispositivos/[id]", "page");
+}
+
+/** Vínculos também aparecem no detalhe dos usuários envolvidos. */
+function revalidarVinculos() {
+  revalidar();
+  revalidatePath("/colaboradores/[id]", "page");
 }
 
 /** Campos gravados no banco. `status` e `tipo` nunca mudam pela edição. */
@@ -193,5 +205,117 @@ export async function alterarStatusDispositivo(
   }
 
   revalidar();
+  return { ok: true };
+}
+
+// ===========================================================================
+// Vínculos
+// ===========================================================================
+
+type CampoVinculo = "colaborador_id" | "termo_path" | "observacao";
+
+/** Troca "(status: manutencao)" das mensagens do SQL pelo rótulo em português. */
+function mensagemStatus(texto: string) {
+  return texto.replace(/\(status: (\w+)\)/, (_, s: string) =>
+    s in STATUS_DISPOSITIVO_LABEL
+      ? `(${STATUS_DISPOSITIVO_LABEL[s as StatusDispositivo].toLowerCase()})`
+      : `(${s})`,
+  );
+}
+
+/**
+ * Vincula o dispositivo a um usuário. Se já houver vínculo aberto, a função
+ * SQL vincular_dispositivo encerra o anterior (transferência).
+ * O PDF do termo já foi enviado pelo navegador para o bucket "termos".
+ */
+export async function vincularDispositivo(
+  input: VinculoFormInput,
+): Promise<ActionResult<CampoVinculo>> {
+  const parsed = vinculoSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+  const { dispositivo_id, colaborador_id, termo_path, observacao } = parsed.data;
+
+  // Só aceita arquivos enviados para a pasta deste dispositivo.
+  if (
+    termo_path &&
+    !new RegExp(`^${dispositivo_id}/[\\w-]+\\.pdf$`).test(termo_path)
+  ) {
+    return {
+      ok: false,
+      error: "Arquivo do termo inválido.",
+      fieldErrors: { termo_path: "Arquivo do termo inválido." },
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("vincular_dispositivo", {
+    p_dispositivo_id: dispositivo_id,
+    p_colaborador_id: colaborador_id,
+    p_termo_path: termo_path ?? undefined,
+    p_observacao: observacao ?? undefined,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        ok: false,
+        error: "Este dispositivo acabou de receber outro vínculo. Atualize a página.",
+      };
+    }
+    const resultado = erroDoBanco<CampoVinculo>(error);
+    return resultado.ok
+      ? resultado
+      : { ...resultado, error: mensagemStatus(resultado.error) };
+  }
+
+  revalidarVinculos();
+  return { ok: true };
+}
+
+/** Encerra o vínculo aberto e define o novo status do dispositivo. */
+export async function devolverDispositivo(
+  input: DevolucaoFormInput,
+): Promise<ActionResult<"observacao" | "novo_status">> {
+  const parsed = devolucaoSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+  const { dispositivo_id, observacao, novo_status } = parsed.data;
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("devolver_dispositivo", {
+    p_dispositivo_id: dispositivo_id,
+    p_observacao: observacao ?? undefined,
+    p_novo_status: novo_status,
+  });
+  if (error) return erroDoBanco(error);
+
+  revalidarVinculos();
+  return { ok: true };
+}
+
+/**
+ * Anexa o termo a um vínculo sem termo. A função SQL anexar_termo trava o
+ * vínculo, recusa se já houver termo, confere a pasta do dispositivo e se o
+ * arquivo existe no bucket.
+ */
+export async function anexarTermo(
+  vinculoId: string,
+  termoPath: string,
+): Promise<ActionResult> {
+  if (
+    !idSchema.safeParse(vinculoId).success ||
+    typeof termoPath !== "string" ||
+    !/^[0-9a-f-]{36}\/[\w-]+\.pdf$/.test(termoPath)
+  ) {
+    return { ok: false, error: "Dados inválidos." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("anexar_termo", {
+    p_vinculo_id: vinculoId,
+    p_termo_path: termoPath,
+  });
+  if (error) return erroDoBanco(error);
+
+  revalidarVinculos();
   return { ok: true };
 }

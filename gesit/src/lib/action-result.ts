@@ -59,6 +59,11 @@ export function erroDoBanco<Campo extends string>(
     return { ok: false, error: "Registro já cadastrado." };
   }
 
+  // `raise exception` das nossas funções SQL: mensagens já em português.
+  if (error.code === "P0001" && error.message) {
+    return { ok: false, error: error.message.endsWith(".") ? error.message : `${error.message}.` };
+  }
+
   const mensagens: Record<string, string> = {
     "42501": "Você não tem permissão para esta operação.",
     "23503": "Registro relacionado não encontrado. Atualize a página.",
