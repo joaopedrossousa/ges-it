@@ -1,5 +1,6 @@
 import { PencilIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { TabelaCarregando } from "@/components/tabela-carregando";
@@ -45,6 +46,7 @@ export default function LojasPage() {
 }
 
 async function TabelaLojas() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const supabase = await createClient();
   const { data: lojas, error } = await supabase
     .from("lojas")

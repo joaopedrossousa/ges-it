@@ -112,6 +112,7 @@ function porTipo(c: Contagem, status: StatusDispositivo) {
 }
 
 async function Indicadores() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const c = await contarDispositivos();
   if (!c) {
     return <p className="text-destructive">Não foi possível carregar os indicadores.</p>;
@@ -174,6 +175,7 @@ async function Indicadores() {
 const LIMITE_SEM_TERMO = 30;
 
 async function VinculosSemTermo() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const supabase = await createClient();
   // Só vínculos abertos: são os que exigem ação (o termo do responsável atual).
   const { data, count, error } = await supabase
@@ -196,7 +198,6 @@ async function VinculosSemTermo() {
     );
   }
 
-  await connection(); // "há X dias" usa o horário da requisição
   const agora = new Date();
   const total = count ?? data.length;
 
@@ -284,6 +285,7 @@ const EVENTO: Record<TipoEvento, { rotulo: string; icone: typeof UndoIcon; prepo
 };
 
 async function UltimasMovimentacoes() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const supabase = await createClient();
 
   // Movimentação = vínculo criado (data_inicio) ou encerrado (data_fim).

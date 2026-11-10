@@ -67,6 +67,7 @@ async function DetalheDispositivo({
 }: {
   params: PageProps<"/dispositivos/[id]">["params"];
 }) {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
@@ -95,7 +96,6 @@ async function DetalheDispositivo({
   const d = dispositivoRes.data;
   if (!d) notFound();
 
-  await connection(); // a duração usa o horário da requisição
   const agora = new Date();
 
   const vinculos = vinculosRes.data;

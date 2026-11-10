@@ -68,6 +68,7 @@ async function DetalheColaborador({
 }: {
   params: PageProps<"/colaboradores/[id]">["params"];
 }) {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
 
@@ -103,7 +104,6 @@ async function DetalheColaborador({
   const colaborador = colaboradorRes.data;
   if (!colaborador) notFound();
 
-  await connection(); // a duração usa o horário da requisição
   const agora = new Date();
 
   const vinculos = vinculosRes.data;

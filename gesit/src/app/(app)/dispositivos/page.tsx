@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 
@@ -93,6 +94,7 @@ export default function DispositivosPage({
 }
 
 async function BarraDeFiltros() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const lojas = await listarLojasOpcoes();
   return <Filtros lojas={lojas} />;
 }
@@ -120,6 +122,7 @@ async function TabelaDispositivos({
 }: {
   searchParams: SearchParams;
 }) {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const params = await searchParams;
   const busca = limparBusca(primeiro(params.q) ?? "").slice(0, 100);
   const tipo = tipoSchema.safeParse(primeiro(params.tipo)).data;

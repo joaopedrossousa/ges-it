@@ -1,6 +1,7 @@
 import { LogOutIcon } from "lucide-react";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { NavLinks } from "@/components/layout/nav-links";
@@ -19,6 +20,7 @@ function Marca() {
 }
 
 async function CurrentUser() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 

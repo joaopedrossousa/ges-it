@@ -1,6 +1,7 @@
 import { ChevronRightIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 
@@ -58,6 +59,7 @@ export default function ColaboradoresPage({
 }
 
 async function BarraDeFerramentas() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const lojas = await listarLojasOpcoes();
   return (
     <div className="flex flex-col-reverse gap-3 md:flex-row md:items-center md:justify-between">
@@ -80,6 +82,7 @@ async function TabelaColaboradores({
 }: {
   searchParams: SearchParams;
 }) {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const params = await searchParams;
   const busca = limparBusca(primeiro(params.q) ?? "").slice(0, 100);
   const lojaParam = primeiro(params.loja);
