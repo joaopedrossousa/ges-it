@@ -18,6 +18,11 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
 - Termos de responsabilidade: PDF, até 5 MB, bucket privado "termos", enviados direto do navegador para o Storage.
 - Antes de concluir uma tarefa: npm run lint e npm run build sem erros.
 
+## Tipos do banco
+- Depois de alterar o SQL: rodar npm run gen:types.
+- Colunas de vw_dispositivos vêm anuláveis nos tipos; tratar null ao exibir.
+- Argumentos opcionais de RPC: converter null com ?? undefined.
+
 ## Estrutura
 - src/lib/supabase/{client,server}.ts
 - src/app/(app)/colaboradores, dispositivos, lojas

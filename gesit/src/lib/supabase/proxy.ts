@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import type { Database } from "@/lib/database.types";
+
 const PUBLIC_PATHS = ["/login"];
 
 function isPublicPath(pathname: string) {
@@ -17,7 +19,7 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   let authHeaders: Record<string, string> = {};
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {

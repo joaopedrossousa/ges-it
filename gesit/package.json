@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:types": "npx --yes supabase@3 gen types typescript --remote=ezwhesaeswugsmzcwezq > src/lib/database.types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^7.0.5",
