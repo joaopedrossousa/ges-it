@@ -21,11 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { STATUS_DISPOSITIVO_LABEL, type StatusDispositivo } from "@/lib/types";
+import { executarAcao } from "@/lib/executar-acao";
+import {
+  STATUS_DISPOSITIVO_LABEL,
+  STATUS_EDITAVEIS,
+  ehStatusEditavel,
+  type StatusDispositivo,
+} from "@/lib/types";
 
 import { alterarStatusDispositivo } from "./actions";
-
-const OPCOES = ["disponivel", "manutencao", "baixado"] as const;
 
 type Props = {
   dispositivo: {
@@ -40,13 +44,15 @@ type Props = {
 
 export function StatusDialog({ dispositivo, trigger }: Props) {
   const [open, setOpen] = useState(false);
-  const [novo, setNovo] = useState<string>(dispositivo.status);
+  const [novo, setNovo] = useState<StatusDispositivo>(dispositivo.status);
   const [erro, setErro] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const vinculado = Boolean(dispositivo.colaboradorNome) || dispositivo.status === "em_uso";
+  const vinculado =
+    Boolean(dispositivo.colaboradorNome) || dispositivo.status === "em_uso";
 
   function onOpenChange(next: boolean) {
+    if (isPending) return;
     if (next) {
       setNovo(dispositivo.status);
       setErro(null);
@@ -55,15 +61,17 @@ export function StatusDialog({ dispositivo, trigger }: Props) {
   }
 
   function salvar() {
+    if (!ehStatusEditavel(novo)) return;
+    const escolhido = novo;
     startTransition(async () => {
-      const result = await alterarStatusDispositivo(dispositivo.id, novo);
+      const result = await executarAcao(() =>
+        alterarStatusDispositivo(dispositivo.id, escolhido),
+      );
       if (!result.ok) {
         setErro(result.error);
         return;
       }
-      toast.success(
-        `Status alterado para "${STATUS_DISPOSITIVO_LABEL[novo as StatusDispositivo]}".`,
-      );
+      toast.success(`Status alterado para "${STATUS_DISPOSITIVO_LABEL[escolhido]}".`);
       setOpen(false);
     });
   }
@@ -89,12 +97,22 @@ export function StatusDialog({ dispositivo, trigger }: Props) {
         ) : (
           <div className="grid gap-2">
             <Label htmlFor="disp-status">Novo status</Label>
-            <Select value={novo} onValueChange={setNovo} disabled={isPending}>
-              <SelectTrigger id="disp-status" className="w-full">
+            <Select
+              value={novo}
+              onValueChange={(v) => {
+                if (ehStatusEditavel(v)) setNovo(v);
+              }}
+              disabled={isPending}
+            >
+              <SelectTrigger
+                id="disp-status"
+                className="w-full"
+                aria-describedby={erro ? "disp-status-erro" : undefined}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {OPCOES.map((s) => (
+                {STATUS_EDITAVEIS.map((s) => (
                   <SelectItem key={s} value={s}>
                     {STATUS_DISPOSITIVO_LABEL[s]}
                   </SelectItem>
@@ -106,6 +124,7 @@ export function StatusDialog({ dispositivo, trigger }: Props) {
 
         {erro && (
           <p
+            id="disp-status-erro"
             role="alert"
             className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >

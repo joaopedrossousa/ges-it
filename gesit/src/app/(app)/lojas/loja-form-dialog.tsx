@@ -5,6 +5,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { executarAcao } from "@/lib/executar-acao";
 import type { LojaRow } from "@/lib/types";
 import {
   lojaSchema,
@@ -62,9 +64,9 @@ export function LojaFormDialog({ loja, trigger }: Props) {
 
   const onSubmit = handleSubmit((values) => {
     startTransition(async () => {
-      const result = loja
-        ? await atualizarLoja(loja.id, values)
-        : await criarLoja(values);
+      const result = await executarAcao(() =>
+        loja ? atualizarLoja(loja.id, values) : criarLoja(values),
+      );
 
       if (!result.ok) {
         for (const [campo, mensagem] of Object.entries(result.fieldErrors ?? {})) {
@@ -98,26 +100,25 @@ export function LojaFormDialog({ loja, trigger }: Props) {
             <Input
               id="loja-nome"
               autoFocus
+              aria-required
               aria-invalid={Boolean(errors.nome)}
+              aria-describedby={errors.nome ? "loja-nome-erro" : undefined}
               disabled={isPending}
               {...register("nome")}
             />
-            {errors.nome && (
-              <p className="text-sm text-destructive">{errors.nome.message}</p>
-            )}
+            <MensagemErro id="loja-nome-erro" mensagem={errors.nome?.message} />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="loja-cidade">Cidade</Label>
+            <Label htmlFor="loja-cidade">Cidade (opcional)</Label>
             <Input
               id="loja-cidade"
               aria-invalid={Boolean(errors.cidade)}
+              aria-describedby={errors.cidade ? "loja-cidade-erro" : undefined}
               disabled={isPending}
               {...register("cidade")}
             />
-            {errors.cidade && (
-              <p className="text-sm text-destructive">{errors.cidade.message}</p>
-            )}
+            <MensagemErro id="loja-cidade-erro" mensagem={errors.cidade?.message} />
           </div>
 
           <div className="flex items-center gap-3">

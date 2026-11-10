@@ -5,9 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 
+import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { executarAcao } from "@/lib/executar-acao";
 
 import { login } from "./actions";
 import { loginSchema, type LoginInput } from "./schema";
@@ -28,7 +30,8 @@ export function LoginForm() {
 
   const onSubmit = handleSubmit((values) => {
     startTransition(async () => {
-      const result = await login(values, searchParams.get("next"));
+      // Em caso de sucesso, login() redireciona (repassado pelo executarAcao).
+      const result = await executarAcao(() => login(values, searchParams.get("next")));
       if (result?.error) {
         setError("root", { message: result.error });
       }
@@ -43,13 +46,13 @@ export function LoginForm() {
           id="email"
           type="email"
           autoComplete="email"
+          aria-required
           aria-invalid={Boolean(errors.email)}
+          aria-describedby={errors.email ? "email-erro" : undefined}
           disabled={isPending}
           {...register("email")}
         />
-        {errors.email && (
-          <p className="text-sm text-destructive">{errors.email.message}</p>
-        )}
+        <MensagemErro id="email-erro" mensagem={errors.email?.message} />
       </div>
 
       <div className="grid gap-2">
@@ -58,13 +61,13 @@ export function LoginForm() {
           id="password"
           type="password"
           autoComplete="current-password"
+          aria-required
           aria-invalid={Boolean(errors.password)}
+          aria-describedby={errors.password ? "password-erro" : undefined}
           disabled={isPending}
           {...register("password")}
         />
-        {errors.password && (
-          <p className="text-sm text-destructive">{errors.password.message}</p>
-        )}
+        <MensagemErro id="password-erro" mensagem={errors.password?.message} />
       </div>
 
       {errors.root && (

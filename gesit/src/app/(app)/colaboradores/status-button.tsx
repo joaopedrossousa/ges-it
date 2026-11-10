@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { executarAcao } from "@/lib/executar-acao";
 import { TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
 
 import { alterarStatusColaborador, type DispositivoPendente } from "./actions";
@@ -42,7 +43,7 @@ export function StatusButton({ id, nome, ativo, size = "sm" }: Props) {
 
   function alternar() {
     startTransition(async () => {
-      const result = await alterarStatusColaborador(id, !ativo);
+      const result = await executarAcao(() => alterarStatusColaborador(id, !ativo));
       if (!result.ok) {
         if (result.dispositivosPendentes?.length) {
           setBloqueio({
@@ -69,6 +70,7 @@ export function StatusButton({ id, nome, ativo, size = "sm" }: Props) {
       >
         {ativo ? <UserXIcon /> : <UserCheckIcon />}
         {isPending ? "Salvando..." : ativo ? "Inativar" : "Reativar"}
+        {!isPending && <span className="sr-only"> {nome}</span>}
       </Button>
 
       <Dialog open={bloqueio !== null} onOpenChange={(o) => !o && setBloqueio(null)}>

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { STATUS_DISPOSITIVO } from "./types";
+import { STATUS_EDITAVEIS } from "./types";
 
 // ===========================================================================
 // Utilitários
@@ -159,14 +159,7 @@ const imeiOpcional = z
  * pela função SQL vincular_dispositivo.
  */
 const statusEditavel = z
-  .enum(
-    STATUS_DISPOSITIVO.filter((s) => s !== "em_uso") as [
-      "disponivel",
-      "manutencao",
-      "baixado",
-    ],
-    { error: "Status inválido." },
-  )
+  .enum(STATUS_EDITAVEIS, { error: "Status inválido." })
   .default("disponivel");
 
 // ===========================================================================

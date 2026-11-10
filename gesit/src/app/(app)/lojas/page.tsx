@@ -92,7 +92,7 @@ async function TabelaLojas() {
                   trigger={
                     <Button variant="ghost" size="sm">
                       <PencilIcon />
-                      Editar
+                      Editar<span className="sr-only"> {loja.nome}</span>
                     </Button>
                   }
                 />

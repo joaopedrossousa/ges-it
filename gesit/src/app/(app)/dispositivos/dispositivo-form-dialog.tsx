@@ -8,10 +8,14 @@ import {
   useForm,
   type Control,
   type FieldErrors,
+  type FieldValues,
+  type Path,
   type UseFormRegisterReturn,
+  type UseFormSetError,
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { executarAcao } from "@/lib/executar-acao";
 import { TIPO_DISPOSITIVO_LABEL, type TipoDispositivo } from "@/lib/types";
 import {
   formatarIMEIDigitando,
@@ -79,7 +84,7 @@ export function DispositivoFormDialog({ dispositivo, trigger }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {editando
@@ -155,11 +160,11 @@ function NotebookForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
 
   const onSubmit = handleSubmit((values) => {
     startTransition(async () => {
-      const result = dispositivo
-        ? await atualizarDispositivo(dispositivo.id, values)
-        : await criarDispositivo(values);
+      const result = await executarAcao(() =>
+        dispositivo ? atualizarDispositivo(dispositivo.id, values) : criarDispositivo(values),
+      );
       if (!result.ok) {
-        aplicarErros(result, setError);
+        aplicarErros(result, setError, ["marca", "modelo", "serial_number", "observacao"]);
         return;
       }
       onSalvo();
@@ -172,6 +177,7 @@ function NotebookForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
       <CampoTexto
         id="disp-serial"
         rotulo="Serial Number"
+        obrigatorio
         erro={errors.serial_number?.message}
         disabled={isPending}
         registro={register("serial_number")}
@@ -205,11 +211,18 @@ function TelefoneForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
 
   const onSubmit = handleSubmit((values) => {
     startTransition(async () => {
-      const result = dispositivo
-        ? await atualizarDispositivo(dispositivo.id, values)
-        : await criarDispositivo(values);
+      const result = await executarAcao(() =>
+        dispositivo ? atualizarDispositivo(dispositivo.id, values) : criarDispositivo(values),
+      );
       if (!result.ok) {
-        aplicarErros(result, setError);
+        aplicarErros(result, setError, [
+          "marca",
+          "modelo",
+          "imei1",
+          "imei2",
+          "serial_number",
+          "observacao",
+        ]);
         return;
       }
       onSalvo();
@@ -224,6 +237,7 @@ function TelefoneForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
           control={control}
           name="imei1"
           rotulo="IMEI 1"
+          obrigatorio
           erro={errors.imei1?.message}
           disabled={isPending}
         />
@@ -257,16 +271,24 @@ type ResultadoErro = {
   fieldErrors?: Partial<Record<string, string>>;
 };
 
-function aplicarErros(
+/**
+ * Mostra os erros do servidor nos campos do formulário; se nenhum campo
+ * tiver erro, mostra a mensagem geral (root).
+ */
+function aplicarErros<T extends FieldValues>(
   result: ResultadoErro,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setError: (campo: any, erro: { message: string }) => void,
+  setError: UseFormSetError<T>,
+  campos: readonly Path<T>[],
 ) {
-  const campos = Object.entries(result.fieldErrors ?? {});
-  for (const [campo, mensagem] of campos) {
-    if (mensagem) setError(campo, { message: mensagem });
+  let algum = false;
+  for (const campo of campos) {
+    const mensagem = result.fieldErrors?.[campo];
+    if (mensagem) {
+      setError(campo, { message: mensagem });
+      algum = true;
+    }
   }
-  if (campos.length === 0) setError("root", { message: result.error });
+  if (!algum) setError("root", { message: result.error });
 }
 
 type CamposComunsProps = {
@@ -281,6 +303,7 @@ function CamposComuns({ register, errors, disabled }: CamposComunsProps) {
       <CampoTexto
         id="disp-marca"
         rotulo="Marca"
+        obrigatorio
         autoFocus
         erro={errors.marca?.message}
         disabled={disabled}
@@ -289,6 +312,7 @@ function CamposComuns({ register, errors, disabled }: CamposComunsProps) {
       <CampoTexto
         id="disp-modelo"
         rotulo="Modelo"
+        obrigatorio
         erro={errors.modelo?.message}
         disabled={disabled}
         registro={register("modelo")}
@@ -304,6 +328,7 @@ function CampoTexto({
   disabled,
   registro,
   autoFocus,
+  obrigatorio,
 }: {
   id: string;
   rotulo: string;
@@ -311,6 +336,7 @@ function CampoTexto({
   disabled: boolean;
   registro: UseFormRegisterReturn;
   autoFocus?: boolean;
+  obrigatorio?: boolean;
 }) {
   return (
     <div className="grid gap-2">
@@ -319,11 +345,13 @@ function CampoTexto({
         id={id}
         autoComplete="off"
         autoFocus={autoFocus}
+        aria-required={obrigatorio || undefined}
         aria-invalid={Boolean(erro)}
+        aria-describedby={erro ? `${id}-erro` : undefined}
         disabled={disabled}
         {...registro}
       />
-      {erro && <p className="text-sm text-destructive">{erro}</p>}
+      <MensagemErro id={`${id}-erro`} mensagem={erro} />
     </div>
   );
 }
@@ -334,12 +362,14 @@ function CampoImei({
   rotulo,
   erro,
   disabled,
+  obrigatorio,
 }: {
   control: Control<TelefoneFormInput, unknown, TelefoneFormData>;
   name: "imei1" | "imei2";
   rotulo: string;
   erro?: string;
   disabled: boolean;
+  obrigatorio?: boolean;
 }) {
   const id = `disp-${name}`;
   return (
@@ -355,7 +385,9 @@ function CampoImei({
             autoComplete="off"
             placeholder="00-000000-000000-0"
             maxLength={18}
+            aria-required={obrigatorio || undefined}
             aria-invalid={Boolean(erro)}
+            aria-describedby={erro ? `${id}-erro` : undefined}
             disabled={disabled}
             name={field.name}
             ref={field.ref}
@@ -366,7 +398,7 @@ function CampoImei({
           />
         )}
       />
-      {erro && <p className="text-sm text-destructive">{erro}</p>}
+      <MensagemErro id={`${id}-erro`} mensagem={erro} />
     </div>
   );
 }
@@ -387,11 +419,13 @@ function CampoObservacao({
       <Textarea
         id="disp-obs"
         rows={2}
+        maxLength={1000}
         aria-invalid={Boolean(erro)}
+        aria-describedby={erro ? "disp-obs-erro" : undefined}
         disabled={disabled}
         {...register("observacao")}
       />
-      {erro && <p className="text-sm text-destructive">{erro}</p>}
+      <MensagemErro id="disp-obs-erro" mensagem={erro} />
     </div>
   );
 }

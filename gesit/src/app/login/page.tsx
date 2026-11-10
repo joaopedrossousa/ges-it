@@ -24,7 +24,20 @@ export default function LoginPage() {
           <CardDescription>Entre com seu e-mail e senha.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Suspense>
+          {/* O formulário lê ?next= no navegador; até lá, um esqueleto. */}
+          <Suspense
+            fallback={
+              <div className="grid gap-4" role="status" aria-label="Carregando...">
+                {[0, 1].map((i) => (
+                  <div key={i} className="grid gap-2">
+                    <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                    <div className="h-8 animate-pulse rounded-lg bg-muted" />
+                  </div>
+                ))}
+                <div className="h-9 animate-pulse rounded-lg bg-muted" />
+              </div>
+            }
+          >
             <LoginForm />
           </Suspense>
         </CardContent>

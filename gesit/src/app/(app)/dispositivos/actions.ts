@@ -9,7 +9,11 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { createClient } from "@/lib/supabase/server";
-import { STATUS_DISPOSITIVO_LABEL, type StatusDispositivo } from "@/lib/types";
+import {
+  STATUS_DISPOSITIVO_LABEL,
+  STATUS_EDITAVEIS,
+  ehStatusDispositivo,
+} from "@/lib/types";
 import {
   devolucaoSchema,
   dispositivoSchema,
@@ -41,9 +45,7 @@ const DUPLICIDADES = [
 ];
 
 const idSchema = z.uuid();
-const statusSchema = z.enum(["disponivel", "manutencao", "baixado"], {
-  error: "Status inválido.",
-});
+const statusSchema = z.enum(STATUS_EDITAVEIS, { error: "Status inválido." });
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -166,7 +168,8 @@ export async function atualizarDispositivo(
  */
 export async function alterarStatusDispositivo(
   id: string,
-  status: string,
+  // `unknown`: Server Actions recebem dados vindos da rede; o zod valida.
+  status: unknown,
 ): Promise<ActionResult> {
   const parsedStatus = statusSchema.safeParse(status);
   if (!idSchema.safeParse(id).success || !parsedStatus.success) {
@@ -218,9 +221,7 @@ type CampoVinculo = "colaborador_id" | "termo_path" | "observacao";
 /** Troca "(status: manutencao)" das mensagens do SQL pelo rótulo em português. */
 function mensagemStatus(texto: string) {
   return texto.replace(/\(status: (\w+)\)/, (_, s: string) =>
-    s in STATUS_DISPOSITIVO_LABEL
-      ? `(${STATUS_DISPOSITIVO_LABEL[s as StatusDispositivo].toLowerCase()})`
-      : `(${s})`,
+    ehStatusDispositivo(s) ? `(${STATUS_DISPOSITIVO_LABEL[s].toLowerCase()})` : `(${s})`,
   );
 }
 

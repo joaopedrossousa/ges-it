@@ -311,17 +311,36 @@ async function UltimasMovimentacoes() {
     );
   }
 
-  const eventos = [
-    ...criados.data.map((v) => ({ v, tipo: "entrega" as TipoEvento, quando: v.data_inicio, ordem: 1 })),
-    ...encerrados.data.map((v) => ({
-      v,
-      tipo: (v.observacao_devolucao === ENCERRADO_POR_TRANSFERENCIA
-        ? "transferencia"
-        : "devolucao") as TipoEvento,
-      quando: v.data_fim!,
-      ordem: 0,
-    })),
-  ]
+  type Evento = {
+    v: (typeof criados.data)[number];
+    tipo: TipoEvento;
+    quando: string;
+    ordem: number;
+  };
+
+  const entregas: Evento[] = criados.data.map((v) => ({
+    v,
+    tipo: "entrega",
+    quando: v.data_inicio,
+    ordem: 1,
+  }));
+  const saidas: Evento[] = encerrados.data.flatMap((v) =>
+    v.data_fim
+      ? [
+          {
+            v,
+            tipo:
+              v.observacao_devolucao === ENCERRADO_POR_TRANSFERENCIA
+                ? "transferencia"
+                : "devolucao",
+            quando: v.data_fim,
+            ordem: 0,
+          },
+        ]
+      : [],
+  );
+
+  const eventos = [...entregas, ...saidas]
     // Mais recente primeiro; no mesmo instante (transferência), a entrega vem antes.
     .sort((a, b) => b.quando.localeCompare(a.quando) || b.ordem - a.ordem)
     .slice(0, LIMITE_MOVIMENTACOES);

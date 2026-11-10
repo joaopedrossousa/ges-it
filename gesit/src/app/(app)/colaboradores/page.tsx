@@ -175,7 +175,7 @@ async function TabelaColaboradores({
                     <StatusButton id={c.id} nome={c.nome} ativo={c.ativo} />
                     <Button asChild variant="ghost" size="sm">
                       <Link href={`/colaboradores/${c.id}`}>
-                        Detalhes
+                        Detalhes<span className="sr-only"> de {c.nome}</span>
                         <ChevronRightIcon />
                       </Link>
                     </Button>

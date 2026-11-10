@@ -5,6 +5,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { ComboboxBusca, type OpcaoCombobox } from "@/components/combobox";
+import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { executarAcao } from "@/lib/executar-acao";
 import type { ColaboradorOpcao, DispositivoOpcao } from "@/lib/opcoes-vinculo";
 import { enviarTermo, validarArquivoTermo } from "@/lib/termos";
 import { STATUS_DISPOSITIVO_LABEL, TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
@@ -56,8 +58,12 @@ async function buscarItens<T>(url: string, signal: AbortSignal): Promise<T[]> {
     throw new Error("Sua sessão expirou. Recarregue a página e entre novamente.");
   }
   if (!res.ok) throw new Error("Não foi possível buscar. Tente novamente.");
-  const json = (await res.json()) as { itens: T[] };
-  return json.itens;
+  const json: unknown = await res.json();
+  if (typeof json !== "object" || json === null || !("itens" in json) || !Array.isArray(json.itens)) {
+    throw new Error("Resposta inesperada do servidor.");
+  }
+  // Formato garantido pelas rotas /api/busca/* deste projeto.
+  return json.itens as T[];
 }
 
 function opcaoDispositivo(d: DispositivoOpcao): OpcaoCombobox<DispositivoOpcao> {
@@ -171,12 +177,14 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
       }
 
       setEtapa("salvando");
-      const result = await vincularDispositivo({
-        dispositivo_id: dispositivoId,
-        colaborador_id: colaboradorId,
-        termo_path: termoPath,
-        observacao,
-      });
+      const result = await executarAcao(() =>
+        vincularDispositivo({
+          dispositivo_id: dispositivoId,
+          colaborador_id: colaboradorId,
+          termo_path: termoPath,
+          observacao,
+        }),
+      );
       setEtapa(null);
 
       if (!result.ok) {
@@ -203,7 +211,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Vincular dispositivo</DialogTitle>
           <DialogDescription>
@@ -231,10 +239,9 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
               vazio="Nenhum dispositivo disponível ou em uso encontrado."
               disabled={ocupado}
               invalid={Boolean(erros.dispositivo)}
+              descritoPor={erros.dispositivo ? "vinc-dispositivo-erro" : undefined}
             />
-            {erros.dispositivo && (
-              <p className="text-sm text-destructive">{erros.dispositivo}</p>
-            )}
+            <MensagemErro id="vinc-dispositivo-erro" mensagem={erros.dispositivo} />
           </div>
 
           {usuarioAtual && (
@@ -276,31 +283,33 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
               vazio="Nenhum colaborador ativo encontrado."
               disabled={ocupado}
               invalid={Boolean(erros.colaborador)}
+              descritoPor={erros.colaborador ? "vinc-colaborador-erro" : undefined}
             />
-            {erros.colaborador && (
-              <p className="text-sm text-destructive">{erros.colaborador}</p>
-            )}
+            <MensagemErro id="vinc-colaborador-erro" mensagem={erros.colaborador} />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="vinc-termo">Termo de responsabilidade (PDF, até 5 MB)</Label>
+            <Label htmlFor="vinc-termo">
+              Termo de responsabilidade (opcional, PDF até 5 MB)
+            </Label>
             <Input
               id="vinc-termo"
               type="file"
               accept="application/pdf,.pdf"
               disabled={ocupado}
               aria-invalid={Boolean(erros.termo)}
+              aria-describedby={erros.termo ? "vinc-termo-erro" : undefined}
               onChange={(e) => {
                 const f = e.target.files?.[0] ?? null;
                 setArquivo(f);
                 setErros((atual) => ({ ...atual, termo: validarArquivoTermo(f) ?? undefined }));
               }}
             />
-            {erros.termo && <p className="text-sm text-destructive">{erros.termo}</p>}
+            <MensagemErro id="vinc-termo-erro" mensagem={erros.termo} />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="vinc-obs">Observação</Label>
+            <Label htmlFor="vinc-obs">Observação (opcional)</Label>
             <Textarea
               id="vinc-obs"
               rows={2}

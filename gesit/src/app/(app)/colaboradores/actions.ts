@@ -28,6 +28,10 @@ const idSchema = z.uuid();
 function revalidar(id?: string) {
   revalidatePath("/colaboradores");
   if (id) revalidatePath(`/colaboradores/${id}`);
+  // O nome do usuário aparece também em dispositivos e no Dashboard.
+  revalidatePath("/");
+  revalidatePath("/dispositivos");
+  revalidatePath("/dispositivos/[id]", "page");
 }
 
 export async function criarColaborador(

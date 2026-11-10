@@ -22,12 +22,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { STATUS_DISPOSITIVO_LABEL } from "@/lib/types";
+import { executarAcao } from "@/lib/executar-acao";
+import {
+  STATUS_DISPOSITIVO_LABEL,
+  STATUS_EDITAVEIS,
+  ehStatusEditavel,
+  type StatusEditavel,
+} from "@/lib/types";
 
 import { devolverDispositivo } from "./actions";
-
-const OPCOES = ["disponivel", "manutencao", "baixado"] as const;
-type NovoStatus = (typeof OPCOES)[number];
 
 type Props = {
   dispositivo: { id: string; descricao: string };
@@ -38,7 +41,7 @@ type Props = {
 export function DevolverDialog({ dispositivo, colaboradorNome, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [observacao, setObservacao] = useState("");
-  const [novoStatus, setNovoStatus] = useState<NovoStatus>("disponivel");
+  const [novoStatus, setNovoStatus] = useState<StatusEditavel>("disponivel");
   const [erro, setErro] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -54,11 +57,13 @@ export function DevolverDialog({ dispositivo, colaboradorNome, trigger }: Props)
 
   function salvar() {
     startTransition(async () => {
-      const result = await devolverDispositivo({
-        dispositivo_id: dispositivo.id,
-        observacao,
-        novo_status: novoStatus,
-      });
+      const result = await executarAcao(() =>
+        devolverDispositivo({
+          dispositivo_id: dispositivo.id,
+          observacao,
+          novo_status: novoStatus,
+        }),
+      );
       if (!result.ok) {
         setErro(result.error);
         return;
@@ -85,14 +90,16 @@ export function DevolverDialog({ dispositivo, colaboradorNome, trigger }: Props)
             <Label htmlFor="dev-status">Status após a devolução</Label>
             <Select
               value={novoStatus}
-              onValueChange={(v) => setNovoStatus(v as NovoStatus)}
+              onValueChange={(v) => {
+                if (ehStatusEditavel(v)) setNovoStatus(v);
+              }}
               disabled={isPending}
             >
               <SelectTrigger id="dev-status" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {OPCOES.map((s) => (
+                {STATUS_EDITAVEIS.map((s) => (
                   <SelectItem key={s} value={s}>
                     {STATUS_DISPOSITIVO_LABEL[s]}
                   </SelectItem>

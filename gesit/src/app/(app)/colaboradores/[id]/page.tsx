@@ -107,7 +107,10 @@ async function DetalheColaborador({
   const agora = new Date();
 
   const vinculos = vinculosRes.data;
-  const atuais = vinculos.filter((v) => v.data_fim === null && v.dispositivo);
+  // Vínculos em aberto, com o dispositivo garantido (sem asserção não nula).
+  const atuais = vinculos.flatMap(({ dispositivo, ...v }) =>
+    v.data_fim === null && dispositivo ? [{ ...v, dispositivo }] : [],
+  );
 
   const historico: LinhaHistorico[] = vinculos.map(
     ({ loja, dispositivo, ...v }) => ({
@@ -223,7 +226,7 @@ async function DetalheColaborador({
               </TableHeader>
               <TableBody>
                 {atuais.map((v) => {
-                  const d = v.dispositivo!;
+                  const d = v.dispositivo;
                   return (
                     <TableRow key={v.id}>
                       <TableCell>{TIPO_DISPOSITIVO_LABEL[d.tipo]}</TableCell>

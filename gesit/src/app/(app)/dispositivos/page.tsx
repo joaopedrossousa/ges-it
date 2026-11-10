@@ -247,7 +247,7 @@ async function TabelaDispositivos({
                           trigger={
                             <Button variant="ghost" size="sm">
                               <PencilIcon />
-                              Editar
+                              Editar<span className="sr-only"> {editavel.marca} {editavel.modelo}</span>
                             </Button>
                           }
                         />
@@ -261,13 +261,13 @@ async function TabelaDispositivos({
                           trigger={
                             <Button variant="ghost" size="sm">
                               <ArrowRightLeftIcon />
-                              Status
+                              Status<span className="sr-only"> {editavel.marca} {editavel.modelo}</span>
                             </Button>
                           }
                         />
                         <Button asChild variant="ghost" size="sm">
                           <Link href={`/dispositivos/${editavel.id}`}>
-                            Detalhes
+                            Detalhes<span className="sr-only"> {editavel.marca} {editavel.modelo}</span>
                             <ChevronRightIcon />
                           </Link>
                         </Button>

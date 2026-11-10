@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { anexarTermo } from "@/app/(app)/dispositivos/actions";
 import { Button } from "@/components/ui/button";
+import { executarAcao } from "@/lib/executar-acao";
 import { enviarTermo, validarArquivoTermo } from "@/lib/termos";
 
 type Props = {
@@ -50,7 +51,7 @@ export function AnexarTermoButton({
       }
 
       setEtapa("salvando");
-      const result = await anexarTermo(vinculoId, envio.path);
+      const result = await executarAcao(() => anexarTermo(vinculoId, envio.path));
       setEtapa(null);
       if (!result.ok) {
         toast.error(result.error, {

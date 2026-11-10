@@ -25,10 +25,10 @@ export type OpcaoCombobox<T> = {
   dados: T;
 };
 
-type Estado =
+type Estado<T> =
   | { tipo: "ocioso" }
   | { tipo: "carregando" }
-  | { tipo: "pronto"; itens: OpcaoCombobox<unknown>[] }
+  | { tipo: "pronto"; itens: OpcaoCombobox<T>[] }
   | { tipo: "erro"; mensagem: string };
 
 type Props<T> = {
@@ -43,6 +43,8 @@ type Props<T> = {
   vazio?: string;
   disabled?: boolean;
   invalid?: boolean;
+  /** id da mensagem de erro do campo (aria-describedby). */
+  descritoPor?: string;
   atraso?: number;
 };
 
@@ -60,12 +62,13 @@ export function ComboboxBusca<T>({
   vazio = "Nenhum resultado.",
   disabled,
   invalid,
+  descritoPor,
   atraso = 250,
 }: Props<T>) {
   const listaId = useId();
   const [open, setOpen] = useState(false);
   const [texto, setTexto] = useState("");
-  const [estado, setEstado] = useState<Estado>({ tipo: "ocioso" });
+  const [estado, setEstado] = useState<Estado<T>>({ tipo: "ocioso" });
   const [ativo, setAtivo] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controle = useRef<AbortController | null>(null);
@@ -83,7 +86,7 @@ export function ComboboxBusca<T>({
     [],
   );
 
-  const itens = (estado.tipo === "pronto" ? estado.itens : []) as OpcaoCombobox<T>[];
+  const itens = estado.tipo === "pronto" ? estado.itens : [];
 
   function abrir(next: boolean) {
     setOpen(next);
@@ -162,10 +165,10 @@ export function ComboboxBusca<T>({
           id={id}
           type="button"
           variant="outline"
-          role="combobox"
+          aria-haspopup="listbox"
           aria-expanded={open}
-          aria-controls={listaId}
           aria-invalid={invalid}
+          aria-describedby={descritoPor}
           disabled={disabled}
           className="h-auto min-h-8 w-full justify-between py-1.5 font-normal"
         >
@@ -181,7 +184,10 @@ export function ComboboxBusca<T>({
           <input
             autoFocus
             type="text"
-            role="searchbox"
+            role="combobox"
+            aria-label={placeholderBusca}
+            aria-expanded
+            aria-autocomplete="list"
             aria-controls={listaId}
             aria-activedescendant={itens[ativo] ? `${listaId}-${itens[ativo].value}` : undefined}
             value={texto}

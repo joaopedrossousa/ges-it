@@ -5,6 +5,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { executarAcao } from "@/lib/executar-acao";
 import {
   colaboradorSchema,
   formatarCPFDigitando,
@@ -83,9 +85,11 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
 
   const onSubmit = handleSubmit((values) => {
     startTransition(async () => {
-      const result = colaborador
-        ? await atualizarColaborador(colaborador.id, values)
-        : await criarColaborador(values);
+      const result = await executarAcao(() =>
+        colaborador
+          ? atualizarColaborador(colaborador.id, values)
+          : criarColaborador(values),
+      );
 
       if (!result.ok) {
         for (const [campo, mensagem] of Object.entries(result.fieldErrors ?? {})) {
@@ -103,7 +107,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
           <DialogHeader>
             <DialogTitle>{editando ? "Editar usuário" : "Novo usuário"}</DialogTitle>
@@ -120,13 +124,13 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
               id="colab-nome"
               autoFocus
               autoComplete="off"
+              aria-required
               aria-invalid={Boolean(errors.nome)}
+              aria-describedby={errors.nome ? "colab-nome-erro" : undefined}
               disabled={isPending}
               {...register("nome")}
             />
-            {errors.nome && (
-              <p className="text-sm text-destructive">{errors.nome.message}</p>
-            )}
+            <MensagemErro id="colab-nome-erro" mensagem={errors.nome?.message} />
           </div>
 
           <div className="grid gap-2">
@@ -141,9 +145,13 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
                   disabled={isPending}
                 >
                   <SelectTrigger
+                    // ref: o react-hook-form foca o campo com erro ao enviar.
+                    ref={field.ref}
                     id="colab-loja"
                     className="w-full"
+                    aria-required
                     aria-invalid={Boolean(errors.loja_id)}
+                    aria-describedby={errors.loja_id ? "colab-loja-erro" : undefined}
                     onBlur={field.onBlur}
                   >
                     <SelectValue placeholder="Selecione a loja" />
@@ -159,9 +167,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
                 </Select>
               )}
             />
-            {errors.loja_id && (
-              <p className="text-sm text-destructive">{errors.loja_id.message}</p>
-            )}
+            <MensagemErro id="colab-loja-erro" mensagem={errors.loja_id?.message} />
           </div>
 
           <div className="grid gap-2">
@@ -176,7 +182,9 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
                   autoComplete="off"
                   placeholder="000.000.000-00"
                   maxLength={14}
+                  aria-required
                   aria-invalid={Boolean(errors.cpf)}
+                  aria-describedby={errors.cpf ? "colab-cpf-erro" : undefined}
                   disabled={isPending}
                   name={field.name}
                   ref={field.ref}
@@ -188,9 +196,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
                 />
               )}
             />
-            {errors.cpf && (
-              <p className="text-sm text-destructive">{errors.cpf.message}</p>
-            )}
+            <MensagemErro id="colab-cpf-erro" mensagem={errors.cpf?.message} />
           </div>
 
           <div className="grid gap-2">
@@ -199,13 +205,13 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
               id="colab-email"
               type="email"
               autoComplete="off"
+              aria-required
               aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? "colab-email-erro" : undefined}
               disabled={isPending}
               {...register("email")}
             />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
+            <MensagemErro id="colab-email-erro" mensagem={errors.email?.message} />
           </div>
 
           {errors.root && (
