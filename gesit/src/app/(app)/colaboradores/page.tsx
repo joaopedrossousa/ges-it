@@ -94,7 +94,7 @@ async function TabelaColaboradores({
   const supabase = await createClient();
   let query = supabase
     .from("colaboradores")
-    .select("id, nome, cpf, email, ativo, loja:lojas(nome)", { count: "exact" })
+    .select("id, nome, cargo, cpf, email, ativo, loja:lojas(nome)", { count: "exact" })
     .order("nome")
     .order("id") // desempate estável entre páginas
     .range(de, ate);
@@ -102,7 +102,11 @@ async function TabelaColaboradores({
   if (lojaId) query = query.eq("loja_id", lojaId);
 
   if (busca) {
-    const filtros = [`nome.ilike.%${busca}%`, `email.ilike.%${busca}%`];
+    const filtros = [
+      `nome.ilike.%${busca}%`,
+      `cargo.ilike.%${busca}%`,
+      `email.ilike.%${busca}%`,
+    ];
     const digitos = somenteDigitos(busca);
     if (digitos.length >= 3) filtros.push(`cpf.like.%${digitos}%`);
     query = query.or(filtros.join(","));
@@ -164,6 +168,11 @@ async function TabelaColaboradores({
                   >
                     {c.nome}
                   </Link>
+                  {c.cargo && (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {c.cargo}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>{c.loja?.nome ?? "—"}</TableCell>
                 <TableCell className="font-mono text-xs">{c.cpfMascarado}</TableCell>

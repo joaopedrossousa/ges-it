@@ -82,7 +82,7 @@ function opcaoColaborador(c: ColaboradorOpcao): OpcaoCombobox<ColaboradorOpcao> 
   return {
     value: c.id,
     label: c.nome,
-    descricao: `${c.loja_nome ?? "—"} · ${c.email}`,
+    descricao: [c.cargo, c.loja_nome ?? "—", c.email].filter(Boolean).join(" · "),
     dados: c,
   };
 }

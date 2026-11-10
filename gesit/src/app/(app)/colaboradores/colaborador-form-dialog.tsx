@@ -43,6 +43,7 @@ type Props = {
   colaborador?: {
     id: string;
     nome: string;
+    cargo: string | null;
     loja_id: string;
     cpf: string;
     email: string;
@@ -62,6 +63,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
 
   const valoresIniciais: ColaboradorFormInput = {
     nome: colaborador?.nome ?? "",
+    cargo: colaborador?.cargo ?? "",
     loja_id: colaborador?.loja_id ?? "",
     cpf: colaborador ? formatarCPFDigitando(colaborador.cpf) : "",
     email: colaborador?.email ?? "",
@@ -132,6 +134,20 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
               {...register("nome")}
             />
             <MensagemErro id="colab-nome-erro" mensagem={errors.nome?.message} />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="colab-cargo">Cargo (opcional)</Label>
+            <Input
+              id="colab-cargo"
+              autoComplete="off"
+              maxLength={100}
+              aria-invalid={Boolean(errors.cargo)}
+              aria-describedby={errors.cargo ? "colab-cargo-erro" : undefined}
+              disabled={isPending}
+              {...register("cargo")}
+            />
+            <MensagemErro id="colab-cargo-erro" mensagem={errors.cargo?.message} />
           </div>
 
           <div className="grid gap-2">

@@ -17,6 +17,7 @@ export type Database = {
       colaboradores: {
         Row: {
           ativo: boolean
+          cargo: string | null
           cpf: string
           created_at: string
           email: string
@@ -27,6 +28,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cargo?: string | null
           cpf: string
           created_at?: string
           email: string
@@ -37,6 +39,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cargo?: string | null
           cpf?: string
           created_at?: string
           email?: string

@@ -174,6 +174,7 @@ export const lojaSchema = z.object({
 
 export const colaboradorSchema = z.object({
   nome: textoObrigatorio("o nome", 150),
+  cargo: textoOpcional(100),
   loja_id: idObrigatorio("Selecione a loja."),
   /** Entra com ou sem máscara; sai só com dígitos. */
   cpf: z
@@ -305,7 +306,9 @@ export type DevolucaoFormData = z.output<typeof devolucaoSchema>;
  *   nome: "Maria Souza", loja_id: "0b6e7c1a-2f3d-4e5f-8a9b-1c2d3e4f5a6b",
  *   cpf: "529.982.247-25", email: " Maria@Empresa.com ",
  * })
- *   // { ..., cpf: "52998224725", email: "maria@empresa.com", ativo: true }
+ *   // { ..., cargo: null, cpf: "52998224725", email: "maria@empresa.com", ativo: true }
+ * colaboradorSchema.parse({ ...mesmo, cargo: "  Analista de T.I.  " }).cargo  // "Analista de T.I."
+ * colaboradorSchema.parse({ ...mesmo, cargo: "   " }).cargo                   // null
  * colaboradorSchema.safeParse({ ...mesmo, cpf: "111.111.111-11" }).success  // false
  * colaboradorSchema.safeParse({ ...mesmo, email: "maria@" }).success        // false
  *

@@ -77,7 +77,7 @@ async function DetalheColaborador({
     supabase
       .from("colaboradores")
       .select(
-        "id, nome, cpf, email, ativo, loja_id, created_at, updated_at, loja:lojas(nome)",
+        "id, nome, cargo, cpf, email, ativo, loja_id, created_at, updated_at, loja:lojas(nome)",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -138,7 +138,9 @@ async function DetalheColaborador({
               {colaborador.ativo ? "Ativo" : "Inativo"}
             </Badge>
           </div>
-          <p className="text-muted-foreground">{colaborador.loja?.nome}</p>
+          <p className="text-muted-foreground">
+            {[colaborador.cargo, colaborador.loja?.nome].filter(Boolean).join(" · ")}
+          </p>
         </div>
 
         <div className="flex gap-2">
@@ -168,6 +170,7 @@ async function DetalheColaborador({
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-2">
             <CampoDetalhe rotulo="Nome">{colaborador.nome}</CampoDetalhe>
+            <CampoDetalhe rotulo="Cargo">{colaborador.cargo ?? "—"}</CampoDetalhe>
             <CampoDetalhe rotulo="Loja/Filial">
               {colaborador.loja?.nome ?? "—"}
             </CampoDetalhe>
@@ -199,6 +202,7 @@ async function DetalheColaborador({
                 colaboradorInicial={{
                   id: colaborador.id,
                   nome: colaborador.nome,
+                  cargo: colaborador.cargo,
                   email: colaborador.email,
                   loja_nome: colaborador.loja?.nome ?? null,
                 }}

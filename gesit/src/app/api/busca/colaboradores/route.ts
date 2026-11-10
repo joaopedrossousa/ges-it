@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   let query = supabase
     .from("colaboradores")
-    .select("id, nome, email, loja:lojas(nome)")
+    .select("id, nome, cargo, email, loja:lojas(nome)")
     .eq("ativo", true);
 
   for (const p of palavras) {
@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     data.map((c) => ({
       id: c.id,
       nome: c.nome,
+      cargo: c.cargo,
       email: c.email,
       loja_nome: c.loja?.nome ?? null,
     })),

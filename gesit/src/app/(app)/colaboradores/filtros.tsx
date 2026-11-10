@@ -19,7 +19,7 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <CampoBusca
         valorInicial={valor("q", "")}
-        placeholder="Buscar por nome, CPF ou e-mail"
+        placeholder="Buscar por nome, cargo, CPF ou e-mail"
         onBuscar={(q) => atualizar("q", q)}
       />
 

@@ -19,6 +19,7 @@ export type DispositivoOpcao = {
 export type ColaboradorOpcao = {
   id: string;
   nome: string;
+  cargo: string | null;
   email: string;
   loja_nome: string | null;
 };
