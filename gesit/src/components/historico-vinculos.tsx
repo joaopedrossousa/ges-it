@@ -12,6 +12,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
+import {
+  naoDevolvidos,
+  rotulosPerifericos,
+  temConferencia,
+  textoDevolvidos,
+  textoEntregues,
+  textoFormatado,
+} from "@/lib/perifericos";
+import type { TipoDispositivo } from "@/lib/types";
 
 export type LinhaHistorico = {
   id: string;
@@ -23,6 +32,13 @@ export type LinhaHistorico = {
   termo_path: string | null;
   observacao: string | null;
   observacao_devolucao: string | null;
+  perifericos_entrega: string[];
+  /** Null enquanto aberto e em encerramentos sem conferência (transferência). */
+  perifericos_devolucao: string[] | null;
+  formatado_entrega: boolean | null;
+  formatado_devolucao: boolean | null;
+  /** Monitor não tem periféricos nem "formatado". */
+  tipo_dispositivo: TipoDispositivo | null;
   /** Loja gravada no vínculo (não a loja atual do colaborador). */
   loja_nome: string | null;
   colaborador?: { id: string; nome: string } | null;
@@ -39,7 +55,7 @@ type Props = {
 
 /** Histórico de vínculos, do mais recente para o mais antigo. */
 export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
-  const colunas = 7;
+  const colunas = 10;
 
   return (
     <Table>
@@ -51,6 +67,9 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
           <TableHead>Fim</TableHead>
           <TableHead>Duração</TableHead>
           <TableHead>Termo</TableHead>
+          <TableHead>Periféricos entregues</TableHead>
+          <TableHead>Periféricos devolvidos</TableHead>
+          <TableHead>Formatado</TableHead>
           <TableHead>Observações</TableHead>
         </TableRow>
       </TableHeader>
@@ -124,6 +143,21 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
                 />
               )}
             </TableCell>
+            <TableCell className="min-w-32 text-sm whitespace-normal">
+              <TextoOuTraco texto={textoEntregues(v.tipo_dispositivo, v.perifericos_entrega)} />
+            </TableCell>
+            <TableCell className="min-w-32 text-sm whitespace-normal">
+              <Devolvidos v={v} />
+            </TableCell>
+            <TableCell className="min-w-28 text-sm whitespace-normal">
+              <TextoOuTraco
+                texto={
+                  temConferencia(v.tipo_dispositivo)
+                    ? textoFormatado(v.formatado_entrega, v.formatado_devolucao)
+                    : "—"
+                }
+              />
+            </TableCell>
             <TableCell className="min-w-48 text-sm whitespace-normal">
               {v.observacao || v.observacao_devolucao ? (
                 <div className="space-y-1">
@@ -148,5 +182,28 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
         ))}
       </TableBody>
     </Table>
+  );
+}
+
+function TextoOuTraco({ texto }: { texto: string }) {
+  return texto === "—" ? <span className="text-muted-foreground">—</span> : <>{texto}</>;
+}
+
+/** Devolvidos + o que ficou faltando em relação à entrega. */
+function Devolvidos({ v }: { v: LinhaHistorico }) {
+  const texto = textoDevolvidos(v.tipo_dispositivo, v);
+  if (texto === "—" || texto === "Não conferido") {
+    return <span className="text-muted-foreground">{texto}</span>;
+  }
+  const faltando = naoDevolvidos(v.perifericos_entrega, v.perifericos_devolucao);
+  return (
+    <div className="space-y-1">
+      <p>{texto}</p>
+      {faltando.length > 0 && (
+        <p className="text-amber-800 dark:text-amber-400">
+          Não devolvido: {rotulosPerifericos(faltando)}
+        </p>
+      )}
+    </div>
   );
 }

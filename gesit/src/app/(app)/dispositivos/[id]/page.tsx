@@ -91,7 +91,7 @@ async function DetalheDispositivo({
     supabase
       .from("vinculos")
       .select(
-        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome), colaborador:colaboradores(id, nome, email, loja:lojas(nome))",
+        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, perifericos_entrega, perifericos_devolucao, formatado_entrega, formatado_devolucao, loja:lojas(nome), colaborador:colaboradores(id, nome, email, loja:lojas(nome))",
       )
       .eq("dispositivo_id", id)
       .order("data_inicio", { ascending: false })
@@ -117,11 +117,12 @@ async function DetalheDispositivo({
   const vinculos = vinculosRes.data;
   const aberto = vinculos.find((v) => v.data_fim === null) ?? null;
   const descricao = descricaoDispositivo(d);
-  const resumo = { id: d.id, descricao };
+  const resumo = { id: d.id, descricao, tipo: d.tipo };
 
   const historico: LinhaHistorico[] = vinculos.map(
     ({ loja, colaborador, ...v }) => ({
       ...v,
+      tipo_dispositivo: d.tipo,
       loja_nome: loja?.nome ?? null,
       colaborador: colaborador
         ? { id: colaborador.id, nome: colaborador.nome }
@@ -270,6 +271,7 @@ async function DetalheDispositivo({
                 <DevolverDialog
                   dispositivo={resumo}
                   colaboradorNome={aberto.colaborador.nome}
+                  perifericosEntregues={aberto.perifericos_entrega}
                   trigger={
                     <Button size="sm">
                       <UndoIcon />

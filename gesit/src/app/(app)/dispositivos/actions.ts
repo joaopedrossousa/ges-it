@@ -304,7 +304,8 @@ export async function vincularDispositivo(
 ): Promise<ActionResult<CampoVinculo>> {
   const parsed = vinculoSchema.safeParse(input);
   if (!parsed.success) return errosDoZod(parsed.error);
-  const { dispositivo_id, colaborador_id, termo_path, observacao } = parsed.data;
+  const { dispositivo_id, colaborador_id, termo_path, observacao, perifericos, formatado } =
+    parsed.data;
 
   // Só aceita {dispositivo_id}/{timestamp}_{colaborador_id}.pdf deste vínculo.
   if (
@@ -324,6 +325,8 @@ export async function vincularDispositivo(
     p_colaborador_id: colaborador_id,
     p_termo_path: termo_path ?? undefined,
     p_observacao: observacao ?? undefined,
+    p_perifericos: perifericos,
+    p_formatado: formatado ?? undefined,
   });
 
   if (error) {
@@ -349,13 +352,16 @@ export async function devolverDispositivo(
 ): Promise<ActionResult<"observacao" | "novo_status">> {
   const parsed = devolucaoSchema.safeParse(input);
   if (!parsed.success) return errosDoZod(parsed.error);
-  const { dispositivo_id, observacao, novo_status } = parsed.data;
+  const { dispositivo_id, observacao, novo_status, perifericos_devolvidos, formatado } =
+    parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("devolver_dispositivo", {
     p_dispositivo_id: dispositivo_id,
     p_observacao: observacao ?? undefined,
     p_novo_status: novo_status,
+    p_perifericos_devolvidos: perifericos_devolvidos,
+    p_formatado: formatado ?? undefined,
   });
   if (error) return erroDoBanco(error);
 

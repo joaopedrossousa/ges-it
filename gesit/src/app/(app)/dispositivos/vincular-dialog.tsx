@@ -22,10 +22,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
 import type { ColaboradorOpcao, DispositivoOpcao } from "@/lib/opcoes-vinculo";
+import { temConferencia, type Periferico } from "@/lib/perifericos";
 import { enviarTermo, validarArquivoTermo } from "@/lib/termos";
 import { STATUS_DISPOSITIVO_LABEL, TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
 
 import { vincularDispositivo } from "./actions";
+import { ConferenciaPerifericos } from "./conferencia-perifericos";
 
 type Props = {
   /** Pré-seleção ao abrir pelo detalhe do dispositivo. */
@@ -100,6 +102,8 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
   const [colaborador, setColaborador] = useState<OpcaoCombobox<ColaboradorOpcao> | null>(null);
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [observacao, setObservacao] = useState("");
+  const [perifericos, setPerifericos] = useState<Periferico[]>([]);
+  const [formatado, setFormatado] = useState(false);
   const [erros, setErros] = useState<Erros>({});
   const [orfao, setOrfao] = useState<string | null>(null);
   const [enviado, setEnviado] = useState<Enviado | null>(null);
@@ -121,6 +125,8 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
       setColaborador(colaboradorInicial ? opcaoColaborador(colaboradorInicial) : null);
       setArquivo(null);
       setObservacao("");
+      setPerifericos([]);
+      setFormatado(false);
       setErros({});
       setOrfao(null);
       setEnviado(null);
@@ -129,6 +135,11 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
   }
 
   function escolherDispositivo(opcao: OpcaoCombobox<DispositivoOpcao>) {
+    // Os periféricos dependem do tipo: recomeça a conferência ao trocar.
+    if (opcao.value !== dispositivo?.value) {
+      setPerifericos([]);
+      setFormatado(false);
+    }
     setDispositivo(opcao);
     setErros((e) => ({ ...e, dispositivo: undefined }));
     // O usuário atual do dispositivo não pode recebê-lo de novo.
@@ -149,6 +160,8 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
     }
     const dispositivoId = dispositivo.value;
     const colaboradorId = colaborador.value;
+    // Monitor: sem periféricos e sem "formatado" (o banco recusa).
+    const conferencia = temConferencia(dispositivo.dados.tipo);
     setErros({});
     setOrfao(null);
 
@@ -184,6 +197,8 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
           colaborador_id: colaboradorId,
           termo_path: termoPath,
           observacao,
+          perifericos: conferencia ? perifericos : [],
+          formatado: conferencia ? formatado : null,
         }),
       );
       setEtapa(null);
@@ -253,7 +268,8 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
               <InfoIcon className="mt-0.5 size-4 shrink-0" />
               <span>
                 O vínculo com <strong>{usuarioAtual.nome}</strong> será encerrado e irá
-                para o histórico.
+                para o histórico, sem conferência dos periféricos devolvidos. Para
+                conferir, registre a devolução antes de vincular.
               </span>
             </p>
           )}
@@ -288,6 +304,20 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
             />
             <MensagemErro id="vinc-colaborador-erro" mensagem={erros.colaborador} />
           </div>
+
+          {dispositivo && (
+            <ConferenciaPerifericos
+              id="vinc-perifericos"
+              tipo={dispositivo.dados.tipo}
+              legenda="Periféricos entregues"
+              selecionados={perifericos}
+              onSelecionadosChange={setPerifericos}
+              formatado={formatado}
+              onFormatadoChange={setFormatado}
+              rotuloFormatado="Formatado antes da entrega"
+              disabled={ocupado}
+            />
+          )}
 
           <div className="grid gap-2">
             <Label htmlFor="vinc-termo">

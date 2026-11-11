@@ -151,10 +151,14 @@ export type Database = {
           data_inicio: string
           dispositivo_id: string
           encerrado_por: string | null
+          formatado_devolucao: boolean | null
+          formatado_entrega: boolean | null
           id: string
           loja_id: string
           observacao: string | null
           observacao_devolucao: string | null
+          perifericos_devolucao: string[] | null
+          perifericos_entrega: string[]
           termo_path: string | null
         }
         Insert: {
@@ -165,10 +169,14 @@ export type Database = {
           data_inicio?: string
           dispositivo_id: string
           encerrado_por?: string | null
+          formatado_devolucao?: boolean | null
+          formatado_entrega?: boolean | null
           id?: string
           loja_id: string
           observacao?: string | null
           observacao_devolucao?: string | null
+          perifericos_devolucao?: string[] | null
+          perifericos_entrega?: string[]
           termo_path?: string | null
         }
         Update: {
@@ -179,10 +187,14 @@ export type Database = {
           data_inicio?: string
           dispositivo_id?: string
           encerrado_por?: string | null
+          formatado_devolucao?: boolean | null
+          formatado_entrega?: boolean | null
           id?: string
           loja_id?: string
           observacao?: string | null
           observacao_devolucao?: string | null
+          perifericos_devolucao?: string[] | null
+          perifericos_entrega?: string[]
           termo_path?: string | null
         }
         Relationships: [
@@ -273,8 +285,10 @@ export type Database = {
       devolver_dispositivo: {
         Args: {
           p_dispositivo_id: string
+          p_formatado?: boolean
           p_novo_status?: Database["public"]["Enums"]["status_dispositivo"]
           p_observacao?: string
+          p_perifericos_devolvidos?: string[]
         }
         Returns: undefined
       }
@@ -285,12 +299,22 @@ export type Database = {
           id: string
         }[]
       }
+      normalizar_perifericos: {
+        Args: {
+          p_formatado: boolean
+          p_perifericos: string[]
+          p_tipo: Database["public"]["Enums"]["tipo_dispositivo"]
+        }
+        Returns: string[]
+      }
       ping: { Args: never; Returns: number }
       vincular_dispositivo: {
         Args: {
           p_colaborador_id: string
           p_dispositivo_id: string
+          p_formatado?: boolean
           p_observacao?: string
+          p_perifericos?: string[]
           p_termo_path?: string
         }
         Returns: string

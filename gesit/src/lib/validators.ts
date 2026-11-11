@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { hojeEmPalmas } from "./format";
+import { PERIFERICOS } from "./perifericos";
 import { OPERADORAS, STATUS_EDITAVEIS } from "./types";
 
 // ===========================================================================
@@ -334,12 +335,26 @@ export function exigirDataCompra<T extends z.ZodType<{ data_compra: string | nul
   });
 }
 
+/**
+ * Periféricos marcados. Qual item vale para qual tipo é conferido no banco
+ * (normalizar_perifericos); aqui só os valores conhecidos.
+ */
+const perifericos = z
+  .array(z.enum(PERIFERICOS, { error: "Periférico inválido." }))
+  .max(PERIFERICOS.length)
+  .default([]);
+
+/** "Formatado": null para monitor (o banco recusa outro valor). */
+const formatado = z.boolean().nullish().transform((v) => v ?? null);
+
 /** Argumentos de vincular_dispositivo. O PDF já deve estar no bucket "termos". */
 export const vinculoSchema = z.object({
   dispositivo_id: idObrigatorio("Selecione o dispositivo."),
   colaborador_id: idObrigatorio("Selecione o usuário."),
   termo_path: textoOpcional(500),
   observacao: textoOpcional(1000),
+  perifericos,
+  formatado,
 });
 
 /** Argumentos de devolver_dispositivo. */
@@ -347,6 +362,8 @@ export const devolucaoSchema = z.object({
   dispositivo_id: idObrigatorio("Dispositivo inválido."),
   observacao: textoOpcional(1000),
   novo_status: statusEditavel,
+  perifericos_devolvidos: perifericos,
+  formatado,
 });
 
 // Tipos de entrada (formulário) e saída (já normalizada para o banco).

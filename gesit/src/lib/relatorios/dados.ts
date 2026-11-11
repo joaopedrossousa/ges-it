@@ -11,6 +11,14 @@ import {
   formatarIdadeMeses,
   hojeEmPalmas,
 } from "@/lib/format";
+import {
+  naoDevolvidos,
+  rotulosPerifericos,
+  temConferencia,
+  textoDevolvidos,
+  textoEntregues,
+  textoFormatado,
+} from "@/lib/perifericos";
 import type { createClient } from "@/lib/supabase/server";
 import {
   SITUACAO_VIDA_UTIL_LABEL,
@@ -18,6 +26,7 @@ import {
   TIPOS_DISPOSITIVO,
   TIPO_DISPOSITIVO_LABEL,
   paraSituacaoVidaUtil,
+  type TipoDispositivo,
 } from "@/lib/types";
 import { mascararCPF } from "@/lib/validators";
 
@@ -259,8 +268,11 @@ const COLUNAS_PERIODO = [
   { chave: "fim", titulo: "Fim", tipo: "dataHora", peso: 1 },
   { chave: "duracao", titulo: "Duração", peso: 1.1 },
   { chave: "termo", titulo: "Termo", peso: 0.5 },
-  { chave: "observacao", titulo: "Observação", peso: 1.5 },
-  { chave: "observacao_devolucao", titulo: "Obs. devolução", peso: 1.5 },
+  { chave: "perifericos_entrega", titulo: "Periféricos entregues", peso: 1.3 },
+  { chave: "perifericos_devolucao", titulo: "Periféricos devolvidos", peso: 1.4 },
+  { chave: "formatado", titulo: "Formatado", peso: 1.1 },
+  { chave: "observacao", titulo: "Observação", peso: 1.2 },
+  { chave: "observacao_devolucao", titulo: "Obs. devolução", peso: 1.2 },
 ] as const;
 
 type VinculoHistorico = {
@@ -269,10 +281,22 @@ type VinculoHistorico = {
   termo_path: string | null;
   observacao: string | null;
   observacao_devolucao: string | null;
+  perifericos_entrega: string[];
+  perifericos_devolucao: string[] | null;
+  formatado_entrega: boolean | null;
+  formatado_devolucao: boolean | null;
   loja: { nome: string } | null;
 };
 
-function camposPeriodo(v: VinculoHistorico, agora: Date): Linha {
+/** Devolvidos e, se faltou algo da entrega, "; faltou: Mouse". */
+function devolvidosComFaltas(v: VinculoHistorico, tipo: TipoDispositivo | null) {
+  const texto = textoDevolvidos(tipo, v);
+  if (texto === "—" || texto === "Não conferido") return texto;
+  const faltando = naoDevolvidos(v.perifericos_entrega, v.perifericos_devolucao);
+  return faltando.length ? `${texto}; faltou: ${rotulosPerifericos(faltando)}` : texto;
+}
+
+function camposPeriodo(v: VinculoHistorico, agora: Date, tipo: TipoDispositivo | null): Linha {
   return {
     loja: v.loja?.nome ?? null,
     inicio: new Date(v.data_inicio),
@@ -281,13 +305,21 @@ function camposPeriodo(v: VinculoHistorico, agora: Date): Linha {
       formatarDuracao(v.data_inicio, v.data_fim ? new Date(v.data_fim) : agora) +
       (v.data_fim ? "" : " (em uso)"),
     termo: sim(v.termo_path),
+    perifericos_entrega: textoEntregues(tipo, v.perifericos_entrega),
+    perifericos_devolucao: devolvidosComFaltas(v, tipo),
+    formatado: temConferencia(tipo)
+      ? textoFormatado(v.formatado_entrega, v.formatado_devolucao, {
+          entrega: "Entr.",
+          devolucao: "Dev.",
+        })
+      : "—",
     observacao: v.observacao,
     observacao_devolucao: v.observacao_devolucao,
   };
 }
 
 const SELECT_HISTORICO =
-  "id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome)";
+  "id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, perifericos_entrega, perifericos_devolucao, formatado_entrega, formatado_devolucao, loja:lojas(nome)";
 
 const historicoDispositivo: Gerador = async (supabase, params, agora) => {
   const id = idObrigatorio(params, "Dispositivo inválido.");
@@ -324,7 +356,7 @@ const historicoDispositivo: Gerador = async (supabase, params, agora) => {
     colunas: [{ chave: "usuario", titulo: "Usuário", peso: 1.5 }, ...COLUNAS_PERIODO],
     linhas: vinculos.map((v) => ({
       usuario: v.colaborador?.nome ?? null,
-      ...camposPeriodo(v, agora),
+      ...camposPeriodo(v, agora, d.tipo),
     })),
     vazio: "Este dispositivo ainda não teve vínculos.",
   };
@@ -374,7 +406,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
     linhas: vinculos.map((v) => ({
       dispositivo: v.dispositivo ? `${v.dispositivo.marca} ${v.dispositivo.modelo}` : null,
       identificador: v.dispositivo ? identificadorDispositivo(v.dispositivo) : null,
-      ...camposPeriodo(v, agora),
+      ...camposPeriodo(v, agora, v.dispositivo?.tipo ?? null),
     })),
     vazio: "Este usuário ainda não teve dispositivos vinculados.",
   };
