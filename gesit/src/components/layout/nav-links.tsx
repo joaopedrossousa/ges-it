@@ -3,6 +3,7 @@
 import { cn } from "cn";
 import {
   FileChartColumnIcon,
+  HistoryIcon,
   LayoutDashboardIcon,
   MonitorSmartphoneIcon,
   StoreIcon,
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { href: "/dispositivos", label: "Dispositivos", icon: MonitorSmartphoneIcon },
   { href: "/lojas", label: "Lojas", icon: StoreIcon },
   { href: "/relatorios", label: "Relatórios", icon: FileChartColumnIcon },
+  { href: "/auditoria", label: "Auditoria", icon: HistoryIcon },
 ] as const;
 
 function isActive(pathname: string, href: string) {

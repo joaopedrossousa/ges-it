@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
 import { CampoDetalhe } from "@/components/campo-detalhe";
+import { SecaoAlteracoes, SecaoAlteracoesCarregando } from "@/components/secao-alteracoes";
 import { ExportarMenu } from "@/components/exportar";
 import {
   HistoricoVinculos,
@@ -279,6 +280,10 @@ async function DetalheColaborador({
           <HistoricoVinculos contexto="colaborador" linhas={historico} agora={agora} />
         </CardContent>
       </Card>
+
+      <Suspense fallback={<SecaoAlteracoesCarregando />}>
+        <SecaoAlteracoes tabela="colaboradores" registroId={colaborador.id} />
+      </Suspense>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { z } from "zod";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
 import { CampoDetalhe } from "@/components/campo-detalhe";
+import { SecaoAlteracoes, SecaoAlteracoesCarregando } from "@/components/secao-alteracoes";
 import { ExportarMenu } from "@/components/exportar";
 import {
   HistoricoVinculos,
@@ -376,6 +377,10 @@ async function DetalheDispositivo({
       </Card>
 
       <HistoricoServicos dispositivoId={d.id} servicos={servicosRes.data} />
+
+      <Suspense fallback={<SecaoAlteracoesCarregando />}>
+        <SecaoAlteracoes tabela="dispositivos" registroId={d.id} />
+      </Suspense>
     </div>
   );
 }

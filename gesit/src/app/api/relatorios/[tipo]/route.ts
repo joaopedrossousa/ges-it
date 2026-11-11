@@ -8,6 +8,7 @@ import {
   ErroRelatorio,
   FORMATOS,
   LIMITE_LINHAS_PDF,
+  RELATORIOS_SO_EXCEL,
   TIPOS_RELATORIO,
   msgLimitePdf,
   type Formato,
@@ -40,6 +41,9 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/relatori
 
   if (!ehTipo(tipo)) return erro(404, "Relatório não encontrado.");
   if (!ehFormato(formato)) return erro(400, "Formato inválido. Use PDF ou Excel.");
+  if (formato === "pdf" && RELATORIOS_SO_EXCEL.includes(tipo)) {
+    return erro(400, "Este relatório só está disponível em Excel.");
+  }
 
   const supabase = await createClient();
   const { data: sessao } = await supabase.auth.getClaims();

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      auditoria: {
+        Row: {
+          acao: string
+          alterado_em: string
+          alterado_por: string | null
+          antes: Json | null
+          campos_alterados: string[]
+          depois: Json | null
+          id: number
+          registro_id: string
+          tabela: string
+        }
+        Insert: {
+          acao: string
+          alterado_em?: string
+          alterado_por?: string | null
+          antes?: Json | null
+          campos_alterados?: string[]
+          depois?: Json | null
+          id?: number
+          registro_id: string
+          tabela: string
+        }
+        Update: {
+          acao?: string
+          alterado_em?: string
+          alterado_por?: string | null
+          antes?: Json | null
+          campos_alterados?: string[]
+          depois?: Json | null
+          id?: number
+          registro_id?: string
+          tabela?: string
+        }
+        Relationships: []
+      }
       colaboradores: {
         Row: {
           ativo: boolean
@@ -433,6 +469,13 @@ export type Database = {
         Returns: string[]
       }
       ping: { Args: never; Returns: number }
+      usuarios_auditoria: {
+        Args: never
+        Returns: {
+          email: string
+          id: string
+        }[]
+      }
       vincular_dispositivo: {
         Args: {
           p_colaborador_id: string

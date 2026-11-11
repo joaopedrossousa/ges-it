@@ -1,6 +1,9 @@
 import { z } from "zod";
 
+import { ACAO_LABEL, TIPO_REGISTRO_LABEL } from "@/lib/auditoria";
+import { consultaAuditoria, montarLinhasAuditoria } from "@/lib/auditoria-servidor";
 import { descricaoDispositivo, identificadorDispositivo } from "@/lib/dispositivos";
+import { lerFiltrosAuditoria } from "@/lib/filtros-auditoria";
 import {
   filtroBuscaDispositivos,
   lerFiltrosDispositivos,
@@ -791,6 +794,58 @@ const servicos: Gerador = async (supabase, params, agora) => {
   };
 };
 
+// ===========================================================================
+// 8. Log de auditoria (só Excel; mesmos filtros de /auditoria)
+// ===========================================================================
+
+const auditoria: Gerador = async (supabase, params) => {
+  const f = lerFiltrosAuditoria(params);
+  const brutas = await buscarTodas((a, b) => consultaAuditoria(supabase, f).range(a, b));
+  const linhas = await montarLinhasAuditoria(supabase, brutas);
+
+  let emailUsuario: string | null = null;
+  if (f.usuario) {
+    const { data } = await supabase.rpc("emails_operadores", { p_ids: [f.usuario] });
+    emailUsuario = data?.[0]?.email ?? "usuário não encontrado";
+  }
+
+  const filtros = [
+    (f.de || f.ate) && {
+      rotulo: "Período",
+      valor: `${f.de ? dataBR(f.de) : "início"} a ${f.ate ? dataBR(f.ate) : "hoje"}`,
+    },
+    emailUsuario && { rotulo: "Usuário", valor: emailUsuario },
+    f.tabela && { rotulo: "Tipo de registro", valor: TIPO_REGISTRO_LABEL[f.tabela] },
+    f.acao && { rotulo: "Ação", valor: ACAO_LABEL[f.acao] },
+    f.registro && { rotulo: "Registro", valor: linhas[0]?.registro.texto ?? "registro específico" },
+  ].filter((x) => !!x);
+
+  return {
+    slug: "auditoria",
+    titulo: "Log de auditoria",
+    aba: "Auditoria",
+    orientacao: "paisagem",
+    filtros: filtros.length ? filtros : [{ rotulo: "Filtros", valor: "nenhum (log completo)" }],
+    colunas: [
+      { chave: "quando", titulo: "Data/hora", tipo: "dataHora" },
+      { chave: "usuario", titulo: "Usuário" },
+      { chave: "acao", titulo: "Ação" },
+      { chave: "tipo", titulo: "Tipo de registro" },
+      { chave: "registro", titulo: "Registro" },
+      { chave: "alteracoes", titulo: "Alterações" },
+    ],
+    linhas: linhas.map((l) => ({
+      quando: new Date(l.quando),
+      usuario: l.usuario,
+      acao: l.acao,
+      tipo: l.tipoRegistro,
+      registro: l.registro.texto,
+      alteracoes: l.alteracoes.map((a) => `${a.campo}: ${a.texto}`).join("; ") || null,
+    })),
+    vazio: "Nenhuma alteração encontrada com esses filtros.",
+  };
+};
+
 export const GERADORES: Record<TipoRelatorio, Gerador> = {
   inventario,
   "dispositivos-por-loja": dispositivosPorLoja,
@@ -799,4 +854,5 @@ export const GERADORES: Record<TipoRelatorio, Gerador> = {
   movimentacoes,
   "vinculos-sem-termo": vinculosSemTermo,
   servicos,
+  auditoria,
 };

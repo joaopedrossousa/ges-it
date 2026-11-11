@@ -26,8 +26,12 @@ export const TIPOS_RELATORIO = [
   "movimentacoes",
   "vinculos-sem-termo",
   "servicos",
+  "auditoria",
 ] as const;
 export type TipoRelatorio = (typeof TIPOS_RELATORIO)[number];
+
+/** Relatórios que só saem em Excel (texto longo demais para o PDF). */
+export const RELATORIOS_SO_EXCEL: readonly TipoRelatorio[] = ["auditoria"];
 
 /** Datas são instantes reais; cada gerador exibe no fuso de Palmas. */
 export type Valor = string | number | Date | null;
