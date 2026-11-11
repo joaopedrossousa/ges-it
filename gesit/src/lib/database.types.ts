@@ -252,6 +252,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      ping: { Args: never; Returns: number }
       vincular_dispositivo: {
         Args: {
           p_colaborador_id: string
