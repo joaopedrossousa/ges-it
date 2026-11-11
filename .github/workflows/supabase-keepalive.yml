@@ -1,0 +1,26 @@
+# Mantém o projeto Supabase ativo: o plano gratuito pausa projetos sem
+# atividade por 7 dias. Chama a função public.ping() via PostgREST.
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: "0 12 */3 * *" # 12:00 UTC, a cada 3 dias
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping no Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          curl -fsS -X POST "$SUPABASE_URL/rest/v1/rpc/ping" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{}'
