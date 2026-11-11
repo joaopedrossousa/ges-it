@@ -237,7 +237,8 @@ function ItemTabela({ item, colunas }: { item: Item; colunas: Coluna[] }) {
 }
 
 function DocumentoRelatorio({ relatorio, meta }: { relatorio: Relatorio; meta: MetaRelatorio }) {
-  const { colunas, agruparPor } = relatorio;
+  const { agruparPor } = relatorio;
+  const colunas = relatorio.colunasPdf ?? relatorio.colunas;
   // No agrupamento, a coluna do grupo vira o título do bloco.
   const colunasTabela = agruparPor ? colunas.filter((c) => c.chave !== agruparPor) : colunas;
   const paginas = relatorio.linhas.length

@@ -141,12 +141,24 @@ const inventario: Gerador = async (supabase, params) => {
       { chave: "fim_vida_util", titulo: "Fim vida útil", tipo: "data", peso: 0.8 },
       { chave: "vida_util", titulo: "Vida útil", peso: 0.95 },
     ],
+    // PDF mais enxuto; as datas e a idade ficam só no Excel.
+    colunasPdf: [
+      { chave: "tipo", titulo: "Tipo", peso: 0.7 },
+      { chave: "marca_modelo", titulo: "Marca/Modelo", peso: 1.8 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.3 },
+      { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
+      { chave: "status", titulo: "Status", peso: 0.8 },
+      { chave: "usuario", titulo: "Usuário atual", peso: 1.5 },
+      { chave: "loja", titulo: "Loja", peso: 1.1 },
+      { chave: "vida_util", titulo: "Vida útil", peso: 0.95 },
+    ],
     linhas: dados.map((d) => {
       const situacao = paraSituacaoVidaUtil(d.situacao_vida_util);
       return {
         tipo: d.tipo ? TIPO_DISPOSITIVO_LABEL[d.tipo] : null,
         marca: d.marca,
         modelo: d.modelo,
+        marca_modelo: [d.marca, d.modelo].filter(Boolean).join(" ") || null,
         identificador: identificadorDispositivo(d),
         patrimonio: d.numero_patrimonio,
         status: d.status ? STATUS_DISPOSITIVO_LABEL[d.status] : null,

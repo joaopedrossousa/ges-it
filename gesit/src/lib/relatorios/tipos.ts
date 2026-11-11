@@ -49,7 +49,13 @@ export type Relatorio = {
   orientacao: "retrato" | "paisagem";
   /** Filtros aplicados (ou dados do item, nos históricos). */
   filtros: { rotulo: string; valor: string }[];
+  /** Colunas do Excel (e do PDF, se `colunasPdf` não for informado). */
   colunas: Coluna[];
+  /**
+   * Colunas só do PDF, quando ele deve ser mais enxuto que o Excel. As chaves
+   * podem ser campos extras das linhas (o Excel só lê as de `colunas`).
+   */
+  colunasPdf?: Coluna[];
   /** Já na ordem de exibição. */
   linhas: Linha[];
   /** Agrupa linhas consecutivas por esta coluna, com subtotal por grupo. */
