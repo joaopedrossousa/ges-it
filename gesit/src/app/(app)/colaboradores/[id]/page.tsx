@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
 import { CampoDetalhe } from "@/components/campo-detalhe";
+import { ExportarMenu } from "@/components/exportar";
 import {
   HistoricoVinculos,
   type LinhaHistorico,
@@ -143,7 +144,8 @@ async function DetalheColaborador({
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <ExportarMenu relatorio="historico-usuario" params={{ id: colaborador.id }} />
           <StatusButton
             id={colaborador.id}
             nome={colaborador.nome}

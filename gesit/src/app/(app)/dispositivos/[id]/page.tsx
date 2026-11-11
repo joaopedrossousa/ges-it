@@ -15,6 +15,7 @@ import { z } from "zod";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
 import { CampoDetalhe } from "@/components/campo-detalhe";
+import { ExportarMenu } from "@/components/exportar";
 import {
   HistoricoVinculos,
   type LinhaHistorico,
@@ -144,7 +145,8 @@ async function DetalheDispositivo({
           <p className="text-muted-foreground">{TIPO_DISPOSITIVO_LABEL[d.tipo]}</p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <ExportarMenu relatorio="historico-dispositivo" params={{ id: d.id }} />
           <StatusDialog
             dispositivo={{
               id: d.id,

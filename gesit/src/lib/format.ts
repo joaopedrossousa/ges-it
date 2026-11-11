@@ -1,7 +1,7 @@
 import { formatDistanceStrict, formatDuration, intervalToDuration } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const FUSO = "America/Araguaina"; // Palmas/TO (UTC−3, sem horário de verão)
+export const FUSO = "America/Araguaina"; // Palmas/TO (UTC−3, sem horário de verão)
 
 const formatadorDataHora = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
@@ -15,13 +15,42 @@ const formatadorData = new Intl.DateTimeFormat("pt-BR", {
 });
 
 /** Ex.: "10/11/2026, 14:32". */
-export function formatarDataHora(iso: string): string {
-  return formatadorDataHora.format(new Date(iso));
+export function formatarDataHora(data: string | Date): string {
+  return formatadorDataHora.format(new Date(data));
 }
 
 /** Ex.: "10/11/2026". */
-export function formatarData(iso: string): string {
-  return formatadorData.format(new Date(iso));
+export function formatarData(data: string | Date): string {
+  return formatadorData.format(new Date(data));
+}
+
+const formatadorPartes = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+  timeZone: FUSO,
+});
+
+/**
+ * Mesmo relógio de Palmas, gravado nos campos UTC. Para o Excel, que não
+ * tem fuso: a célula mostra a hora de Palmas, não a do servidor (UTC).
+ */
+export function paraRelogioDePalmas(data: Date): Date {
+  const p = Object.fromEntries(
+    formatadorPartes.formatToParts(data).map(({ type, value }) => [type, Number(value)]),
+  );
+  return new Date(
+    Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second, data.getUTCMilliseconds()),
+  );
+}
+
+/** Data de hoje em Palmas, como "AAAA-MM-DD". */
+export function hojeEmPalmas(agora = new Date()): string {
+  return paraRelogioDePalmas(agora).toISOString().slice(0, 10);
 }
 
 /**

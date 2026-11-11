@@ -1,6 +1,7 @@
 import {
   ArrowRightLeftIcon,
   ChevronRightIcon,
+  DownloadIcon,
   PencilIcon,
   PlusIcon,
   UserRoundPlusIcon,
@@ -9,7 +10,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { z } from "zod";
 
 import { StatusDispositivoBadge } from "@/components/status-dispositivo-badge";
 import { TabelaCarregando } from "@/components/tabela-carregando";
@@ -25,25 +25,23 @@ import {
 import { Paginacao, PaginaInexistente } from "@/components/paginacao";
 import {
   faixaDaPagina,
-  limparBusca,
   paginaDoParametro,
   primeiro,
 } from "@/lib/busca";
 import { identificadorDispositivo } from "@/lib/dispositivos";
+import { filtroBuscaDispositivos, lerFiltrosDispositivos } from "@/lib/filtros-dispositivos";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
 import {
-  STATUS_DISPOSITIVO,
-  TIPOS_DISPOSITIVO,
   TIPO_DISPOSITIVO_LABEL,
   type VwDispositivoRow,
 } from "@/lib/types";
-import { somenteDigitos } from "@/lib/validators";
 
 import {
   DispositivoFormDialog,
   type DispositivoEditavel,
 } from "./dispositivo-form-dialog";
+import { ExportarDispositivos } from "./exportar-dispositivos";
 import { Filtros } from "./filtros";
 import { StatusDialog } from "./status-dialog";
 import { VincularDialog } from "./vincular-dialog";
@@ -62,7 +60,18 @@ export default function DispositivosPage({
           <h1 className="text-2xl font-semibold tracking-tight">Dispositivos</h1>
           <p className="text-muted-foreground">Notebooks e telefones.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* useSearchParams: precisa de Suspense no shell estático. */}
+          <Suspense
+            fallback={
+              <Button variant="outline" disabled>
+                <DownloadIcon />
+                Exportar
+              </Button>
+            }
+          >
+            <ExportarDispositivos />
+          </Suspense>
           <VincularDialog
             trigger={
               <Button variant="outline">
@@ -99,9 +108,6 @@ async function BarraDeFiltros() {
   return <Filtros lojas={lojas} />;
 }
 
-const tipoSchema = z.enum(TIPOS_DISPOSITIVO);
-const statusSchema = z.enum(STATUS_DISPOSITIVO);
-
 /** Linhas da view vêm com colunas anuláveis; só edita se os dados básicos existirem. */
 function paraEdicao(d: VwDispositivoRow): DispositivoEditavel | null {
   if (!d.id || !d.tipo || d.marca === null || d.modelo === null) return null;
@@ -124,11 +130,7 @@ async function TabelaDispositivos({
 }) {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const params = await searchParams;
-  const busca = limparBusca(primeiro(params.q) ?? "").slice(0, 100);
-  const tipo = tipoSchema.safeParse(primeiro(params.tipo)).data;
-  const status = statusSchema.safeParse(primeiro(params.status)).data;
-  const lojaParam = primeiro(params.loja);
-  const lojaId = z.uuid().safeParse(lojaParam).success ? lojaParam : undefined;
+  const { busca, tipo, status, lojaId } = lerFiltrosDispositivos(params);
 
   const pagina = paginaDoParametro(primeiro(params.page));
   const { de, ate } = faixaDaPagina(pagina);
@@ -149,18 +151,8 @@ async function TabelaDispositivos({
   // loja_id da view = loja gravada no vínculo aberto (migration 002).
   if (lojaId) query = query.eq("loja_id", lojaId);
 
-  if (busca) {
-    const filtros = [
-      `marca.ilike.%${busca}%`,
-      `modelo.ilike.%${busca}%`,
-      `serial_number.ilike.%${busca}%`,
-    ];
-    const digitos = somenteDigitos(busca);
-    if (digitos.length >= 3) {
-      filtros.push(`imei1.like.%${digitos}%`, `imei2.like.%${digitos}%`);
-    }
-    query = query.or(filtros.join(","));
-  }
+  const filtroBusca = filtroBuscaDispositivos(busca);
+  if (filtroBusca) query = query.or(filtroBusca);
 
   const { data, count, error } = await query;
 

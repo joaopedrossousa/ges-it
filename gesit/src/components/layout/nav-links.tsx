@@ -2,6 +2,7 @@
 
 import { cn } from "cn";
 import {
+  FileChartColumnIcon,
   LayoutDashboardIcon,
   MonitorSmartphoneIcon,
   StoreIcon,
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/colaboradores", label: "Usuários", icon: UsersIcon },
   { href: "/dispositivos", label: "Dispositivos", icon: MonitorSmartphoneIcon },
   { href: "/lojas", label: "Lojas", icon: StoreIcon },
+  { href: "/relatorios", label: "Relatórios", icon: FileChartColumnIcon },
 ] as const;
 
 function isActive(pathname: string, href: string) {

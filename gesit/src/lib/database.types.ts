@@ -252,6 +252,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      emails_operadores: {
+        Args: { p_ids: string[] }
+        Returns: {
+          email: string
+          id: string
+        }[]
+      }
       ping: { Args: never; Returns: number }
       vincular_dispositivo: {
         Args: {

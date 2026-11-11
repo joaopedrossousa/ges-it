@@ -30,6 +30,15 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
 - Ícones do site: src/app/favicon.ico e src/app/icon.png (convenção de arquivos; não declarar `icons` no metadata).
 - Carregamento: componente `Carregando` (src/components/carregando.tsx), três pontos azul/verde/azul em CSS. Usar nos loading.tsx (`CarregandoPagina`), nos botões enquanto salvam (`decorativo`, ao lado do texto "Salvando...") e em buscas. Não usar o carregando.gif (fundo branco) nem spinners genéricos.
 
+## Relatórios (PDF e Excel)
+- Rota única: GET /api/relatorios/[tipo]?formato=pdf|xlsx + filtros. Gerados no servidor com a sessão do usuário (RLS); nada de service_role.
+- Dados em src/lib/relatorios/dados.ts (um gerador por relatório); excel.ts (exceljs) e pdf.tsx (@react-pdf/renderer) só formatam o modelo de tipos.ts.
+- Limite: 5.000 linhas por relatório; o PDF aceita até 1.000 (react-pdf ~4 ms/linha; a função da Netlify cai em 10 s). Acima disso, erro 422 pedindo para refinar os filtros.
+- O PostgREST devolve no máximo 1.000 linhas por resposta: buscar com buscarTodas (lotes, ordenação estável terminando em id).
+- PDF com paginação manual (um <Page> por bloco, wrap={false}) e células de uma linha (reticências): não trocar por quebra automática, que é quadrática. Ao mudar fontes, margens ou alturas, conferir que nenhuma página transborda.
+- CPF sempre mascarado (mascararCPF). Datas no fuso de Palmas (America/Araguaina); no Excel, via paraRelogioDePalmas.
+- Arquivos lidos do disco (fontes Roboto do @fontsource/roboto e public/brand/logo-horizontal-pdf.png) estão em outputFileTracingIncludes no next.config.ts.
+
 ## Git
 - Ao concluir cada tarefa, com lint e build passando, faça commit local com mensagem no padrão Conventional Commits em português (ex.: "feat: dashboard de ativos").
 - Antes do commit, mostre o git status e confira que .env.local e arquivos de cache não estão incluídos.
