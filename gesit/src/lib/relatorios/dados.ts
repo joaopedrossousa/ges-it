@@ -754,7 +754,7 @@ const servicos: Gerador = async (supabase, params, agora) => {
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
       { chave: "usuario", titulo: "Usuário na data", peso: 1.3 },
       { chave: "loja", titulo: "Loja na data", peso: 1.1 },
-      { chave: "fornecedor", titulo: "Fornecedor", peso: 1.2 },
+      { chave: "fornecedor", titulo: "Prestador de serviço", peso: 1.4 },
       { chave: "custo", titulo: "Custo", tipo: "moeda", peso: 0.9 },
       { chave: "garantia", titulo: "Garantia", peso: 0.6 },
       { chave: "descricao", titulo: "Descrição", peso: 1.8 },
@@ -765,10 +765,10 @@ const servicos: Gerador = async (supabase, params, agora) => {
       { chave: "tipo", titulo: "Tipo de serviço", peso: 1.2 },
       { chave: "dispositivo_pdf", titulo: "Dispositivo", peso: 2 },
       { chave: "loja", titulo: "Loja", peso: 1.1 },
-      { chave: "fornecedor", titulo: "Fornecedor", peso: 1.2 },
+      { chave: "fornecedor", titulo: "Prestador de serviço", peso: 1.5 },
       { chave: "custo", titulo: "Custo", tipo: "moeda", peso: 0.9 },
       { chave: "garantia", titulo: "Garantia", peso: 0.6 },
-      { chave: "descricao", titulo: "Descrição", peso: 2.2 },
+      { chave: "descricao", titulo: "Descrição", peso: 1.9 },
     ],
     linhas: dados.map((s) => {
       const dispositivo = { ...s, tipo: s.dispositivo_tipo };

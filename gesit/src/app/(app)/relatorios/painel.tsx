@@ -257,7 +257,7 @@ function Servicos({ lojas, periodoPadrao }: Props) {
     <CartaoRelatorio
       icone={WrenchIcon}
       titulo="Serviços por período"
-      descricao="Manutenções dos dispositivos, com fornecedor, custo e garantia. A loja é a do vínculo na data do serviço."
+      descricao="Manutenções dos dispositivos, com prestador de serviço, custo e garantia. A loja é a do vínculo na data do serviço."
       rodape={
         <ExportarBotoes
           relatorio="servicos"

@@ -102,7 +102,7 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     dispositivo_id: "Dispositivo",
     tipo: "Tipo de serviço",
     data_servico: "Data do serviço",
-    fornecedor: "Fornecedor",
+    fornecedor: "Prestador de serviço",
     custo: "Custo",
     na_garantia: "Na garantia",
     descricao: "Descrição",

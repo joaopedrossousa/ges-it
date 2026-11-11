@@ -84,7 +84,7 @@ export function HistoricoServicos({ dispositivoId, servicos }: Props) {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Fornecedor</TableHead>
+                <TableHead>Prestador de serviço</TableHead>
                 <TableHead className="text-right">Custo</TableHead>
                 <TableHead>Garantia</TableHead>
                 <TableHead>Descrição</TableHead>

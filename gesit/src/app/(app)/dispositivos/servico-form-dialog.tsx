@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, useTransition, type ReactNode } from "react";
-import { Controller, useForm, type Path } from "react-hook-form";
+import { Controller, useForm, useWatch, type Path } from "react-hook-form";
 import { toast } from "sonner";
 
 import { CampoArquivo } from "@/components/campo-arquivo";
@@ -174,6 +174,9 @@ function FormServico({
     });
   });
 
+  // A regra do zod (Outro exige descrição) continua valendo; aqui só o rótulo.
+  const descricaoObrigatoria = useWatch({ control, name: "tipo" }) === "outro";
+
   const erro = (campo: (typeof CAMPOS)[number]) => errors[campo]?.message;
   const descrito = (campo: string, mensagem?: string) =>
     mensagem ? `serv-${campo}-erro` : undefined;
@@ -232,7 +235,7 @@ function FormServico({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="serv-fornecedor">Fornecedor (opcional)</Label>
+          <Label htmlFor="serv-fornecedor">Prestador de serviço (opcional)</Label>
           <Input
             id="serv-fornecedor"
             autoComplete="off"
@@ -283,11 +286,23 @@ function FormServico({
       />
 
       <div className="grid gap-2">
-        <Label htmlFor="serv-descricao">Descrição (opcional, exceto para Outro)</Label>
+        <Label htmlFor="serv-descricao">
+          {descricaoObrigatoria ? (
+            <>
+              Descrição
+              <span aria-hidden className="text-destructive">
+                *
+              </span>
+            </>
+          ) : (
+            "Descrição (opcional)"
+          )}
+        </Label>
         <Textarea
           id="serv-descricao"
           rows={3}
           maxLength={1000}
+          aria-required={descricaoObrigatoria || undefined}
           aria-invalid={Boolean(erro("descricao"))}
           aria-describedby={descrito("descricao", erro("descricao"))}
           disabled={isPending}
