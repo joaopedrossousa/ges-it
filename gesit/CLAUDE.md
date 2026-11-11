@@ -14,6 +14,7 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
 - Nunca usar a service_role key no código do cliente.
 - CPF e IMEI guardados só com dígitos; máscara apenas na exibição.
 - "Usuários" na UI = tabela colaboradores no banco.
+- CPF e e-mail do usuário são opcionais (migration 013): vazio é null, nunca "". Sem um deles = "Dados pendentes" (descreverPendencias em src/lib/colaboradores.ts). Exibir vazio como "—" (mascararCPF/formatarCPF já fazem isso).
 - Um dispositivo tem no máximo um vínculo aberto (data_fim nula). Vincular usa a função SQL vincular_dispositivo.
 - Termos de responsabilidade: PDF, até 5 MB, bucket privado "termos", enviados direto do navegador para o Storage.
 - Notas fiscais: PDF, JPG ou PNG, até 10 MB, bucket privado "notas-fiscais", em {dispositivo_id}/{timestamp}.{ext}. Enviadas do navegador depois de salvar o dispositivo e gravadas com anexarNotaFiscal; abertas por /api/notas-fiscais (URL assinada no clique).

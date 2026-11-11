@@ -309,7 +309,7 @@ async function DetalheDispositivo({
                     </span>
                   )}
                 </CampoDetalhe>
-                <CampoDetalhe rotulo="E-mail">{aberto.colaborador.email}</CampoDetalhe>
+                <CampoDetalhe rotulo="E-mail">{aberto.colaborador.email ?? "—"}</CampoDetalhe>
                 <CampoDetalhe rotulo="Desde">
                   {formatarDataHora(aberto.data_inicio)}
                   <span className="block text-sm text-muted-foreground">

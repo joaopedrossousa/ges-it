@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { DadosPendentesBadge } from "@/components/dados-pendentes-badge";
 import { TabelaCarregando } from "@/components/tabela-carregando";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
   paginaDoParametro,
   primeiro,
 } from "@/lib/busca";
+import { descreverPendencias, FILTRO_DADOS_PENDENTES } from "@/lib/colaboradores";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
 import { mascararCPF, somenteDigitos } from "@/lib/validators";
@@ -87,6 +89,7 @@ async function TabelaColaboradores({
   const busca = limparBusca(primeiro(params.q) ?? "").slice(0, 100);
   const lojaParam = primeiro(params.loja);
   const lojaId = z.uuid().safeParse(lojaParam).success ? lojaParam : undefined;
+  const pendentes = primeiro(params.pendentes) === "1";
 
   const pagina = paginaDoParametro(primeiro(params.page));
   const { de, ate } = faixaDaPagina(pagina);
@@ -101,15 +104,23 @@ async function TabelaColaboradores({
 
   if (lojaId) query = query.eq("loja_id", lojaId);
 
+  const filtroBusca: string[] = [];
   if (busca) {
-    const filtros = [
+    filtroBusca.push(
       `nome.ilike.%${busca}%`,
       `cargo.ilike.%${busca}%`,
       `email.ilike.%${busca}%`,
-    ];
+    );
     const digitos = somenteDigitos(busca);
-    if (digitos.length >= 3) filtros.push(`cpf.like.%${digitos}%`);
-    query = query.or(filtros.join(","));
+    if (digitos.length >= 3) filtroBusca.push(`cpf.like.%${digitos}%`);
+  }
+  // Busca e pendências são dois "ou" que precisam valer juntos: um .or só.
+  if (busca && pendentes) {
+    query = query.or(`and(or(${FILTRO_DADOS_PENDENTES}),or(${filtroBusca.join(",")}))`);
+  } else if (busca) {
+    query = query.or(filtroBusca.join(","));
+  } else if (pendentes) {
+    query = query.or(FILTRO_DADOS_PENDENTES);
   }
 
   const { data, count, error } = await query;
@@ -128,9 +139,10 @@ async function TabelaColaboradores({
   const linhas = data.map(({ cpf, ...resto }) => ({
     ...resto,
     cpfMascarado: mascararCPF(cpf),
+    pendencias: descreverPendencias({ cpf, email: resto.email }),
   }));
 
-  const filtrando = Boolean(busca || lojaId);
+  const filtrando = Boolean(busca || lojaId || pendentes);
 
   return (
     <div className="space-y-2">
@@ -173,10 +185,15 @@ async function TabelaColaboradores({
                       {c.cargo}
                     </span>
                   )}
+                  {c.pendencias && (
+                    <span className="mt-1 block">
+                      <DadosPendentesBadge detalhe={c.pendencias} />
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>{c.loja?.nome ?? "—"}</TableCell>
                 <TableCell className="font-mono text-xs">{c.cpfMascarado}</TableCell>
-                <TableCell>{c.email}</TableCell>
+                <TableCell>{c.email ?? "—"}</TableCell>
                 <TableCell>
                   <Badge variant={c.ativo ? "secondary" : "outline"}>
                     {c.ativo ? "Ativo" : "Inativo"}

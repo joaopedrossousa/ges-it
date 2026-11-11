@@ -20,7 +20,7 @@ export type ColaboradorOpcao = {
   id: string;
   nome: string;
   cargo: string | null;
-  email: string;
+  email: string | null;
   loja_nome: string | null;
 };
 

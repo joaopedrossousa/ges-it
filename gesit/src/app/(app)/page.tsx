@@ -12,6 +12,7 @@ import {
   UndoIcon,
   UserRoundCheckIcon,
   UserRoundPlusIcon,
+  UserRoundXIcon,
   WrenchIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
@@ -29,6 +30,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { descreverPendencias, FILTRO_DADOS_PENDENTES } from "@/lib/colaboradores";
 import { identificadorDispositivo } from "@/lib/dispositivos";
 import {
   formatarDataHora,
@@ -86,10 +88,16 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<CardCarregando titulo="Vínculos sem termo" />}>
-          <VinculosSemTermo />
-        </Suspense>
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        {/* Esquerda: o que pede ação; direita: o histórico recente. */}
+        <div className="grid gap-6">
+          <Suspense fallback={<CardCarregando titulo="Vínculos sem termo" />}>
+            <VinculosSemTermo />
+          </Suspense>
+          <Suspense fallback={<CardCarregando titulo="Usuários com dados pendentes" />}>
+            <UsuariosComDadosPendentes />
+          </Suspense>
+        </div>
         <Suspense fallback={<CardCarregando titulo="Últimas movimentações" />}>
           <UltimasMovimentacoes />
         </Suspense>
@@ -451,6 +459,84 @@ async function VinculosSemTermo() {
               Mostrando os {data.length} mais antigos de {total}.
             </p>
           )}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+// ===========================================================================
+// Usuários com dados pendentes
+// ===========================================================================
+
+const LIMITE_PENDENTES = 10;
+
+/** Usuários ativos sem CPF e/ou sem e-mail (opcionais desde a migration 013). */
+async function UsuariosComDadosPendentes() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("colaboradores")
+    .select("id, nome, cpf, email, loja:lojas(nome)", { count: "exact" })
+    .eq("ativo", true)
+    .or(FILTRO_DADOS_PENDENTES)
+    .order("nome")
+    .order("id")
+    .limit(LIMITE_PENDENTES);
+
+  if (error) {
+    console.error("Erro ao listar usuários com dados pendentes:", error);
+    return (
+      <CardSimples titulo="Usuários com dados pendentes">
+        <p className="text-destructive">Não foi possível carregar os usuários.</p>
+      </CardSimples>
+    );
+  }
+
+  const total = count ?? data.length;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserRoundXIcon
+            className={total > 0 ? "size-4 text-amber-600 dark:text-amber-400" : "size-4 text-muted-foreground"}
+            aria-hidden
+          />
+          Usuários com dados pendentes
+        </CardTitle>
+        <CardDescription>
+          {total === 0
+            ? "Todos os usuários ativos têm CPF e e-mail cadastrados."
+            : `${total} ${total === 1 ? "usuário ativo" : "usuários ativos"} sem CPF ou sem e-mail.`}
+        </CardDescription>
+      </CardHeader>
+      {total > 0 && (
+        <CardContent>
+          <ul className="divide-y">
+            {data.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5 text-sm first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0">
+                  <Link href={`/colaboradores/${c.id}`} className="font-medium hover:underline">
+                    {c.nome}
+                  </Link>
+                  <p className="text-muted-foreground">{c.loja?.nome ?? "—"}</p>
+                </div>
+                <span className="text-xs font-medium text-amber-800 dark:text-amber-400">
+                  {descreverPendencias(c)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {total > data.length && `Mostrando ${data.length} de ${total}. `}
+            <Link href="/colaboradores?pendentes=1" className="font-medium text-primary hover:underline">
+              Ver na listagem de usuários
+            </Link>
+          </p>
         </CardContent>
       )}
     </Card>

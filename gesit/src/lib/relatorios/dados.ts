@@ -441,7 +441,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
       ...(c.cargo ? [{ rotulo: "Cargo", valor: c.cargo }] : []),
       // CPF sempre mascarado nos relatórios.
       { rotulo: "CPF", valor: mascararCPF(c.cpf) },
-      { rotulo: "E-mail", valor: c.email },
+      { rotulo: "E-mail", valor: c.email ?? "—" },
       { rotulo: "Loja", valor: c.loja?.nome ?? "—" },
     ],
     colunas: [

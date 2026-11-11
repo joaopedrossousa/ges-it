@@ -54,9 +54,9 @@ export type Database = {
         Row: {
           ativo: boolean
           cargo: string | null
-          cpf: string
+          cpf: string | null
           created_at: string
-          email: string
+          email: string | null
           id: string
           loja_id: string
           nome: string
@@ -65,9 +65,9 @@ export type Database = {
         Insert: {
           ativo?: boolean
           cargo?: string | null
-          cpf: string
+          cpf?: string | null
           created_at?: string
-          email: string
+          email?: string | null
           id?: string
           loja_id: string
           nome: string
@@ -76,9 +76,9 @@ export type Database = {
         Update: {
           ativo?: boolean
           cargo?: string | null
-          cpf?: string
+          cpf?: string | null
           created_at?: string
-          email?: string
+          email?: string | null
           id?: string
           loja_id?: string
           nome?: string
@@ -460,6 +460,7 @@ export type Database = {
           id: string
         }[]
       }
+      mascarar_cpf_auditoria: { Args: { p_cpf: string }; Returns: Json }
       normalizar_perifericos: {
         Args: {
           p_formatado: boolean

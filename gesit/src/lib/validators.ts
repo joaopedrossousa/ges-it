@@ -40,10 +40,11 @@ export function validarCPF(valor: string): boolean {
 }
 
 /**
- * Formata como 000.000.000-00. Se não houver exatamente 11 dígitos,
- * devolve o valor original sem alteração.
+ * Formata como 000.000.000-00. Vazio/null vira "—"; se não houver
+ * exatamente 11 dígitos, devolve o valor original sem alteração.
  */
-export function formatarCPF(valor: string): string {
+export function formatarCPF(valor: string | null | undefined): string {
+  if (!valor) return "—";
   const cpf = somenteDigitos(valor);
   if (cpf.length !== 11) return valor;
   return cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
@@ -51,9 +52,11 @@ export function formatarCPF(valor: string): string {
 
 /**
  * Máscara de privacidade para listagens: ***.456.789-**.
- * Se não houver exatamente 11 dígitos, devolve "***.***.***-**".
+ * Vazio/null (CPF não cadastrado) vira "—"; se não houver exatamente
+ * 11 dígitos, devolve "***.***.***-**".
  */
-export function mascararCPF(valor: string): string {
+export function mascararCPF(valor: string | null | undefined): string {
+  if (!valor) return "—";
   const cpf = somenteDigitos(valor);
   if (cpf.length !== 11) return "***.***.***-**";
   return `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**`;
@@ -280,20 +283,21 @@ export const colaboradorSchema = z.object({
   nome: textoObrigatorio("o nome", 150),
   cargo: textoOpcional(100),
   loja_id: idObrigatorio("Selecione a loja."),
-  /** Entra com ou sem máscara; sai só com dígitos. */
+  /** Opcional. Entra com ou sem máscara; sai só com dígitos (vazio vira null). */
   cpf: z
-    .string({ error: "Informe o CPF." })
-    .trim()
-    .min(1, "Informe o CPF.")
-    .transform(somenteDigitos)
-    .refine((v) => v.length === 11, "O CPF deve ter 11 dígitos.")
-    .refine(validarCPF, "CPF inválido."),
+    .string()
+    .nullish()
+    .transform((v) => somenteDigitos(v ?? "") || null)
+    .refine((v) => v === null || v.length === 11, "O CPF deve ter 11 dígitos.")
+    .refine((v) => v === null || validarCPF(v), "CPF inválido."),
+  /** Opcional; vazio vira null. */
   email: z
-    .string({ error: "Informe o e-mail." })
+    .string()
     .trim()
     .toLowerCase()
-    .min(1, "Informe o e-mail.")
-    .pipe(z.email("Informe um e-mail válido.")),
+    .nullish()
+    .transform((v) => v || null)
+    .refine((v) => v === null || z.email().safeParse(v).success, "Informe um e-mail válido."),
   ativo: z.boolean().default(true),
 });
 
@@ -505,6 +509,7 @@ export type DevolucaoFormData = z.output<typeof devolucaoSchema>;
  * colaboradorSchema.parse({ ...mesmo, cargo: "   " }).cargo                   // null
  * colaboradorSchema.safeParse({ ...mesmo, cpf: "111.111.111-11" }).success  // false
  * colaboradorSchema.safeParse({ ...mesmo, email: "maria@" }).success        // false
+ * colaboradorSchema.parse({ ...mesmo, cpf: "", email: "  " })              // { ..., cpf: null, email: null }
  *
  * notebookSchema.parse({ tipo: "notebook", marca: "Dell", modelo: "Latitude 5440", serial_number: "ABC123" })
  *   // { ..., status: "disponivel", observacao: null }

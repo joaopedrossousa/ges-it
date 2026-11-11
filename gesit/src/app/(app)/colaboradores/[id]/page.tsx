@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
 import { CampoDetalhe } from "@/components/campo-detalhe";
+import { DadosPendentesBadge } from "@/components/dados-pendentes-badge";
 import { SecaoAlteracoes, SecaoAlteracoesCarregando } from "@/components/secao-alteracoes";
 import { ExportarMenu } from "@/components/exportar";
 import {
@@ -34,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { descreverPendencias } from "@/lib/colaboradores";
 import { identificadorDispositivo } from "@/lib/dispositivos";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
@@ -140,6 +142,7 @@ async function DetalheColaborador({
             <Badge variant={colaborador.ativo ? "secondary" : "outline"}>
               {colaborador.ativo ? "Ativo" : "Inativo"}
             </Badge>
+            <DadosPendentesBadge detalhe={descreverPendencias(colaborador)} />
           </div>
           <p className="text-muted-foreground">
             {[colaborador.cargo, colaborador.loja?.nome].filter(Boolean).join(" · ")}
@@ -181,7 +184,7 @@ async function DetalheColaborador({
             <CampoDetalhe rotulo="CPF" mono>
               {formatarCPF(colaborador.cpf)}
             </CampoDetalhe>
-            <CampoDetalhe rotulo="E-mail corporativo">{colaborador.email}</CampoDetalhe>
+            <CampoDetalhe rotulo="E-mail corporativo">{colaborador.email ?? "—"}</CampoDetalhe>
             <CampoDetalhe rotulo="Cadastrado em">
               {formatarDataHora(colaborador.created_at)}
             </CampoDetalhe>

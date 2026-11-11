@@ -40,8 +40,8 @@ type Props = {
     nome: string;
     cargo: string | null;
     loja_id: string;
-    cpf: string;
-    email: string;
+    cpf: string | null;
+    email: string | null;
   };
   trigger: ReactNode;
 };
@@ -60,7 +60,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
     nome: colaborador?.nome ?? "",
     cargo: colaborador?.cargo ?? "",
     loja_id: colaborador?.loja_id ?? "",
-    cpf: colaborador ? formatarCPFDigitando(colaborador.cpf) : "",
+    cpf: formatarCPFDigitando(colaborador?.cpf ?? ""),
     email: colaborador?.email ?? "",
   };
 
@@ -173,7 +173,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="colab-cpf">CPF</Label>
+            <Label htmlFor="colab-cpf">CPF (opcional)</Label>
             <Controller
               control={control}
               name="cpf"
@@ -184,13 +184,12 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
                   autoComplete="off"
                   placeholder="000.000.000-00"
                   maxLength={14}
-                  aria-required
                   aria-invalid={Boolean(errors.cpf)}
                   aria-describedby={errors.cpf ? "colab-cpf-erro" : undefined}
                   disabled={isPending}
                   name={field.name}
                   ref={field.ref}
-                  value={field.value}
+                  value={field.value ?? ""}
                   onBlur={field.onBlur}
                   onChange={(e) =>
                     field.onChange(formatarCPFDigitando(e.target.value))
@@ -202,12 +201,11 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="colab-email">E-mail corporativo</Label>
+            <Label htmlFor="colab-email">E-mail corporativo (opcional)</Label>
             <Input
               id="colab-email"
               type="email"
               autoComplete="off"
-              aria-required
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? "colab-email-erro" : undefined}
               disabled={isPending}
