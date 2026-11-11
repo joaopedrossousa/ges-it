@@ -275,6 +275,18 @@ const COLUNAS_PERIODO = [
   { chave: "observacao_devolucao", titulo: "Obs. devolução", peso: 1.2 },
 ] as const;
 
+/** No PDF: periféricos e observações resumidos numa coluna cada (9 no total com a 1ª). */
+const COLUNAS_PERIODO_PDF = [
+  { chave: "loja", titulo: "Loja", peso: 1 },
+  { chave: "inicio", titulo: "Início", tipo: "dataHora", peso: 1 },
+  { chave: "fim", titulo: "Fim", tipo: "dataHora", peso: 1 },
+  { chave: "duracao", titulo: "Duração", peso: 1.1 },
+  { chave: "termo", titulo: "Termo", peso: 0.5 },
+  { chave: "perifericos", titulo: "Periféricos", peso: 1.5 },
+  { chave: "formatado", titulo: "Formatado", peso: 1.1 },
+  { chave: "observacoes", titulo: "Observações", peso: 1.8 },
+] as const;
+
 type VinculoHistorico = {
   data_inicio: string;
   data_fim: string | null;
@@ -296,6 +308,30 @@ function devolvidosComFaltas(v: VinculoHistorico, tipo: TipoDispositivo | null) 
   return faltando.length ? `${texto}; faltou: ${rotulosPerifericos(faltando)}` : texto;
 }
 
+/**
+ * Periféricos numa coluna só (PDF). Vínculo aberto: o que foi entregue.
+ * Encerrado: o que voltou e o que faltou ("Carregador; faltou: Mouse");
+ * sem conferência (transferência ou antigo): o entregue + "(não conferido)".
+ */
+function perifericosResumo(v: VinculoHistorico, tipo: TipoDispositivo | null) {
+  if (!temConferencia(tipo)) return "—";
+  const entregues = textoEntregues(tipo, v.perifericos_entrega);
+  if (!v.data_fim) return entregues;
+  if (v.perifericos_devolucao === null) {
+    return v.perifericos_entrega.length ? `${entregues} (não conferido)` : entregues;
+  }
+  return devolvidosComFaltas(v, tipo);
+}
+
+/** Observações de entrega e devolução numa coluna só (PDF). */
+function observacoesResumo(v: VinculoHistorico) {
+  const partes = [
+    v.observacao && `Entr.: ${v.observacao}`,
+    v.observacao_devolucao && `Dev.: ${v.observacao_devolucao}`,
+  ].filter(Boolean);
+  return partes.length ? partes.join(" · ") : null;
+}
+
 function camposPeriodo(v: VinculoHistorico, agora: Date, tipo: TipoDispositivo | null): Linha {
   return {
     loja: v.loja?.nome ?? null,
@@ -315,6 +351,9 @@ function camposPeriodo(v: VinculoHistorico, agora: Date, tipo: TipoDispositivo |
       : "—",
     observacao: v.observacao,
     observacao_devolucao: v.observacao_devolucao,
+    // Só no PDF (colunasPdf); o Excel lê apenas as chaves de COLUNAS_PERIODO.
+    perifericos: perifericosResumo(v, tipo),
+    observacoes: observacoesResumo(v),
   };
 }
 
@@ -354,6 +393,7 @@ const historicoDispositivo: Gerador = async (supabase, params, agora) => {
       { rotulo: "Status atual", valor: STATUS_DISPOSITIVO_LABEL[d.status] },
     ],
     colunas: [{ chave: "usuario", titulo: "Usuário", peso: 1.5 }, ...COLUNAS_PERIODO],
+    colunasPdf: [{ chave: "usuario", titulo: "Colaborador", peso: 1.4 }, ...COLUNAS_PERIODO_PDF],
     linhas: vinculos.map((v) => ({
       usuario: v.colaborador?.nome ?? null,
       ...camposPeriodo(v, agora, d.tipo),
@@ -403,9 +443,15 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       ...COLUNAS_PERIODO,
     ],
+    colunasPdf: [
+      { chave: "dispositivo_pdf", titulo: "Dispositivo", peso: 1.8 },
+      ...COLUNAS_PERIODO_PDF,
+    ],
     linhas: vinculos.map((v) => ({
       dispositivo: v.dispositivo ? `${v.dispositivo.marca} ${v.dispositivo.modelo}` : null,
       identificador: v.dispositivo ? identificadorDispositivo(v.dispositivo) : null,
+      // PDF: sem coluna de identificador, ele vai junto ("Dell Latitude · ABC123").
+      dispositivo_pdf: v.dispositivo ? descricaoDispositivo(v.dispositivo) : null,
       ...camposPeriodo(v, agora, v.dispositivo?.tipo ?? null),
     })),
     vazio: "Este usuário ainda não teve dispositivos vinculados.",
