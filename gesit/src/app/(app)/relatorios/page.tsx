@@ -41,8 +41,8 @@ async function Painel() {
 
 function PainelCarregando() {
   return (
-    <div className="grid gap-6 lg:grid-cols-3" role="status" aria-label="Carregando...">
-      {Array.from({ length: 3 }, (_, i) => (
+    <div className="grid gap-6 lg:grid-cols-2" role="status" aria-label="Carregando...">
+      {Array.from({ length: 4 }, (_, i) => (
         <div key={i} className="h-72 animate-pulse rounded-xl bg-muted" />
       ))}
     </div>

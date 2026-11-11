@@ -27,9 +27,22 @@ export type { Database };
 
 export type TipoDispositivo = Enums<"tipo_dispositivo">;
 export type StatusDispositivo = Enums<"status_dispositivo">;
+export type TipoServico = Enums<"tipo_servico">;
 
 export const TIPOS_DISPOSITIVO = Constants.public.Enums.tipo_dispositivo;
 export const STATUS_DISPOSITIVO = Constants.public.Enums.status_dispositivo;
+export const TIPOS_SERVICO = Constants.public.Enums.tipo_servico;
+
+export const TIPO_SERVICO_LABEL: Record<TipoServico, string> = {
+  formatacao: "Formatação",
+  troca_tela: "Troca de tela",
+  troca_bateria: "Troca de bateria",
+  troca_teclado: "Troca de teclado",
+  limpeza: "Limpeza",
+  reparo_placa: "Reparo de placa",
+  atualizacao_sistema: "Atualização de sistema",
+  outro: "Outro",
+};
 
 /**
  * Status que o usuário pode escolher (formulários, diálogo de status e
@@ -130,6 +143,8 @@ export type DispositivoUpdate = TablesUpdate<"dispositivos">;
 export type VinculoRow = Tables<"vinculos">;
 export type VinculoInsert = TablesInsert<"vinculos">;
 export type VinculoUpdate = TablesUpdate<"vinculos">;
+
+export type ServicoRow = Tables<"servicos">;
 
 // ---------------------------------------------------------------------------
 // View

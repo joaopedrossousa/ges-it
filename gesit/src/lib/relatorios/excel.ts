@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 
-import { formatarDataHora, paraRelogioDePalmas } from "@/lib/format";
+import { formatarDataHora, formatarMoeda, paraRelogioDePalmas } from "@/lib/format";
 
 import { agrupar, contar, type Coluna, type MetaRelatorio, type Relatorio, type Valor } from "./tipos";
 
@@ -12,11 +12,13 @@ const FORMATO_NUMERICO: Partial<Record<NonNullable<Coluna["tipo"]>, string>> = {
   data: "dd/mm/yyyy",
   dataHora: "dd/mm/yyyy hh:mm",
   numero: "#,##0",
+  moeda: '"R$" #,##0.00',
 };
 
 /** Largura aproximada (em caracteres) que o valor ocupa na célula. */
 function larguraDoValor(valor: Valor, coluna: Coluna) {
   if (valor instanceof Date) return coluna.tipo === "data" ? 10 : 16;
+  if (coluna.tipo === "moeda" && typeof valor === "number") return formatarMoeda(valor).length;
   return String(valor ?? "").length;
 }
 

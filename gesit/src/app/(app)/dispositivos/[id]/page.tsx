@@ -45,6 +45,7 @@ import { TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
 import { formatarIMEI, formatarLinha } from "@/lib/validators";
 
 import { DevolverDialog } from "../devolver-dialog";
+import { HistoricoServicos } from "./historico-servicos";
 import { DispositivoFormDialog } from "../dispositivo-form-dialog";
 import { StatusDialog } from "../status-dialog";
 import { VincularDialog } from "../vincular-dialog";
@@ -80,7 +81,7 @@ async function DetalheDispositivo({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [dispositivoRes, vidaUtilRes, vinculosRes] = await Promise.all([
+  const [dispositivoRes, vidaUtilRes, vinculosRes, servicosRes] = await Promise.all([
     supabase.from("dispositivos").select("*").eq("id", id).maybeSingle(),
     // Idade e situação da vida útil: calculadas na view (data de Palmas).
     supabase
@@ -96,12 +97,18 @@ async function DetalheDispositivo({
       .eq("dispositivo_id", id)
       .order("data_inicio", { ascending: false })
       .order("created_at", { ascending: false }),
+    supabase
+      .from("servicos")
+      .select("*")
+      .eq("dispositivo_id", id)
+      .order("data_servico", { ascending: false })
+      .order("created_at", { ascending: false }),
   ]);
 
-  if (dispositivoRes.error || vidaUtilRes.error || vinculosRes.error) {
+  if (dispositivoRes.error || vidaUtilRes.error || vinculosRes.error || servicosRes.error) {
     console.error(
       "Erro ao carregar dispositivo:",
-      dispositivoRes.error ?? vidaUtilRes.error ?? vinculosRes.error,
+      dispositivoRes.error ?? vidaUtilRes.error ?? vinculosRes.error ?? servicosRes.error,
     );
     return (
       <p className="text-destructive">Não foi possível carregar o dispositivo.</p>
@@ -367,6 +374,8 @@ async function DetalheDispositivo({
           <HistoricoVinculos contexto="dispositivo" linhas={historico} agora={agora} />
         </CardContent>
       </Card>
+
+      <HistoricoServicos dispositivoId={d.id} servicos={servicosRes.data} />
     </div>
   );
 }

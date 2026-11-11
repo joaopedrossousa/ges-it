@@ -8,6 +8,7 @@ import {
   errosDoZod,
   type ActionResult,
 } from "@/lib/action-result";
+import { REGEX_CAMINHO_ANEXO } from "@/lib/anexos";
 import { REGEX_CAMINHO_NOTA_FISCAL } from "@/lib/notas-fiscais";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -19,10 +20,12 @@ import {
   MENSAGEM_DATA_COMPRA,
   devolucaoSchema,
   dispositivoSchema,
+  servicoSchema,
   vinculoSchema,
   type DevolucaoFormInput,
   type DispositivoFormData,
   type DispositivoFormInput,
+  type ServicoFormInput,
   type VinculoFormInput,
 } from "@/lib/validators";
 
@@ -397,4 +400,86 @@ export async function anexarTermo(
 
   revalidarVinculos();
   return { ok: true };
+}
+
+// ===========================================================================
+// Serviços (manutenções)
+// ===========================================================================
+
+type CampoServico = "tipo" | "data_servico" | "fornecedor" | "custo" | "na_garantia" | "descricao";
+
+/** Devolve o id criado: o navegador envia o anexo depois e chama anexarArquivoServico. */
+export async function criarServico(
+  dispositivoId: string,
+  input: ServicoFormInput,
+): Promise<ActionResult<CampoServico> & { id?: string }> {
+  if (!idSchema.safeParse(dispositivoId).success) {
+    return { ok: false, error: "Dispositivo inválido." };
+  }
+  const parsed = servicoSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("servicos")
+    .insert({ dispositivo_id: dispositivoId, ...parsed.data })
+    .select("id")
+    .single();
+  if (error) return erroDoBanco(error);
+
+  revalidarServicos();
+  return { ok: true, id: data.id };
+}
+
+/** Só os campos editáveis (o banco só concede update neles; migration 011). */
+export async function atualizarServico(
+  id: string,
+  input: ServicoFormInput,
+): Promise<ActionResult<CampoServico>> {
+  if (!idSchema.safeParse(id).success) return { ok: false, error: "Serviço inválido." };
+  const parsed = servicoSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("servicos")
+    .update(parsed.data)
+    .eq("id", id)
+    .select("id");
+  if (error) return erroDoBanco(error);
+  if (!data?.length) return { ok: false, error: "Serviço não encontrado." };
+
+  revalidarServicos();
+  return { ok: true };
+}
+
+/**
+ * Grava (ou substitui) o anexo já enviado pelo navegador para
+ * servicos/{dispositivo_id}/{timestamp}.{ext}. O banco confere a pasta do
+ * dispositivo (check) e se o arquivo existe (trigger). O anterior fica no bucket.
+ */
+export async function anexarArquivoServico(id: string, path: string): Promise<ActionResult> {
+  if (
+    !idSchema.safeParse(id).success ||
+    typeof path !== "string" ||
+    !REGEX_CAMINHO_ANEXO.test(path)
+  ) {
+    return { ok: false, error: "Arquivo do anexo inválido." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("servicos")
+    .update({ anexo_path: path })
+    .eq("id", id)
+    .select("id");
+  if (error) return erroDoBanco(error);
+  if (!data?.length) return { ok: false, error: "Serviço não encontrado." };
+
+  revalidarServicos();
+  return { ok: true };
+}
+
+function revalidarServicos() {
+  revalidatePath("/dispositivos/[id]", "page");
 }

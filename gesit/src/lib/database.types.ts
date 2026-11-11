@@ -142,6 +142,66 @@ export type Database = {
         }
         Relationships: []
       }
+      servicos: {
+        Row: {
+          anexo_path: string | null
+          created_at: string
+          criado_por: string | null
+          custo: number | null
+          data_servico: string
+          descricao: string | null
+          dispositivo_id: string
+          fornecedor: string | null
+          id: string
+          na_garantia: boolean
+          tipo: Database["public"]["Enums"]["tipo_servico"]
+          updated_at: string
+        }
+        Insert: {
+          anexo_path?: string | null
+          created_at?: string
+          criado_por?: string | null
+          custo?: number | null
+          data_servico: string
+          descricao?: string | null
+          dispositivo_id: string
+          fornecedor?: string | null
+          id?: string
+          na_garantia?: boolean
+          tipo: Database["public"]["Enums"]["tipo_servico"]
+          updated_at?: string
+        }
+        Update: {
+          anexo_path?: string | null
+          created_at?: string
+          criado_por?: string | null
+          custo?: number | null
+          data_servico?: string
+          descricao?: string | null
+          dispositivo_id?: string
+          fornecedor?: string | null
+          id?: string
+          na_garantia?: boolean
+          tipo?: Database["public"]["Enums"]["tipo_servico"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicos_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vinculos: {
         Row: {
           colaborador_id: string
@@ -276,6 +336,71 @@ export type Database = {
           },
         ]
       }
+      vw_servicos: {
+        Row: {
+          anexo_path: string | null
+          colaborador_id: string | null
+          colaborador_nome: string | null
+          created_at: string | null
+          criado_por: string | null
+          custo: number | null
+          data_servico: string | null
+          descricao: string | null
+          dispositivo_id: string | null
+          dispositivo_tipo:
+            | Database["public"]["Enums"]["tipo_dispositivo"]
+            | null
+          fornecedor: string | null
+          id: string | null
+          imei1: string | null
+          loja_id: string | null
+          loja_nome: string | null
+          marca: string | null
+          modelo: string | null
+          na_garantia: boolean | null
+          numero_patrimonio: string | null
+          serial_number: string | null
+          tipo: Database["public"]["Enums"]["tipo_servico"] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicos_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dispositivos"
+            referencedColumns: ["colaborador_id"]
+          },
+          {
+            foreignKeyName: "vinculos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       anexar_termo: {
@@ -323,6 +448,15 @@ export type Database = {
     Enums: {
       status_dispositivo: "disponivel" | "em_uso" | "manutencao" | "baixado"
       tipo_dispositivo: "notebook" | "telefone" | "monitor"
+      tipo_servico:
+        | "formatacao"
+        | "troca_tela"
+        | "troca_bateria"
+        | "troca_teclado"
+        | "limpeza"
+        | "reparo_placa"
+        | "atualizacao_sistema"
+        | "outro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -452,6 +586,16 @@ export const Constants = {
     Enums: {
       status_dispositivo: ["disponivel", "em_uso", "manutencao", "baixado"],
       tipo_dispositivo: ["notebook", "telefone", "monitor"],
+      tipo_servico: [
+        "formatacao",
+        "troca_tela",
+        "troca_bateria",
+        "troca_teclado",
+        "limpeza",
+        "reparo_placa",
+        "atualizacao_sistema",
+        "outro",
+      ],
     },
   },
 } as const

@@ -1,6 +1,12 @@
 "use client";
 
-import { CalendarRangeIcon, FileWarningIcon, StoreIcon, type LucideIcon } from "lucide-react";
+import {
+  CalendarRangeIcon,
+  FileWarningIcon,
+  StoreIcon,
+  WrenchIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 
 import { ExportarBotoes } from "@/components/exportar";
@@ -24,7 +30,12 @@ import {
 } from "@/components/ui/select";
 import { TODOS } from "@/hooks/use-filtros-url";
 import type { LojaOpcao } from "@/lib/lojas";
-import { TIPOS_DISPOSITIVO, TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
+import {
+  TIPOS_DISPOSITIVO,
+  TIPOS_SERVICO,
+  TIPO_DISPOSITIVO_LABEL,
+  TIPO_SERVICO_LABEL,
+} from "@/lib/types";
 
 type Props = {
   lojas: LojaOpcao[];
@@ -37,10 +48,11 @@ const filtro = (valor: string) => (valor === TODOS ? undefined : valor);
 
 export function PainelRelatorios({ lojas, periodoPadrao }: Props) {
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-6 lg:grid-cols-2">
       <PorLoja lojas={lojas} />
       <Movimentacoes periodoPadrao={periodoPadrao} />
       <SemTermo lojas={lojas} />
+      <Servicos lojas={lojas} periodoPadrao={periodoPadrao} />
     </div>
   );
 }
@@ -138,26 +150,28 @@ function PorLoja({ lojas }: { lojas: LojaOpcao[] }) {
   );
 }
 
-function Movimentacoes({ periodoPadrao }: { periodoPadrao: Props["periodoPadrao"] }) {
-  const id = useId();
-  const [de, setDe] = useState(periodoPadrao.de);
-  const [ate, setAte] = useState(periodoPadrao.ate);
-
+/** Datas do período e a validação "de ≤ até". */
+function usePeriodo(padrao: Props["periodoPadrao"]) {
+  const [de, setDe] = useState(padrao.de);
+  const [ate, setAte] = useState(padrao.ate);
   const erro = !de || !ate
     ? "Informe as duas datas."
     : de > ate
       ? "A data inicial deve ser anterior ou igual à final."
       : undefined;
+  return { de, ate, setDe, setAte, erro };
+}
 
+function CamposPeriodo({
+  id,
+  periodo,
+}: {
+  id: string;
+  periodo: ReturnType<typeof usePeriodo>;
+}) {
+  const { de, ate, setDe, setAte, erro } = periodo;
   return (
-    <CartaoRelatorio
-      icone={CalendarRangeIcon}
-      titulo="Movimentações por período"
-      descricao="Entregas, transferências e devoluções, com quem fez cada operação."
-      rodape={
-        <ExportarBotoes relatorio="movimentacoes" params={{ de, ate }} desabilitado={Boolean(erro)} />
-      }
-    >
+    <>
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-2">
           <Label htmlFor={`${id}-de`}>De</Label>
@@ -185,6 +199,28 @@ function Movimentacoes({ periodoPadrao }: { periodoPadrao: Props["periodoPadrao"
         </div>
       </div>
       <MensagemErro id={`${id}-erro`} mensagem={erro} />
+    </>
+  );
+}
+
+function Movimentacoes({ periodoPadrao }: { periodoPadrao: Props["periodoPadrao"] }) {
+  const id = useId();
+  const periodo = usePeriodo(periodoPadrao);
+
+  return (
+    <CartaoRelatorio
+      icone={CalendarRangeIcon}
+      titulo="Movimentações por período"
+      descricao="Entregas, transferências e devoluções, com quem fez cada operação."
+      rodape={
+        <ExportarBotoes
+          relatorio="movimentacoes"
+          params={{ de: periodo.de, ate: periodo.ate }}
+          desabilitado={Boolean(periodo.erro)}
+        />
+      }
+    >
+      <CamposPeriodo id={id} periodo={periodo} />
       <p className="text-xs text-muted-foreground">Padrão: mês atual. Horário de Palmas (TO).</p>
     </CartaoRelatorio>
   );
@@ -201,6 +237,52 @@ function SemTermo({ lojas }: { lojas: LojaOpcao[] }) {
       descricao="Vínculos em aberto sem termo de responsabilidade, do mais antigo para o mais novo."
       rodape={<ExportarBotoes relatorio="vinculos-sem-termo" params={{ loja: filtro(loja) }} />}
     >
+      <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
+    </CartaoRelatorio>
+  );
+}
+
+function Servicos({ lojas, periodoPadrao }: Props) {
+  const id = useId();
+  const periodo = usePeriodo(periodoPadrao);
+  const [tipo, setTipo] = useState(TODOS);
+  const [loja, setLoja] = useState(TODOS);
+
+  return (
+    <CartaoRelatorio
+      icone={WrenchIcon}
+      titulo="Serviços por período"
+      descricao="Manutenções dos dispositivos, com fornecedor, custo e garantia. A loja é a do vínculo na data do serviço."
+      rodape={
+        <ExportarBotoes
+          relatorio="servicos"
+          params={{
+            de: periodo.de,
+            ate: periodo.ate,
+            tipo: filtro(tipo),
+            loja: filtro(loja),
+          }}
+          desabilitado={Boolean(periodo.erro)}
+        />
+      }
+    >
+      <CamposPeriodo id={id} periodo={periodo} />
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-tipo`}>Tipo de serviço</Label>
+        <Select value={tipo} onValueChange={setTipo}>
+          <SelectTrigger id={`${id}-tipo`} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS}>Todos os tipos</SelectItem>
+            {TIPOS_SERVICO.map((t) => (
+              <SelectItem key={t} value={t}>
+                {TIPO_SERVICO_LABEL[t]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
     </CartaoRelatorio>
   );

@@ -99,3 +99,10 @@ export function formatarPrazo(iso: string, hoje = hojeEmPalmas()): string {
   const distancia = formatDistanceStrict(alvo, base, { locale: ptBR });
   return alvo > base ? `em ${distancia}` : `há ${distancia}`;
 }
+
+const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Ex.: "R$ 1.250,00". */
+export function formatarMoeda(valor: number): string {
+  return formatadorMoeda.format(valor);
+}

@@ -9,6 +9,7 @@ import {
   formatarData,
   formatarDuracao,
   formatarIdadeMeses,
+  formatarMoeda,
   hojeEmPalmas,
 } from "@/lib/format";
 import {
@@ -24,7 +25,9 @@ import {
   SITUACAO_VIDA_UTIL_LABEL,
   STATUS_DISPOSITIVO_LABEL,
   TIPOS_DISPOSITIVO,
+  TIPOS_SERVICO,
   TIPO_DISPOSITIVO_LABEL,
+  TIPO_SERVICO_LABEL,
   paraSituacaoVidaUtil,
   type TipoDispositivo,
 } from "@/lib/types";
@@ -686,6 +689,108 @@ const vinculosSemTermo: Gerador = async (supabase, params, agora) => {
   };
 };
 
+// ===========================================================================
+// 7. Serviços por período
+// ===========================================================================
+
+const tipoServicoSchema = z.enum(TIPOS_SERVICO);
+
+/**
+ * ?de, ?ate (padrão: mês atual), ?tipo (de serviço) e ?loja. A loja é a do
+ * vínculo aberto na data do serviço (vw_servicos, migration 011): serviços
+ * feitos com o dispositivo sem vínculo não entram quando há filtro de loja.
+ */
+const servicos: Gerador = async (supabase, params, agora) => {
+  const { de, ate } = periodoMovimentacoes(params, agora);
+  const tipo = tipoServicoSchema.safeParse(params.get("tipo")).data;
+  const lojaId = lojaDoParametro(params);
+
+  const dados = await buscarTodas((a, b) => {
+    let q = supabase
+      .from("vw_servicos")
+      .select(
+        "id, tipo, data_servico, fornecedor, custo, na_garantia, descricao, anexo_path, dispositivo_tipo, marca, modelo, serial_number, imei1, numero_patrimonio, colaborador_nome, loja_nome",
+      )
+      .gte("data_servico", de)
+      .lte("data_servico", ate)
+      .order("data_servico")
+      .order("id")
+      .range(a, b);
+    if (tipo) q = q.eq("tipo", tipo);
+    if (lojaId) q = q.eq("loja_id", lojaId);
+    return q;
+  });
+
+  const custoTotal = dados.reduce((soma, s) => soma + (s.custo ?? 0), 0);
+  const naGarantia = dados.filter((s) => s.na_garantia).length;
+
+  const filtros = [
+    { rotulo: "Período", valor: `${dataBR(de)} a ${dataBR(ate)}` },
+    tipo && { rotulo: "Tipo de serviço", valor: TIPO_SERVICO_LABEL[tipo] },
+    lojaId
+      ? { rotulo: "Loja", valor: (await nomeDaLoja(supabase, lojaId)) ?? "" }
+      : { rotulo: "Lojas", valor: "todas" },
+    {
+      rotulo: "Totais",
+      valor: `${dados.length} ${dados.length === 1 ? "serviço" : "serviços"} · ${formatarMoeda(custoTotal)} · ${naGarantia} na garantia`,
+    },
+  ].filter((x) => !!x);
+
+  return {
+    slug: "servicos",
+    titulo: "Serviços por período",
+    aba: "Serviços",
+    orientacao: "paisagem",
+    filtros,
+    colunas: [
+      { chave: "data", titulo: "Data", tipo: "data", peso: 0.8 },
+      { chave: "tipo", titulo: "Tipo de serviço", peso: 1.2 },
+      { chave: "dispositivo", titulo: "Dispositivo", peso: 1.4 },
+      { chave: "tipo_dispositivo", titulo: "Tipo de dispositivo", peso: 0.9 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.3 },
+      { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
+      { chave: "usuario", titulo: "Usuário na data", peso: 1.3 },
+      { chave: "loja", titulo: "Loja na data", peso: 1.1 },
+      { chave: "fornecedor", titulo: "Fornecedor", peso: 1.2 },
+      { chave: "custo", titulo: "Custo", tipo: "moeda", peso: 0.9 },
+      { chave: "garantia", titulo: "Garantia", peso: 0.6 },
+      { chave: "descricao", titulo: "Descrição", peso: 1.8 },
+      { chave: "anexo", titulo: "Anexo", peso: 0.5 },
+    ],
+    colunasPdf: [
+      { chave: "data", titulo: "Data", tipo: "data", peso: 0.75 },
+      { chave: "tipo", titulo: "Tipo de serviço", peso: 1.2 },
+      { chave: "dispositivo_pdf", titulo: "Dispositivo", peso: 2 },
+      { chave: "loja", titulo: "Loja", peso: 1.1 },
+      { chave: "fornecedor", titulo: "Fornecedor", peso: 1.2 },
+      { chave: "custo", titulo: "Custo", tipo: "moeda", peso: 0.9 },
+      { chave: "garantia", titulo: "Garantia", peso: 0.6 },
+      { chave: "descricao", titulo: "Descrição", peso: 2.2 },
+    ],
+    linhas: dados.map((s) => {
+      const dispositivo = { ...s, tipo: s.dispositivo_tipo };
+      return {
+        data: dataSemHora(s.data_servico),
+        tipo: s.tipo ? TIPO_SERVICO_LABEL[s.tipo] : null,
+        dispositivo: [s.marca, s.modelo].filter(Boolean).join(" ") || null,
+        // PDF: sem colunas de identificação, ela vai junto ("Dell Latitude · ABC123").
+        dispositivo_pdf: descricaoDispositivo(dispositivo),
+        tipo_dispositivo: s.dispositivo_tipo ? TIPO_DISPOSITIVO_LABEL[s.dispositivo_tipo] : null,
+        identificador: identificadorDispositivo(dispositivo),
+        patrimonio: s.numero_patrimonio,
+        usuario: s.colaborador_nome,
+        loja: s.loja_nome,
+        fornecedor: s.fornecedor,
+        custo: s.custo,
+        garantia: sim(s.na_garantia),
+        descricao: s.descricao,
+        anexo: sim(s.anexo_path),
+      };
+    }),
+    vazio: "Nenhum serviço no período com esses filtros.",
+  };
+};
+
 export const GERADORES: Record<TipoRelatorio, Gerador> = {
   inventario,
   "dispositivos-por-loja": dispositivosPorLoja,
@@ -693,4 +798,5 @@ export const GERADORES: Record<TipoRelatorio, Gerador> = {
   "historico-usuario": historicoUsuario,
   movimentacoes,
   "vinculos-sem-termo": vinculosSemTermo,
+  servicos,
 };

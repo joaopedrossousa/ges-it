@@ -25,6 +25,7 @@ export const TIPOS_RELATORIO = [
   "historico-usuario",
   "movimentacoes",
   "vinculos-sem-termo",
+  "servicos",
 ] as const;
 export type TipoRelatorio = (typeof TIPOS_RELATORIO)[number];
 
@@ -35,7 +36,8 @@ export type Linha = Record<string, Valor>;
 export type Coluna = {
   chave: string;
   titulo: string;
-  tipo?: "texto" | "data" | "dataHora" | "numero";
+  /** moeda: número em reais (R$ 1.250,00). */
+  tipo?: "texto" | "data" | "dataHora" | "numero" | "moeda";
   /** Largura relativa no PDF (padrão 1). */
   peso?: number;
 };

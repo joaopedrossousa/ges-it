@@ -12,7 +12,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 
-import { formatarData, formatarDataHora } from "@/lib/format";
+import { formatarData, formatarDataHora, formatarMoeda } from "@/lib/format";
 
 import { agrupar, contar, type Coluna, type Linha, type MetaRelatorio, type Relatorio, type Valor } from "./tipos";
 
@@ -154,7 +154,9 @@ const s = StyleSheet.create({
 function texto(valor: Valor, coluna: Coluna): string {
   if (valor === null || valor === "") return "—";
   if (valor instanceof Date) return coluna.tipo === "data" ? formatarData(valor) : formatarDataHora(valor);
-  if (typeof valor === "number") return valor.toLocaleString("pt-BR");
+  if (typeof valor === "number") {
+    return coluna.tipo === "moeda" ? formatarMoeda(valor) : valor.toLocaleString("pt-BR");
+  }
   return valor;
 }
 

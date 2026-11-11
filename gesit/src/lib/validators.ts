@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { hojeEmPalmas } from "./format";
 import { PERIFERICOS } from "./perifericos";
-import { OPERADORAS, STATUS_EDITAVEIS } from "./types";
+import { OPERADORAS, STATUS_EDITAVEIS, TIPOS_SERVICO } from "./types";
 
 // ===========================================================================
 // Utilitários
@@ -142,6 +142,37 @@ export function formatarLinhaDigitando(valor: string): string {
   const corte = d.length === 11 ? 5 : 4;
   if (resto.length <= corte) return `(${ddd}) ${resto}`;
   return `(${ddd}) ${resto.slice(0, corte)}-${resto.slice(corte)}`;
+}
+
+// ===========================================================================
+// Valor em reais
+// ===========================================================================
+
+/**
+ * Lê um valor digitado em reais: "1.250,50", "1250,5", "1250.50", "R$ 80".
+ * Vazio vira null; formato inválido, NaN.
+ */
+export function lerValorEmReais(valor: string): number | null {
+  const t = valor.replace(/R\$|\s/g, "");
+  if (!t) return null;
+  let normalizado: string;
+  if (t.includes(",")) {
+    // Vírgula decimal; pontos são separadores de milhar.
+    if (!/^\d{1,3}(\.\d{3})*,\d{1,2}$|^\d+,\d{1,2}$/.test(t)) return NaN;
+    normalizado = t.replace(/\./g, "").replace(",", ".");
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(t)) {
+    normalizado = t.replace(/\./g, ""); // "1.250" = mil duzentos e cinquenta
+  } else if (/^\d+(\.\d{1,2})?$/.test(t)) {
+    normalizado = t;
+  } else {
+    return NaN;
+  }
+  return Number(normalizado);
+}
+
+/** Para preencher o campo na edição: 1250.5 → "1250,50". */
+export function valorParaCampo(valor: number | null | undefined): string {
+  return valor === null || valor === undefined ? "" : valor.toFixed(2).replace(".", ",");
 }
 
 // ===========================================================================
@@ -347,6 +378,33 @@ const perifericos = z
 /** "Formatado": null para monitor (o banco recusa outro valor). */
 const formatado = z.boolean().nullish().transform((v) => v ?? null);
 
+/** Serviço (manutenção) de um dispositivo. O anexo é gravado à parte. */
+export const servicoSchema = z
+  .object({
+    tipo: z.enum(TIPOS_SERVICO, { error: "Selecione o tipo de serviço." }),
+    data_servico: z
+      .string({ error: "Informe a data do serviço." })
+      .trim()
+      .min(1, "Informe a data do serviço.")
+      .pipe(z.iso.date("Data inválida."))
+      .refine((v) => v <= hojeEmPalmas(), "A data do serviço não pode ser futura."),
+    fornecedor: textoOpcional(150),
+    /** Entra como texto em reais; sai como número (ou null). */
+    custo: z
+      .union([z.string(), z.number()])
+      .nullish()
+      .transform((v) => (typeof v === "number" ? v : lerValorEmReais(v ?? "")))
+      .refine((v) => v === null || Number.isFinite(v), "Valor inválido. Ex.: 1.250,00")
+      .refine((v) => v === null || v >= 0, "O custo não pode ser negativo.")
+      .refine((v) => v === null || v < 100_000_000, "Valor muito alto."),
+    na_garantia: z.boolean().default(false),
+    descricao: textoOpcional(1000),
+  })
+  .refine((d) => d.tipo !== "outro" || d.descricao !== null, {
+    message: "Descreva o serviço quando o tipo for Outro.",
+    path: ["descricao"],
+  });
+
 /** Argumentos de vincular_dispositivo. O PDF já deve estar no bucket "termos". */
 export const vinculoSchema = z.object({
   dispositivo_id: idObrigatorio("Selecione o dispositivo."),
@@ -381,6 +439,8 @@ export type DispositivoFormInput = z.input<typeof dispositivoSchema>;
 export type DispositivoFormData = z.output<typeof dispositivoSchema>;
 export type VinculoFormInput = z.input<typeof vinculoSchema>;
 export type VinculoFormData = z.output<typeof vinculoSchema>;
+export type ServicoFormInput = z.input<typeof servicoSchema>;
+export type ServicoFormData = z.output<typeof servicoSchema>;
 export type DevolucaoFormInput = z.input<typeof devolucaoSchema>;
 export type DevolucaoFormData = z.output<typeof devolucaoSchema>;
 
