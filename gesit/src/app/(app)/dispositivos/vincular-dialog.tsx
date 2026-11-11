@@ -4,6 +4,7 @@ import { InfoIcon, TriangleAlertIcon } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { CampoArquivo } from "@/components/campo-arquivo";
 import { Carregando } from "@/components/carregando";
 import { ComboboxBusca, type OpcaoCombobox } from "@/components/combobox";
 import { MensagemErro } from "@/components/mensagem-erro";
@@ -17,7 +18,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
@@ -323,17 +323,17 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
             <Label htmlFor="vinc-termo">
               Termo de responsabilidade (opcional, PDF até 5 MB)
             </Label>
-            <Input
+            <CampoArquivo
               id="vinc-termo"
-              type="file"
               accept="application/pdf,.pdf"
+              arquivo={arquivo}
               disabled={ocupado}
-              aria-invalid={Boolean(erros.termo)}
-              aria-describedby={erros.termo ? "vinc-termo-erro" : undefined}
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                setArquivo(f);
-                setErros((atual) => ({ ...atual, termo: validarArquivoTermo(f) ?? undefined }));
+              invalid={Boolean(erros.termo)}
+              descritoPor={erros.termo ? "vinc-termo-erro" : undefined}
+              onChange={(f) => {
+                const erro = validarArquivoTermo(f) ?? undefined;
+                setArquivo(erro ? null : f);
+                setErros((atual) => ({ ...atual, termo: erro }));
               }}
             />
             <MensagemErro id="vinc-termo-erro" mensagem={erros.termo} />

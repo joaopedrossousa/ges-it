@@ -22,6 +22,11 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
 - Serviços (migration 011): tabela servicos, sem delete; o update só alcança os campos editáveis (grant por coluna). Anexo em bucket privado "servicos" ({dispositivo_id}/{timestamp}.{ext}), enviado depois de salvar e gravado com anexarArquivoServico; aberto por /api/servicos/anexo. Upload e validação de anexos (nota fiscal e serviço) em src/lib/anexos.ts. Relatório usa vw_servicos (loja e usuário do vínculo aberto na data do serviço).
 - Auditoria (migration 012): trigger registrar_auditoria (after insert/update) em lojas, colaboradores, dispositivos, vinculos e servicos grava só os campos que mudaram, com CPF já mascarado. Tabela auditoria é somente leitura para a app. Nomes de campo e formatação em src/lib/auditoria.ts (ao criar coluna nova numa dessas tabelas, dar o rótulo em CAMPOS); resolução de nomes/e-mails em src/lib/auditoria-servidor.ts. Exportação só em Excel (RELATORIOS_SO_EXCEL).
 - Vida útil: situacao_vida_util vem da vw_dispositivos (ok, proximo, vencido, sem_data, baixado), calculada com a data de Palmas. Datas sem hora ("AAAA-MM-DD") exibidas com formatarDataISO, nunca via new Date().
+- Campos de formulário (não usar os nativos, que seguem o idioma do navegador):
+  - Datas: CampoData (src/components/campo-data.tsx), dd/mm/aaaa com calendário pt-BR (react-day-picker); o valor trafega como "AAAA-MM-DD". Nos formulários, usar `emitirInvalido` para o zod acusar texto incompleto.
+  - Arquivos: CampoArquivo (src/components/campo-arquivo.tsx); o pai valida e guarda o File.
+  - Listas longas já carregadas (lojas, operadora, tipo de serviço, usuários da auditoria): ComboboxLista (src/components/combobox-lista.tsx), busca sem acento por qualquer parte do texto. Lojas via opcoesLojas (nome + cidade). Busca no servidor (dispositivos, usuários no vínculo): ComboboxBusca.
+- Textos curtos da interface (subtítulos, detalhes, valores avulsos) começam com maiúscula.
 - Antes de concluir uma tarefa: npm run lint e npm run build sem erros.
 
 ## Identidade visual (Produtécnica Agro)

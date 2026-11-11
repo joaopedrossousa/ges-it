@@ -2,9 +2,10 @@
 
 import { XIcon } from "lucide-react";
 
+import { CampoData } from "@/components/campo-data";
 import { Carregando } from "@/components/carregando";
+import { ComboboxLista } from "@/components/combobox-lista";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,6 +26,10 @@ export type UsuarioOpcao = { id: string; email: string };
 
 export function Filtros({ usuarios }: { usuarios: UsuarioOpcao[] }) {
   const { valor, atualizar, isPending } = useFiltrosUrl();
+  const opcoesUsuarios = [
+    { value: TODOS, label: "Todos os usuários" },
+    ...usuarios.map((u) => ({ value: u.id, label: u.email })),
+  ];
   const de = valor("de", "");
   const ate = valor("ate", "");
   const registro = valor("registro", "");
@@ -36,42 +41,36 @@ export function Filtros({ usuarios }: { usuarios: UsuarioOpcao[] }) {
           <Label htmlFor="aud-de" className="text-xs text-muted-foreground">
             De
           </Label>
-          <Input
+          <CampoData
             id="aud-de"
-            type="date"
             className="lg:w-40"
             value={de}
             max={ate || undefined}
-            onChange={(e) => atualizar("de", e.target.value)}
+            onChange={(v) => atualizar("de", v)}
           />
         </div>
         <div className="grid gap-1">
           <Label htmlFor="aud-ate" className="text-xs text-muted-foreground">
             Até
           </Label>
-          <Input
+          <CampoData
             id="aud-ate"
-            type="date"
             className="lg:w-40"
             value={ate}
             min={de || undefined}
-            onChange={(e) => atualizar("ate", e.target.value)}
+            onChange={(v) => atualizar("ate", v)}
           />
         </div>
 
-        <Select value={valor("usuario")} onValueChange={(v) => atualizar("usuario", v)}>
-          <SelectTrigger className="w-full lg:w-60" aria-label="Filtrar por usuário que fez a alteração">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={TODOS}>Todos os usuários</SelectItem>
-            {usuarios.map((u) => (
-              <SelectItem key={u.id} value={u.id}>
-                {u.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ComboboxLista
+          opcoes={opcoesUsuarios}
+          value={valor("usuario")}
+          onChange={(v) => atualizar("usuario", v)}
+          ariaLabel="Filtrar por usuário que fez a alteração"
+          placeholderBusca="Buscar e-mail..."
+          vazio="Nenhum usuário encontrado."
+          className="lg:w-60"
+        />
 
         <Select value={valor("tipo")} onValueChange={(v) => atualizar("tipo", v)}>
           <SelectTrigger className="w-full lg:w-44" aria-label="Filtrar por tipo de registro">

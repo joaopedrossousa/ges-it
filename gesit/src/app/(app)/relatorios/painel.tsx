@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 
+import { CampoData } from "@/components/campo-data";
+import { ComboboxLista } from "@/components/combobox-lista";
 import { ExportarBotoes } from "@/components/exportar";
 import { MensagemErro } from "@/components/mensagem-erro";
 import {
@@ -19,7 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { TODOS } from "@/hooks/use-filtros-url";
 import type { LojaOpcao } from "@/lib/lojas";
+import { opcoesLojas } from "@/lib/opcoes-lojas";
 import {
   TIPOS_DISPOSITIVO,
   TIPOS_SERVICO,
@@ -94,20 +96,14 @@ function SelectLoja({ id, lojas, valor, onChange }: {
   return (
     <div className="grid gap-2">
       <Label htmlFor={id}>Loja</Label>
-      <Select value={valor} onValueChange={onChange}>
-        <SelectTrigger id={id} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={TODOS}>Todas as lojas</SelectItem>
-          {lojas.map((loja) => (
-            <SelectItem key={loja.id} value={loja.id}>
-              {loja.nome}
-              {!loja.ativo && " (inativa)"}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <ComboboxLista
+        id={id}
+        opcoes={opcoesLojas(lojas, { todas: true })}
+        value={valor}
+        onChange={onChange}
+        placeholderBusca="Buscar loja ou cidade..."
+        vazio="Nenhuma loja encontrada."
+      />
     </div>
   );
 }
@@ -150,15 +146,19 @@ function PorLoja({ lojas }: { lojas: LojaOpcao[] }) {
   );
 }
 
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
 /** Datas do período e a validação "de ≤ até". */
 function usePeriodo(padrao: Props["periodoPadrao"]) {
   const [de, setDe] = useState(padrao.de);
   const [ate, setAte] = useState(padrao.ate);
   const erro = !de || !ate
     ? "Informe as duas datas."
-    : de > ate
-      ? "A data inicial deve ser anterior ou igual à final."
-      : undefined;
+    : !DATA_ISO.test(de) || !DATA_ISO.test(ate)
+      ? "Data inválida. Use dd/mm/aaaa."
+      : de > ate
+        ? "A data inicial deve ser anterior ou igual à final."
+        : undefined;
   return { de, ate, setDe, setAte, erro };
 }
 
@@ -175,26 +175,26 @@ function CamposPeriodo({
       <div className="grid grid-cols-2 gap-3">
         <div className="grid gap-2">
           <Label htmlFor={`${id}-de`}>De</Label>
-          <Input
+          <CampoData
             id={`${id}-de`}
-            type="date"
             value={de}
-            max={ate || undefined}
-            onChange={(e) => setDe(e.target.value)}
-            aria-invalid={Boolean(erro)}
-            aria-describedby={erro ? `${id}-erro` : undefined}
+            max={DATA_ISO.test(ate) ? ate : undefined}
+            onChange={setDe}
+            emitirInvalido
+            invalid={Boolean(erro)}
+            descritoPor={erro ? `${id}-erro` : undefined}
           />
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`${id}-ate`}>Até</Label>
-          <Input
+          <CampoData
             id={`${id}-ate`}
-            type="date"
             value={ate}
-            min={de || undefined}
-            onChange={(e) => setAte(e.target.value)}
-            aria-invalid={Boolean(erro)}
-            aria-describedby={erro ? `${id}-erro` : undefined}
+            min={DATA_ISO.test(de) ? de : undefined}
+            onChange={setAte}
+            emitirInvalido
+            invalid={Boolean(erro)}
+            descritoPor={erro ? `${id}-erro` : undefined}
           />
         </div>
       </div>
@@ -242,6 +242,11 @@ function SemTermo({ lojas }: { lojas: LojaOpcao[] }) {
   );
 }
 
+const OPCOES_TIPO_SERVICO = [
+  { value: TODOS, label: "Todos os tipos" },
+  ...TIPOS_SERVICO.map((t) => ({ value: t, label: TIPO_SERVICO_LABEL[t] })),
+];
+
 function Servicos({ lojas, periodoPadrao }: Props) {
   const id = useId();
   const periodo = usePeriodo(periodoPadrao);
@@ -269,19 +274,14 @@ function Servicos({ lojas, periodoPadrao }: Props) {
       <CamposPeriodo id={id} periodo={periodo} />
       <div className="grid gap-2">
         <Label htmlFor={`${id}-tipo`}>Tipo de serviço</Label>
-        <Select value={tipo} onValueChange={setTipo}>
-          <SelectTrigger id={`${id}-tipo`} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={TODOS}>Todos os tipos</SelectItem>
-            {TIPOS_SERVICO.map((t) => (
-              <SelectItem key={t} value={t}>
-                {TIPO_SERVICO_LABEL[t]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ComboboxLista
+          id={`${id}-tipo`}
+          opcoes={OPCOES_TIPO_SERVICO}
+          value={tipo}
+          onChange={setTipo}
+          placeholderBusca="Buscar tipo..."
+          vazio="Nenhum tipo encontrado."
+        />
       </div>
       <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
     </CartaoRelatorio>

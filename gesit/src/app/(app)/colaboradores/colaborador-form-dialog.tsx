@@ -6,6 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Carregando } from "@/components/carregando";
+import { ComboboxLista } from "@/components/combobox-lista";
 import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,13 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { executarAcao } from "@/lib/executar-acao";
 import {
   colaboradorSchema,
@@ -36,6 +30,7 @@ import {
 
 import { atualizarColaborador, criarColaborador } from "./actions";
 import type { LojaOpcao } from "@/lib/lojas";
+import { opcoesLojas } from "@/lib/opcoes-lojas";
 
 type Props = {
   lojas: LojaOpcao[];
@@ -57,8 +52,8 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
   const editando = Boolean(colaborador);
 
   // Lojas inativas só aparecem se já forem a loja atual do usuário.
-  const opcoes = lojas.filter(
-    (l) => l.ativo || l.id === colaborador?.loja_id,
+  const opcoes = opcoesLojas(
+    lojas.filter((l) => l.ativo || l.id === colaborador?.loja_id),
   );
 
   const valoresIniciais: ColaboradorFormInput = {
@@ -156,32 +151,22 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
               control={control}
               name="loja_id"
               render={({ field }) => (
-                <Select
-                  value={field.value || undefined}
-                  onValueChange={field.onChange}
+                <ComboboxLista
+                  // ref: o react-hook-form foca o campo com erro ao enviar.
+                  ref={field.ref}
+                  id="colab-loja"
+                  opcoes={opcoes}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="Selecione a loja"
+                  placeholderBusca="Buscar loja ou cidade..."
+                  vazio="Nenhuma loja encontrada."
                   disabled={isPending}
-                >
-                  <SelectTrigger
-                    // ref: o react-hook-form foca o campo com erro ao enviar.
-                    ref={field.ref}
-                    id="colab-loja"
-                    className="w-full"
-                    aria-required
-                    aria-invalid={Boolean(errors.loja_id)}
-                    aria-describedby={errors.loja_id ? "colab-loja-erro" : undefined}
-                    onBlur={field.onBlur}
-                  >
-                    <SelectValue placeholder="Selecione a loja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {opcoes.map((loja) => (
-                      <SelectItem key={loja.id} value={loja.id}>
-                        {loja.nome}
-                        {!loja.ativo && " (inativa)"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  required
+                  invalid={Boolean(errors.loja_id)}
+                  descritoPor={errors.loja_id ? "colab-loja-erro" : undefined}
+                />
               )}
             />
             <MensagemErro id="colab-loja-erro" mensagem={errors.loja_id?.message} />

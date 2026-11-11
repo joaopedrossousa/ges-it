@@ -6,6 +6,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import {
   Controller,
   useForm,
+  useWatch,
   type Control,
   type FieldErrors,
   type FieldValues,
@@ -15,7 +16,10 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import { CampoArquivo } from "@/components/campo-arquivo";
+import { CampoData } from "@/components/campo-data";
 import { Carregando } from "@/components/carregando";
+import { ComboboxLista } from "@/components/combobox-lista";
 import { LinkNotaFiscal } from "@/components/link-nota-fiscal";
 import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
@@ -30,13 +34,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
 import { hojeEmPalmas } from "@/lib/format";
@@ -211,6 +208,7 @@ function NotebookForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
   const nota = useNotaFiscal();
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -244,7 +242,7 @@ function NotebookForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
         <CampoPatrimonio register={register} errors={errors} disabled={isPending} />
       </div>
       <CamposAquisicao
-        register={register}
+        control={control}
         errors={errors}
         disabled={isPending}
         novo={!dispositivo}
@@ -322,7 +320,7 @@ function TelefoneForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
         <CampoOperadora control={control} erro={errors.operadora?.message} disabled={isPending} />
       </div>
       <CamposAquisicao
-        register={register}
+        control={control}
         errors={errors}
         disabled={isPending}
         novo={!dispositivo}
@@ -339,6 +337,7 @@ function MonitorForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
   const nota = useNotaFiscal();
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -366,7 +365,7 @@ function MonitorForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
         />
       </div>
       <CamposAquisicao
-        register={register}
+        control={control}
         errors={errors}
         disabled={isPending}
         novo={!dispositivo}
@@ -447,17 +446,11 @@ function useNotaFiscal() {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [erro, setErro] = useState<string | undefined>();
 
-  function escolher(input: HTMLInputElement) {
-    const escolhido = input.files?.[0] ?? null;
-    const mensagem = validarArquivoNotaFiscal(escolhido);
-    if (mensagem) {
-      input.value = "";
-      setArquivo(null);
-      setErro(mensagem);
-      return;
-    }
-    setArquivo(escolhido);
-    setErro(undefined);
+  /** null = Remover. */
+  function escolher(escolhido: File | null) {
+    const mensagem = escolhido ? validarArquivoNotaFiscal(escolhido) : null;
+    setArquivo(mensagem ? null : escolhido);
+    setErro(mensagem ?? undefined);
   }
 
   return { arquivo, erro, escolher };
@@ -540,38 +533,100 @@ function CampoPatrimonio({
   );
 }
 
-/** Data de compra (obrigatória no cadastro novo) e fim da vida útil. */
-function CamposAquisicao({
-  register,
+type ComDatasAquisicao = {
+  data_compra?: string | null;
+  fim_vida_util?: string | null;
+};
+
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Data de compra (obrigatória no cadastro novo, sem datas futuras) e fim da
+ * vida útil (no calendário, a partir da compra). As regras valem no zod.
+ */
+function CamposAquisicao<T extends FieldValues & ComDatasAquisicao, U extends FieldValues>({
+  control,
   errors,
   disabled,
   novo,
 }: {
-  register: (campo: "data_compra" | "fim_vida_util") => UseFormRegisterReturn;
+  control: Control<T, unknown, U>;
   errors: FieldErrors<{ data_compra: string; fim_vida_util: string }>;
   disabled: boolean;
   novo: boolean;
 }) {
+  const compra: unknown = useWatch({ control, name: "data_compra" as Path<T> });
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <CampoTexto
+      <CampoDataForm
+        control={control}
+        name={"data_compra" as Path<T>}
         id="disp-data-compra"
         rotulo={novo ? "Data de compra" : "Data de compra (opcional)"}
-        type="date"
         max={hojeEmPalmas()}
         obrigatorio={novo}
         erro={errors.data_compra?.message}
         disabled={disabled}
-        registro={register("data_compra")}
       />
-      <CampoTexto
+      <CampoDataForm
+        control={control}
+        name={"fim_vida_util" as Path<T>}
         id="disp-fim-vida-util"
         rotulo="Fim da vida útil (opcional)"
-        type="date"
+        min={typeof compra === "string" && DATA_ISO.test(compra) ? compra : undefined}
         erro={errors.fim_vida_util?.message}
         disabled={disabled}
-        registro={register("fim_vida_util")}
       />
+    </div>
+  );
+}
+
+function CampoDataForm<T extends FieldValues, U extends FieldValues>({
+  control,
+  name,
+  id,
+  rotulo,
+  erro,
+  disabled,
+  obrigatorio,
+  min,
+  max,
+}: {
+  control: Control<T, unknown, U>;
+  name: Path<T>;
+  id: string;
+  rotulo: string;
+  erro?: string;
+  disabled: boolean;
+  obrigatorio?: boolean;
+  min?: string;
+  max?: string;
+}) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{rotulo}</Label>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <CampoData
+            id={id}
+            name={field.name}
+            ref={field.ref}
+            value={typeof field.value === "string" ? field.value : ""}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            emitirInvalido
+            min={min}
+            max={max}
+            required={obrigatorio}
+            invalid={Boolean(erro)}
+            descritoPor={erro ? `${id}-erro` : undefined}
+            disabled={disabled}
+          />
+        )}
+      />
+      <MensagemErro id={`${id}-erro`} mensagem={erro} />
     </div>
   );
 }
@@ -584,8 +639,6 @@ function CampoTexto({
   registro,
   autoFocus,
   obrigatorio,
-  type,
-  max,
 }: {
   id: string;
   rotulo: string;
@@ -594,16 +647,12 @@ function CampoTexto({
   registro: UseFormRegisterReturn;
   autoFocus?: boolean;
   obrigatorio?: boolean;
-  type?: "text" | "date";
-  max?: string;
 }) {
   return (
     <div className="grid gap-2">
       <Label htmlFor={id}>{rotulo}</Label>
       <Input
         id={id}
-        type={type}
-        max={max}
         autoComplete="off"
         autoFocus={autoFocus}
         aria-required={obrigatorio || undefined}
@@ -704,8 +753,13 @@ function CampoLinha({
   );
 }
 
-/** Valor do Select para "sem operadora" (o Radix não aceita value vazio). */
+/** Valor da opção "sem operadora". */
 const SEM_OPERADORA = "nenhuma";
+
+const OPCOES_OPERADORA = [
+  { value: SEM_OPERADORA, label: "Não informada" },
+  ...OPERADORAS.map((o) => ({ value: o, label: o })),
+];
 
 function CampoOperadora({
   control,
@@ -724,30 +778,19 @@ function CampoOperadora({
         control={control}
         name="operadora"
         render={({ field }) => (
-          <Select
+          <ComboboxLista
+            id={id}
+            ref={field.ref}
+            opcoes={OPCOES_OPERADORA}
             value={field.value ?? SEM_OPERADORA}
-            onValueChange={(v) => field.onChange(paraOperadora(v))}
+            onChange={(v) => field.onChange(paraOperadora(v))}
+            onBlur={field.onBlur}
+            placeholderBusca="Buscar operadora..."
+            vazio="Nenhuma operadora encontrada."
             disabled={disabled}
-          >
-            <SelectTrigger
-              id={id}
-              ref={field.ref}
-              onBlur={field.onBlur}
-              className="w-full"
-              aria-invalid={Boolean(erro)}
-              aria-describedby={erro ? `${id}-erro` : undefined}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={SEM_OPERADORA}>Não informada</SelectItem>
-              {OPERADORAS.map((o) => (
-                <SelectItem key={o} value={o}>
-                  {o}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            invalid={Boolean(erro)}
+            descritoPor={erro ? `${id}-erro` : undefined}
+          />
         )}
       />
       <MensagemErro id={`${id}-erro`} mensagem={erro} />
@@ -777,14 +820,14 @@ function CampoNotaFiscal({
           <LinkNotaFiscal path={atual} />
         </div>
       )}
-      <Input
+      <CampoArquivo
         id={id}
-        type="file"
         accept={NOTA_FISCAL_ACCEPT}
-        aria-invalid={Boolean(nota.erro)}
-        aria-describedby={nota.erro ? `${id}-erro ${ajuda}` : ajuda}
+        arquivo={nota.arquivo}
+        onChange={nota.escolher}
+        invalid={Boolean(nota.erro)}
+        descritoPor={nota.erro ? `${id}-erro ${ajuda}` : ajuda}
         disabled={disabled}
-        onChange={(e) => nota.escolher(e.currentTarget)}
       />
       <p id={ajuda} className="text-xs text-muted-foreground">
         PDF, JPG ou PNG, até 10 MB.

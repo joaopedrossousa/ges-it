@@ -2,7 +2,7 @@ import { cache } from "react";
 
 import { createClient } from "@/lib/supabase/server";
 
-export type LojaOpcao = { id: string; nome: string; ativo: boolean };
+export type LojaOpcao = { id: string; nome: string; cidade: string | null; ativo: boolean };
 
 /**
  * Lojas para selects e filtros (ativas primeiro, depois por nome).
@@ -12,7 +12,7 @@ export const listarLojasOpcoes = cache(async (): Promise<LojaOpcao[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lojas")
-    .select("id, nome, ativo")
+    .select("id, nome, cidade, ativo")
     .order("ativo", { ascending: false })
     .order("nome");
 

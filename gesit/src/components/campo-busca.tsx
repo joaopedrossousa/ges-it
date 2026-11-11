@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "cn";
 import { SearchIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,6 +12,7 @@ type Props = {
   /** Chamado com o texto (sem espaços nas pontas) após uma pausa na digitação. */
   onBuscar: (valor: string) => void;
   atraso?: number;
+  className?: string;
 };
 
 export function CampoBusca({
@@ -18,6 +20,7 @@ export function CampoBusca({
   placeholder,
   onBuscar,
   atraso = 350,
+  className,
 }: Props) {
   const [valor, setValor] = useState(valorInicial);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -29,8 +32,9 @@ export function CampoBusca({
     [],
   );
 
+  // 100% no celular; no desktop cresce de 320px até 448px.
   return (
-    <div className="relative sm:max-w-sm sm:flex-1">
+    <div className={cn("relative w-full sm:max-w-md sm:min-w-80 sm:flex-1", className)}>
       <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         type="search"

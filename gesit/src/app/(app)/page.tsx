@@ -150,7 +150,7 @@ function porTipo(c: Contagem, status: StatusDispositivo) {
     const n = c[tipo][status];
     return `${n} ${n === 1 ? tipo : TIPO_DISPOSITIVO_PLURAL[tipo]}`;
   });
-  return partes.join(" · ") || "nenhum";
+  return partes.join(" · ") || "Nenhum";
 }
 
 const somaStatus = (c: Contagem, status: StatusDispositivo) =>
@@ -167,7 +167,7 @@ async function Indicadores() {
   const total = (tipo: TipoDispositivo) =>
     c[tipo].disponivel + c[tipo].em_uso + c[tipo].manutencao;
   const baixados = (tipo: TipoDispositivo) =>
-    c[tipo].baixado > 0 ? `sem contar ${c[tipo].baixado} baixado${c[tipo].baixado === 1 ? "" : "s"}` : "em operação";
+    c[tipo].baixado > 0 ? `Sem contar ${c[tipo].baixado} baixado${c[tipo].baixado === 1 ? "" : "s"}` : "Em operação";
 
   return (
     <section aria-label="Indicadores" className={GRADE_INDICADORES}>
@@ -259,7 +259,7 @@ async function IndicadoresVidaUtil() {
         valor={vencidos}
         icone={CalendarX2Icon}
         corIcone={vencidos > 0 ? "text-destructive" : undefined}
-        detalhe="fim da vida útil já passou"
+        detalhe="Fim da vida útil já passou"
         href="/dispositivos?vida=vencido"
       />
       <StatTile
@@ -267,14 +267,14 @@ async function IndicadoresVidaUtil() {
         valor={proximos}
         icone={CalendarClockIcon}
         corIcone={proximos > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
-        detalhe="vida útil termina em até 6 meses"
+        detalhe="Vida útil termina em até 6 meses"
         href="/dispositivos?vida=proximo"
       />
       <StatTile
         rotulo="Sem data"
         valor={semData}
         icone={CalendarOffIcon}
-        detalhe="sem fim da vida útil cadastrado"
+        detalhe="Sem fim da vida útil cadastrado"
         href="/dispositivos?vida=sem_data"
       />
     </div>

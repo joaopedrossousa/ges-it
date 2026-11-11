@@ -2,6 +2,7 @@
 
 import { CampoBusca } from "@/components/campo-busca";
 import { Carregando } from "@/components/carregando";
+import { ComboboxLista } from "@/components/combobox-lista";
 import {
   Select,
   SelectContent,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { TODOS, useFiltrosUrl } from "@/hooks/use-filtros-url";
 import type { LojaOpcao } from "@/lib/lojas";
+import { opcoesLojas } from "@/lib/opcoes-lojas";
 import {
   SITUACAO_VIDA_UTIL_LABEL,
   SITUACOES_VIDA_UTIL_FILTRO,
@@ -23,8 +25,9 @@ import {
 export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
   const { valor, atualizar, isPending } = useFiltrosUrl();
 
+  // Sem espaço para a busca (mín. 320px) ao lado, os selects descem de linha.
   return (
-    <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
       <CampoBusca
         valorInicial={valor("q", "")}
         placeholder="Buscar por marca, modelo, serial, IMEI, patrimônio ou linha"
@@ -74,23 +77,15 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
           </SelectContent>
         </Select>
 
-        <Select value={valor("loja")} onValueChange={(v) => atualizar("loja", v)}>
-          <SelectTrigger
-            className="w-full lg:w-52"
-            aria-label="Filtrar pela loja do usuário atual"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={TODOS}>Todas as lojas</SelectItem>
-            {lojas.map((loja) => (
-              <SelectItem key={loja.id} value={loja.id}>
-                {loja.nome}
-                {!loja.ativo && " (inativa)"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ComboboxLista
+          opcoes={opcoesLojas(lojas, { todas: true })}
+          value={valor("loja")}
+          onChange={(v) => atualizar("loja", v)}
+          ariaLabel="Filtrar pela loja do usuário atual"
+          placeholderBusca="Buscar loja ou cidade..."
+          vazio="Nenhuma loja encontrada."
+          className="lg:w-52"
+        />
       </div>
 
       {isPending && <Carregando rotulo="Atualizando..." tamanho="sm" />}

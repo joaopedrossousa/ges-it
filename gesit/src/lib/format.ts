@@ -76,9 +76,9 @@ export function formatarDataISO(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-/** Idade a partir dos meses completos. Ex.: "2 anos e 4 meses", "1 ano", "menos de 1 mês". */
+/** Idade a partir dos meses completos. Ex.: "2 anos e 4 meses", "1 ano", "Menos de 1 mês". */
 export function formatarIdadeMeses(meses: number): string {
-  if (meses < 1) return "menos de 1 mês";
+  if (meses < 1) return "Menos de 1 mês";
   const anos = Math.floor(meses / 12);
   const resto = meses % 12;
   const partes = [
@@ -90,14 +90,14 @@ export function formatarIdadeMeses(meses: number): string {
 
 /**
  * Quanto falta (ou passou) até uma data "AAAA-MM-DD", contando a partir de
- * hoje em Palmas. Ex.: "hoje", "em 3 meses", "há 12 dias".
+ * hoje em Palmas. Ex.: "Hoje", "Em 3 meses", "Há 12 dias".
  */
 export function formatarPrazo(iso: string, hoje = hojeEmPalmas()): string {
-  if (iso === hoje) return "hoje";
+  if (iso === hoje) return "Hoje";
   const alvo = new Date(`${iso}T00:00:00Z`);
   const base = new Date(`${hoje}T00:00:00Z`);
   const distancia = formatDistanceStrict(alvo, base, { locale: ptBR });
-  return alvo > base ? `em ${distancia}` : `há ${distancia}`;
+  return alvo > base ? `Em ${distancia}` : `Há ${distancia}`;
 }
 
 const formatadorMoeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });

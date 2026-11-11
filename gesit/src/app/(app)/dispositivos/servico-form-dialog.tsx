@@ -5,7 +5,10 @@ import { useState, useTransition, type ReactNode } from "react";
 import { Controller, useForm, type Path } from "react-hook-form";
 import { toast } from "sonner";
 
+import { CampoArquivo } from "@/components/campo-arquivo";
+import { CampoData } from "@/components/campo-data";
 import { Carregando } from "@/components/carregando";
+import { ComboboxLista } from "@/components/combobox-lista";
 import { LinkAnexoServico } from "@/components/link-anexo-servico";
 import { MensagemErro } from "@/components/mensagem-erro";
 import { Button } from "@/components/ui/button";
@@ -21,13 +24,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ANEXO_ACCEPT, enviarAnexo, validarArquivoAnexo } from "@/lib/anexos";
 import { executarAcao } from "@/lib/executar-acao";
@@ -59,6 +55,8 @@ type Props = {
   servico?: ServicoEditavel;
   trigger: ReactNode;
 };
+
+const OPCOES_TIPO = TIPOS_SERVICO.map((t) => ({ value: t, label: TIPO_SERVICO_LABEL[t] }));
 
 const CAMPOS = [
   "tipo",
@@ -189,30 +187,20 @@ function FormServico({
             control={control}
             name="tipo"
             render={({ field }) => (
-              <Select
+              <ComboboxLista
+                id="serv-tipo"
+                ref={field.ref}
+                opcoes={OPCOES_TIPO}
                 value={field.value ?? ""}
-                onValueChange={field.onChange}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholderBusca="Buscar tipo..."
+                vazio="Nenhum tipo encontrado."
                 disabled={isPending}
-              >
-                <SelectTrigger
-                  id="serv-tipo"
-                  ref={field.ref}
-                  onBlur={field.onBlur}
-                  className="w-full"
-                  aria-required
-                  aria-invalid={Boolean(erro("tipo"))}
-                  aria-describedby={descrito("tipo", erro("tipo"))}
-                >
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS_SERVICO.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {TIPO_SERVICO_LABEL[t]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                required
+                invalid={Boolean(erro("tipo"))}
+                descritoPor={descrito("tipo", erro("tipo"))}
+              />
             )}
           />
           <MensagemErro id="serv-tipo-erro" mensagem={erro("tipo")} />
@@ -220,15 +208,25 @@ function FormServico({
 
         <div className="grid gap-2">
           <Label htmlFor="serv-data">Data do serviço</Label>
-          <Input
-            id="serv-data"
-            type="date"
-            max={hojeEmPalmas()}
-            aria-required
-            aria-invalid={Boolean(erro("data_servico"))}
-            aria-describedby={descrito("data", erro("data_servico"))}
-            disabled={isPending}
-            {...register("data_servico")}
+          <Controller
+            control={control}
+            name="data_servico"
+            render={({ field }) => (
+              <CampoData
+                id="serv-data"
+                name={field.name}
+                ref={field.ref}
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                emitirInvalido
+                max={hojeEmPalmas()}
+                required
+                invalid={Boolean(erro("data_servico"))}
+                descritoPor={descrito("data", erro("data_servico"))}
+                disabled={isPending}
+              />
+            )}
           />
           <MensagemErro id="serv-data-erro" mensagem={erro("data_servico")} />
         </div>
@@ -307,18 +305,15 @@ function FormServico({
             <LinkAnexoServico path={servico.anexo_path} />
           </div>
         )}
-        <Input
+        <CampoArquivo
           id="serv-anexo"
-          type="file"
           accept={ANEXO_ACCEPT}
-          aria-invalid={Boolean(erroArquivo)}
-          aria-describedby={erroArquivo ? "serv-anexo-erro serv-anexo-ajuda" : "serv-anexo-ajuda"}
+          arquivo={arquivo}
+          invalid={Boolean(erroArquivo)}
+          descritoPor={erroArquivo ? "serv-anexo-erro serv-anexo-ajuda" : "serv-anexo-ajuda"}
           disabled={isPending}
-          onChange={(e) => {
-            const input = e.currentTarget;
-            const escolhido = input.files?.[0] ?? null;
-            const mensagem = validarArquivoAnexo(escolhido, "O anexo");
-            if (mensagem) input.value = "";
+          onChange={(escolhido) => {
+            const mensagem = escolhido ? validarArquivoAnexo(escolhido, "O anexo") : null;
             setArquivo(mensagem ? null : escolhido);
             setErroArquivo(mensagem ?? undefined);
           }}
