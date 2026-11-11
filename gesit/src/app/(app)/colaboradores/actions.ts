@@ -108,7 +108,7 @@ async function dispositivosEmAberto(
 ): Promise<{ lista: DispositivoPendente[]; erro: ActionResult | null }> {
   const { data, error } = await supabase
     .from("vinculos")
-    .select("dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1)")
+    .select("dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio)")
     .eq("colaborador_id", colaboradorId)
     .is("data_fim", null);
 

@@ -85,7 +85,7 @@ async function DetalheColaborador({
     supabase
       .from("vinculos")
       .select(
-        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome), dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1)",
+        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, loja:lojas(nome), dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio)",
       )
       .eq("colaborador_id", id)
       .order("data_inicio", { ascending: false })

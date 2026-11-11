@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { STATUS_EDITAVEIS } from "./types";
+import { hojeEmPalmas } from "./format";
+import { OPERADORAS, STATUS_EDITAVEIS } from "./types";
 
 // ===========================================================================
 // Utilitários
@@ -116,6 +117,33 @@ export function formatarIMEIDigitando(valor: string): string {
 }
 
 // ===========================================================================
+// Número da linha (telefone)
+// ===========================================================================
+
+/** Formata como (63) 99999-9999 ou (63) 3333-4444; senão, devolve o valor original. */
+export function formatarLinha(valor: string): string {
+  const d = somenteDigitos(valor);
+  if (d.length === 11) return d.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+  if (d.length === 10) return d.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+  return valor;
+}
+
+/**
+ * Formata enquanto o usuário digita (aceita número incompleto).
+ * Ex.: "6399" → "(63) 99"; "63999991234" → "(63) 99999-1234"; limita a 11 dígitos.
+ */
+export function formatarLinhaDigitando(valor: string): string {
+  const d = somenteDigitos(valor).slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  const ddd = d.slice(0, 2);
+  const resto = d.slice(2);
+  // Com 10 dígitos ainda pode ser fixo: (63) 3333-4444.
+  const corte = d.length === 11 ? 5 : 4;
+  if (resto.length <= corte) return `(${ddd}) ${resto}`;
+  return `(${ddd}) ${resto.slice(0, corte)}-${resto.slice(corte)}`;
+}
+
+// ===========================================================================
 // Campos reutilizáveis
 // ===========================================================================
 
@@ -153,6 +181,50 @@ const imeiOpcional = z
   .transform((v) => (v ? somenteDigitos(v) : "") || null)
   .refine((v) => v === null || v.length === 15, "O IMEI deve ter 15 dígitos.")
   .refine((v) => v === null || validarIMEI(v), "IMEI inválido.");
+
+/** Número da linha opcional: entra com máscara, sai só com dígitos (10 ou 11). */
+const linhaOpcional = z
+  .string()
+  .nullish()
+  .transform((v) => (v ? somenteDigitos(v) : "") || null)
+  .refine(
+    (v) => v === null || /^[1-9]{2}\d{8,9}$/.test(v),
+    "Informe o número com DDD: (63) 99999-9999.",
+  );
+
+const operadoraOpcional = z
+  .enum(OPERADORAS, { error: "Operadora inválida." })
+  .nullish()
+  .transform((v) => v ?? null);
+
+/** Data opcional no formato do <input type="date"> (AAAA-MM-DD); vazio vira null. */
+const dataOpcional = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((v) => v || null)
+  .refine((v) => v === null || z.iso.date().safeParse(v).success, "Data inválida.");
+
+/** Campos de aquisição comuns aos três tipos. */
+const camposAquisicao = {
+  numero_patrimonio: textoOpcional(50),
+  data_compra: dataOpcional.refine(
+    (v) => v === null || v <= hojeEmPalmas(),
+    "A data de compra não pode ser futura.",
+  ),
+  fim_vida_util: dataOpcional,
+};
+
+type ComDatas = { data_compra: string | null; fim_vida_util: string | null };
+
+const fimDepoisDaCompra = {
+  check: (d: ComDatas) =>
+    d.fim_vida_util === null || d.data_compra === null || d.fim_vida_util >= d.data_compra,
+  erro: {
+    message: "O fim da vida útil deve ser igual ou posterior à data de compra.",
+    path: ["fim_vida_util"],
+  },
+};
 
 /**
  * Status escolhível em formulário. "em_uso" fica de fora: só é definido
@@ -193,14 +265,17 @@ export const colaboradorSchema = z.object({
   ativo: z.boolean().default(true),
 });
 
-export const notebookSchema = z.object({
-  tipo: z.literal("notebook"),
-  marca: textoObrigatorio("a marca", 60),
-  modelo: textoObrigatorio("o modelo", 100),
-  serial_number: textoObrigatorio("o número de série", 100),
-  status: statusEditavel,
-  observacao: textoOpcional(1000),
-});
+export const notebookSchema = z
+  .object({
+    tipo: z.literal("notebook"),
+    marca: textoObrigatorio("a marca", 60),
+    modelo: textoObrigatorio("o modelo", 100),
+    serial_number: textoObrigatorio("o número de série", 100),
+    ...camposAquisicao,
+    status: statusEditavel,
+    observacao: textoOpcional(1000),
+  })
+  .refine(fimDepoisDaCompra.check, fimDepoisDaCompra.erro);
 
 export const telefoneSchema = z
   .object({
@@ -211,19 +286,53 @@ export const telefoneSchema = z
     /** Entra com ou sem máscara; sai só com dígitos. */
     imei1: imeiObrigatorio,
     imei2: imeiOpcional,
+    /** Entra com ou sem máscara; sai só com dígitos. */
+    numero_linha: linhaOpcional,
+    operadora: operadoraOpcional,
+    ...camposAquisicao,
     status: statusEditavel,
     observacao: textoOpcional(1000),
   })
   .refine((d) => d.imei2 === null || d.imei2 !== d.imei1, {
     message: "O IMEI 2 deve ser diferente do IMEI 1.",
     path: ["imei2"],
-  });
+  })
+  .refine(fimDepoisDaCompra.check, fimDepoisDaCompra.erro);
 
-/** Notebook ou telefone, escolhido pelo campo `tipo`. */
+/** Monitor: identificado pelo patrimônio; sem serial nem IMEI. */
+export const monitorSchema = z
+  .object({
+    tipo: z.literal("monitor"),
+    marca: textoObrigatorio("a marca", 60),
+    modelo: textoObrigatorio("o modelo", 100),
+    ...camposAquisicao,
+    numero_patrimonio: textoObrigatorio("o número de patrimônio", 50),
+    status: statusEditavel,
+    observacao: textoOpcional(1000),
+  })
+  .refine(fimDepoisDaCompra.check, fimDepoisDaCompra.erro);
+
+/** Notebook, telefone ou monitor, escolhido pelo campo `tipo`. */
 export const dispositivoSchema = z.discriminatedUnion("tipo", [
   notebookSchema,
   telefoneSchema,
+  monitorSchema,
 ]);
+
+export const MENSAGEM_DATA_COMPRA = "Informe a data de compra.";
+
+/**
+ * No cadastro novo a data de compra é obrigatória (dispositivos antigos,
+ * sem data, continuam editáveis sem ela).
+ */
+export function exigirDataCompra<T extends z.ZodType<{ data_compra: string | null }>>(
+  schema: T,
+) {
+  return schema.refine((d) => d.data_compra !== null, {
+    message: MENSAGEM_DATA_COMPRA,
+    path: ["data_compra"],
+  });
+}
 
 /** Argumentos de vincular_dispositivo. O PDF já deve estar no bucket "termos". */
 export const vinculoSchema = z.object({
@@ -249,6 +358,8 @@ export type NotebookFormInput = z.input<typeof notebookSchema>;
 export type NotebookFormData = z.output<typeof notebookSchema>;
 export type TelefoneFormInput = z.input<typeof telefoneSchema>;
 export type TelefoneFormData = z.output<typeof telefoneSchema>;
+export type MonitorFormInput = z.input<typeof monitorSchema>;
+export type MonitorFormData = z.output<typeof monitorSchema>;
 export type DispositivoFormInput = z.input<typeof dispositivoSchema>;
 export type DispositivoFormData = z.output<typeof dispositivoSchema>;
 export type VinculoFormInput = z.input<typeof vinculoSchema>;
@@ -296,6 +407,12 @@ export type DevolucaoFormData = z.output<typeof devolucaoSchema>;
  * formatarIMEIDigitando("35")             // "35"
  * formatarIMEIDigitando("35209900")       // "35-209900"
  * formatarIMEIDigitando("3520990017614819") // "35-209900-176148-1" (corta em 15)
+ *
+ * --- Linha ---
+ * formatarLinha("63999991234")            // "(63) 99999-1234"
+ * formatarLinha("6332151234")             // "(63) 3215-1234"
+ * formatarLinhaDigitando("6399")          // "(63) 99"
+ * formatarLinhaDigitando("639999912345")  // "(63) 99999-1234" (corta em 11)
  *
  * --- Schemas ---
  * lojaSchema.parse({ nome: " Filial Gurupi ", cidade: "" })

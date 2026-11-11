@@ -236,7 +236,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
                 ).map(opcaoDispositivo)
               }
               placeholder="Selecione o dispositivo"
-              placeholderBusca="Marca, modelo, serial, IMEI ou usuário"
+              placeholderBusca="Marca, modelo, patrimônio, serial, IMEI ou usuário"
               vazio="Nenhum dispositivo disponível ou em uso encontrado."
               disabled={ocupado}
               invalid={Boolean(erros.dispositivo)}

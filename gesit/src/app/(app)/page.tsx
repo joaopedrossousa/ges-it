@@ -1,8 +1,13 @@
 import {
   ArrowRightLeftIcon,
+  CalendarClockIcon,
+  CalendarOffIcon,
+  CalendarX2Icon,
   CircleCheckIcon,
   FileWarningIcon,
+  HourglassIcon,
   LaptopIcon,
+  MonitorIcon,
   SmartphoneIcon,
   UndoIcon,
   UserRoundCheckIcon,
@@ -16,6 +21,7 @@ import { Suspense, type ReactNode } from "react";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
 import { StatTile, StatTileCarregando } from "@/components/stat-tile";
+import { VidaUtilBadge } from "@/components/vida-util-badge";
 import {
   Card,
   CardContent,
@@ -24,9 +30,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { identificadorDispositivo } from "@/lib/dispositivos";
-import { formatarDataHora, formatarDuracao } from "@/lib/format";
+import {
+  formatarDataHora,
+  formatarDataISO,
+  formatarDuracao,
+  formatarPrazo,
+  hojeEmPalmas,
+} from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
-import type { StatusDispositivo, TipoDispositivo } from "@/lib/types";
+import {
+  TIPO_DISPOSITIVO_PLURAL,
+  type SituacaoVidaUtil,
+  type StatusDispositivo,
+  type TipoDispositivo,
+} from "@/lib/types";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -40,8 +57,8 @@ export default function DashboardPage() {
 
       <Suspense
         fallback={
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-            {Array.from({ length: 5 }, (_, i) => (
+          <div className={GRADE_INDICADORES}>
+            {Array.from({ length: 6 }, (_, i) => (
               <StatTileCarregando key={i} />
             ))}
           </div>
@@ -49,6 +66,25 @@ export default function DashboardPage() {
       >
         <Indicadores />
       </Suspense>
+
+      <section aria-label="Vida útil" className="grid gap-6 lg:grid-cols-3">
+        <Suspense
+          fallback={
+            <div className={GRADE_VIDA_UTIL}>
+              {Array.from({ length: 3 }, (_, i) => (
+                <StatTileCarregando key={i} />
+              ))}
+            </div>
+          }
+        >
+          <IndicadoresVidaUtil />
+        </Suspense>
+        <div className="lg:col-span-2">
+          <Suspense fallback={<CardCarregando titulo="Próximos da troca" />}>
+            <ProximosDaTroca />
+          </Suspense>
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Suspense fallback={<CardCarregando titulo="Vínculos sem termo" />}>
@@ -66,7 +102,9 @@ export default function DashboardPage() {
 // Indicadores
 // ===========================================================================
 
-const TIPOS: TipoDispositivo[] = ["notebook", "telefone"];
+const GRADE_INDICADORES = "grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6";
+
+const TIPOS: TipoDispositivo[] = ["notebook", "telefone", "monitor"];
 const STATUS: StatusDispositivo[] = ["disponivel", "em_uso", "manutencao", "baixado"];
 
 type Contagem = Record<TipoDispositivo, Record<StatusDispositivo, number>>;
@@ -98,6 +136,7 @@ async function contarDispositivos(): Promise<Contagem | null> {
   const contagem = {
     notebook: { disponivel: 0, em_uso: 0, manutencao: 0, baixado: 0 },
     telefone: { disponivel: 0, em_uso: 0, manutencao: 0, baixado: 0 },
+    monitor: { disponivel: 0, em_uso: 0, manutencao: 0, baixado: 0 },
   } satisfies Contagem;
   pares.forEach(({ tipo, status }, i) => {
     contagem[tipo][status] = resultados[i].count ?? 0;
@@ -105,11 +144,17 @@ async function contarDispositivos(): Promise<Contagem | null> {
   return contagem;
 }
 
+/** Ex.: "3 notebooks · 1 telefone" (tipos zerados ficam de fora). */
 function porTipo(c: Contagem, status: StatusDispositivo) {
-  const n = c.notebook[status];
-  const t = c.telefone[status];
-  return `${n} ${n === 1 ? "notebook" : "notebooks"} · ${t} ${t === 1 ? "telefone" : "telefones"}`;
+  const partes = TIPOS.filter((tipo) => c[tipo][status] > 0).map((tipo) => {
+    const n = c[tipo][status];
+    return `${n} ${n === 1 ? tipo : TIPO_DISPOSITIVO_PLURAL[tipo]}`;
+  });
+  return partes.join(" · ") || "nenhum";
 }
+
+const somaStatus = (c: Contagem, status: StatusDispositivo) =>
+  TIPOS.reduce((total, tipo) => total + c[tipo][status], 0);
 
 async function Indicadores() {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
@@ -125,7 +170,7 @@ async function Indicadores() {
     c[tipo].baixado > 0 ? `sem contar ${c[tipo].baixado} baixado${c[tipo].baixado === 1 ? "" : "s"}` : "em operação";
 
   return (
-    <section aria-label="Indicadores" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+    <section aria-label="Indicadores" className={GRADE_INDICADORES}>
       <StatTile
         rotulo="Notebooks"
         valor={total("notebook")}
@@ -141,8 +186,15 @@ async function Indicadores() {
         href="/dispositivos?tipo=telefone"
       />
       <StatTile
+        rotulo="Monitores"
+        valor={total("monitor")}
+        icone={MonitorIcon}
+        detalhe={baixados("monitor")}
+        href="/dispositivos?tipo=monitor"
+      />
+      <StatTile
         rotulo="Em uso"
-        valor={c.notebook.em_uso + c.telefone.em_uso}
+        valor={somaStatus(c, "em_uso")}
         icone={UserRoundCheckIcon}
         corIcone="text-brand-blue dark:text-primary"
         detalhe={porTipo(c, "em_uso")}
@@ -150,7 +202,7 @@ async function Indicadores() {
       />
       <StatTile
         rotulo="Disponíveis"
-        valor={c.notebook.disponivel + c.telefone.disponivel}
+        valor={somaStatus(c, "disponivel")}
         icone={CircleCheckIcon}
         corIcone="text-brand-green"
         detalhe={porTipo(c, "disponivel")}
@@ -158,13 +210,154 @@ async function Indicadores() {
       />
       <StatTile
         rotulo="Em manutenção"
-        valor={c.notebook.manutencao + c.telefone.manutencao}
+        valor={somaStatus(c, "manutencao")}
         icone={WrenchIcon}
         corIcone="text-amber-600 dark:text-amber-400"
         detalhe={porTipo(c, "manutencao")}
         href="/dispositivos?status=manutencao"
       />
     </section>
+  );
+}
+
+// ===========================================================================
+// Vida útil
+// ===========================================================================
+
+const GRADE_VIDA_UTIL = "grid content-start gap-4 sm:grid-cols-3 lg:grid-cols-1";
+
+/** Situações com card no dashboard (baixados ficam fora dos alertas). */
+const ALERTAS_VIDA_UTIL = [
+  "vencido",
+  "proximo",
+  "sem_data",
+] as const satisfies readonly SituacaoVidaUtil[];
+
+async function IndicadoresVidaUtil() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
+  const supabase = await createClient();
+  const resultados = await Promise.all(
+    ALERTAS_VIDA_UTIL.map((situacao) =>
+      supabase
+        .from("vw_dispositivos")
+        .select("id", { count: "exact", head: true })
+        .eq("situacao_vida_util", situacao),
+    ),
+  );
+
+  const erro = resultados.find((r) => r.error)?.error;
+  if (erro) {
+    console.error("Erro ao contar a vida útil:", erro);
+    return <p className="text-destructive">Não foi possível carregar a vida útil.</p>;
+  }
+  const [vencidos, proximos, semData] = resultados.map((r) => r.count ?? 0);
+
+  return (
+    <div className={GRADE_VIDA_UTIL}>
+      <StatTile
+        rotulo="Vida útil vencida"
+        valor={vencidos}
+        icone={CalendarX2Icon}
+        corIcone={vencidos > 0 ? "text-destructive" : undefined}
+        detalhe="fim da vida útil já passou"
+        href="/dispositivos?vida=vencido"
+      />
+      <StatTile
+        rotulo="Próximos da troca"
+        valor={proximos}
+        icone={CalendarClockIcon}
+        corIcone={proximos > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
+        detalhe="vida útil termina em até 6 meses"
+        href="/dispositivos?vida=proximo"
+      />
+      <StatTile
+        rotulo="Sem data"
+        valor={semData}
+        icone={CalendarOffIcon}
+        detalhe="sem fim da vida útil cadastrado"
+        href="/dispositivos?vida=sem_data"
+      />
+    </div>
+  );
+}
+
+const LIMITE_PROXIMOS = 10;
+
+/**
+ * Os 10 dispositivos em operação cuja vida útil termina primeiro. Vencidos
+ * ficam de fora (têm card próprio); baixados e sem data também.
+ */
+async function ProximosDaTroca() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("vw_dispositivos")
+    .select(
+      "id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio, fim_vida_util, situacao_vida_util, colaborador_nome",
+    )
+    .in("situacao_vida_util", ["proximo", "ok"])
+    .order("fim_vida_util")
+    .order("id")
+    .limit(LIMITE_PROXIMOS);
+
+  if (error) {
+    console.error("Erro ao listar a vida útil:", error);
+    return (
+      <CardSimples titulo="Próximos da troca">
+        <p className="text-destructive">Não foi possível carregar os dispositivos.</p>
+      </CardSimples>
+    );
+  }
+
+  const hoje = hojeEmPalmas();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HourglassIcon className="size-4 text-muted-foreground" aria-hidden />
+          Próximos da troca
+        </CardTitle>
+        <CardDescription>
+          {data.length === 0
+            ? "Nenhum dispositivo em operação com fim da vida útil a vencer."
+            : `Até ${LIMITE_PROXIMOS} dispositivos em operação, do fim da vida útil mais próximo ao mais distante. Os já vencidos estão no card ao lado.`}
+        </CardDescription>
+      </CardHeader>
+      {data.length > 0 && (
+        <CardContent>
+          <ol className="divide-y">
+            {data.map((d, i) => (
+              <li
+                key={d.id ?? i}
+                className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2.5 text-sm first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0">
+                  <Link href={`/dispositivos/${d.id}`} className="font-medium hover:underline">
+                    {d.marca} {d.modelo}
+                  </Link>
+                  <span className="ml-2 font-mono text-xs text-muted-foreground">
+                    {identificadorDispositivo(d)}
+                  </span>
+                  <p className="text-muted-foreground">{d.colaborador_nome ?? "Sem usuário"}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {d.fim_vida_util && (
+                    <span className="text-right">
+                      {formatarDataISO(d.fim_vida_util)}
+                      <span className="block text-xs text-muted-foreground">
+                        {formatarPrazo(d.fim_vida_util, hoje)}
+                      </span>
+                    </span>
+                  )}
+                  <VidaUtilBadge situacao={d.situacao_vida_util} />
+                </div>
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 
@@ -181,7 +374,7 @@ async function VinculosSemTermo() {
   const { data, count, error } = await supabase
     .from("vinculos")
     .select(
-      "id, dispositivo_id, colaborador_id, data_inicio, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1)",
+      "id, dispositivo_id, colaborador_id, data_inicio, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1, numero_patrimonio)",
       { count: "exact" },
     )
     .is("termo_path", null)

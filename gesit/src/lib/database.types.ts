@@ -61,12 +61,18 @@ export type Database = {
       dispositivos: {
         Row: {
           created_at: string
+          data_compra: string | null
+          fim_vida_util: string | null
           id: string
           imei1: string | null
           imei2: string | null
           marca: string
           modelo: string
+          nota_fiscal_path: string | null
+          numero_linha: string | null
+          numero_patrimonio: string | null
           observacao: string | null
+          operadora: string | null
           serial_number: string | null
           status: Database["public"]["Enums"]["status_dispositivo"]
           tipo: Database["public"]["Enums"]["tipo_dispositivo"]
@@ -74,12 +80,18 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_compra?: string | null
+          fim_vida_util?: string | null
           id?: string
           imei1?: string | null
           imei2?: string | null
           marca: string
           modelo: string
+          nota_fiscal_path?: string | null
+          numero_linha?: string | null
+          numero_patrimonio?: string | null
           observacao?: string | null
+          operadora?: string | null
           serial_number?: string | null
           status?: Database["public"]["Enums"]["status_dispositivo"]
           tipo: Database["public"]["Enums"]["tipo_dispositivo"]
@@ -87,12 +99,18 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_compra?: string | null
+          fim_vida_util?: string | null
           id?: string
           imei1?: string | null
           imei2?: string | null
           marca?: string
           modelo?: string
+          nota_fiscal_path?: string | null
+          numero_linha?: string | null
+          numero_patrimonio?: string | null
           observacao?: string | null
+          operadora?: string | null
           serial_number?: string | null
           status?: Database["public"]["Enums"]["status_dispositivo"]
           tipo?: Database["public"]["Enums"]["tipo_dispositivo"]
@@ -212,15 +230,23 @@ export type Database = {
           colaborador_id: string | null
           colaborador_nome: string | null
           created_at: string | null
+          data_compra: string | null
+          fim_vida_util: string | null
           id: string | null
+          idade_meses: number | null
           imei1: string | null
           imei2: string | null
           loja_id: string | null
           loja_nome: string | null
           marca: string | null
           modelo: string | null
+          nota_fiscal_path: string | null
+          numero_linha: string | null
+          numero_patrimonio: string | null
           observacao: string | null
+          operadora: string | null
           serial_number: string | null
+          situacao_vida_util: string | null
           status: Database["public"]["Enums"]["status_dispositivo"] | null
           termo_atual: string | null
           tipo: Database["public"]["Enums"]["tipo_dispositivo"] | null
@@ -272,7 +298,7 @@ export type Database = {
     }
     Enums: {
       status_dispositivo: "disponivel" | "em_uso" | "manutencao" | "baixado"
-      tipo_dispositivo: "notebook" | "telefone"
+      tipo_dispositivo: "notebook" | "telefone" | "monitor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -401,7 +427,7 @@ export const Constants = {
   public: {
     Enums: {
       status_dispositivo: ["disponivel", "em_uso", "manutencao", "baixado"],
-      tipo_dispositivo: ["notebook", "telefone"],
+      tipo_dispositivo: ["notebook", "telefone", "monitor"],
     },
   },
 } as const

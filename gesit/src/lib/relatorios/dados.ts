@@ -5,12 +5,19 @@ import {
   filtroBuscaDispositivos,
   lerFiltrosDispositivos,
 } from "@/lib/filtros-dispositivos";
-import { formatarData, formatarDuracao, hojeEmPalmas } from "@/lib/format";
+import {
+  formatarData,
+  formatarDuracao,
+  formatarIdadeMeses,
+  hojeEmPalmas,
+} from "@/lib/format";
 import type { createClient } from "@/lib/supabase/server";
 import {
+  SITUACAO_VIDA_UTIL_LABEL,
   STATUS_DISPOSITIVO_LABEL,
   TIPOS_DISPOSITIVO,
   TIPO_DISPOSITIVO_LABEL,
+  paraSituacaoVidaUtil,
 } from "@/lib/types";
 import { mascararCPF } from "@/lib/validators";
 
@@ -72,6 +79,12 @@ function lojaDoParametro(params: URLSearchParams) {
 
 const sim = (v: unknown) => (v ? "Sim" : "Não");
 
+/**
+ * Data sem hora do banco ("AAAA-MM-DD") como instante ao meio-dia de Palmas:
+ * o PDF e o Excel exibem no fuso de Palmas, e meia-noite UTC viraria o dia anterior.
+ */
+const dataSemHora = (iso: string | null) => (iso ? new Date(`${iso}T12:00:00-03:00`) : null);
+
 // ===========================================================================
 // 1. Inventário de dispositivos (mesmos filtros de /dispositivos)
 // ===========================================================================
@@ -83,7 +96,9 @@ const inventario: Gerador = async (supabase, params) => {
   const dados = await buscarTodas((de, ate) => {
     let q = supabase
       .from("vw_dispositivos")
-      .select("id, tipo, marca, modelo, serial_number, imei1, status, colaborador_nome, loja_nome, vinculado_em")
+      .select(
+        "id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio, status, colaborador_nome, loja_nome, vinculado_em, data_compra, idade_meses, fim_vida_util, situacao_vida_util",
+      )
       .order("tipo")
       .order("marca")
       .order("modelo")
@@ -92,6 +107,7 @@ const inventario: Gerador = async (supabase, params) => {
     if (f.tipo) q = q.eq("tipo", f.tipo);
     if (f.status) q = q.eq("status", f.status);
     if (f.lojaId) q = q.eq("loja_id", f.lojaId);
+    if (f.vidaUtil) q = q.eq("situacao_vida_util", f.vidaUtil);
     if (filtroBusca) q = q.or(filtroBusca);
     return q;
   });
@@ -101,6 +117,7 @@ const inventario: Gerador = async (supabase, params) => {
     f.tipo && { rotulo: "Tipo", valor: TIPO_DISPOSITIVO_LABEL[f.tipo] },
     f.status && { rotulo: "Status", valor: STATUS_DISPOSITIVO_LABEL[f.status] },
     f.lojaId && { rotulo: "Loja", valor: (await nomeDaLoja(supabase, f.lojaId)) ?? "" },
+    f.vidaUtil && { rotulo: "Vida útil", valor: SITUACAO_VIDA_UTIL_LABEL[f.vidaUtil] },
   ].filter((x) => !!x);
 
   return {
@@ -110,25 +127,39 @@ const inventario: Gerador = async (supabase, params) => {
     orientacao: "paisagem",
     filtros: filtros.length ? filtros : [{ rotulo: "Filtros", valor: "nenhum (todos os dispositivos)" }],
     colunas: [
-      { chave: "tipo", titulo: "Tipo", peso: 0.8 },
-      { chave: "marca", titulo: "Marca" },
-      { chave: "modelo", titulo: "Modelo", peso: 1.4 },
-      { chave: "identificador", titulo: "Serial/IMEI", peso: 1.4 },
-      { chave: "status", titulo: "Status", peso: 0.9 },
-      { chave: "usuario", titulo: "Usuário atual", peso: 1.6 },
-      { chave: "loja", titulo: "Loja", peso: 1.2 },
-      { chave: "desde", titulo: "Desde", tipo: "data", peso: 0.8 },
+      { chave: "tipo", titulo: "Tipo", peso: 0.7 },
+      { chave: "marca", titulo: "Marca", peso: 0.8 },
+      { chave: "modelo", titulo: "Modelo", peso: 1.2 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.3 },
+      { chave: "patrimonio", titulo: "Patrimônio", peso: 0.8 },
+      { chave: "status", titulo: "Status", peso: 0.8 },
+      { chave: "usuario", titulo: "Usuário atual", peso: 1.3 },
+      { chave: "loja", titulo: "Loja", peso: 1 },
+      { chave: "desde", titulo: "Desde", tipo: "data", peso: 0.75 },
+      { chave: "compra", titulo: "Compra", tipo: "data", peso: 0.75 },
+      { chave: "idade", titulo: "Idade", peso: 1.05 },
+      { chave: "fim_vida_util", titulo: "Fim vida útil", tipo: "data", peso: 0.8 },
+      { chave: "vida_util", titulo: "Vida útil", peso: 0.95 },
     ],
-    linhas: dados.map((d) => ({
-      tipo: d.tipo ? TIPO_DISPOSITIVO_LABEL[d.tipo] : null,
-      marca: d.marca,
-      modelo: d.modelo,
-      identificador: identificadorDispositivo(d),
-      status: d.status ? STATUS_DISPOSITIVO_LABEL[d.status] : null,
-      usuario: d.colaborador_nome,
-      loja: d.loja_nome,
-      desde: d.vinculado_em ? new Date(d.vinculado_em) : null,
-    })),
+    linhas: dados.map((d) => {
+      const situacao = paraSituacaoVidaUtil(d.situacao_vida_util);
+      return {
+        tipo: d.tipo ? TIPO_DISPOSITIVO_LABEL[d.tipo] : null,
+        marca: d.marca,
+        modelo: d.modelo,
+        identificador: identificadorDispositivo(d),
+        patrimonio: d.numero_patrimonio,
+        status: d.status ? STATUS_DISPOSITIVO_LABEL[d.status] : null,
+        usuario: d.colaborador_nome,
+        loja: d.loja_nome,
+        desde: d.vinculado_em ? new Date(d.vinculado_em) : null,
+        compra: dataSemHora(d.data_compra),
+        idade: d.idade_meses !== null ? formatarIdadeMeses(d.idade_meses) : null,
+        fim_vida_util: dataSemHora(d.fim_vida_util),
+        // Baixados ficam fora dos alertas: o status já diz "Baixado".
+        vida_util: situacao && situacao !== "baixado" ? SITUACAO_VIDA_UTIL_LABEL[situacao] : null,
+      };
+    }),
     vazio: "Nenhum dispositivo encontrado com esses filtros.",
   };
 };
@@ -147,7 +178,7 @@ const dispositivosPorLoja: Gerador = async (supabase, params) => {
     let q = supabase
       .from("vinculos")
       .select(
-        "id, data_inicio, termo_path, loja:lojas(nome), colaborador:colaboradores(nome, cargo), dispositivo:dispositivos!inner(tipo, marca, modelo, serial_number, imei1)",
+        "id, data_inicio, termo_path, loja:lojas(nome), colaborador:colaboradores(nome, cargo), dispositivo:dispositivos!inner(tipo, marca, modelo, serial_number, imei1, numero_patrimonio)",
       )
       .is("data_fim", null)
       .order("data_inicio")
@@ -165,6 +196,7 @@ const dispositivosPorLoja: Gerador = async (supabase, params) => {
       marca: v.dispositivo.marca,
       modelo: v.dispositivo.modelo,
       identificador: identificadorDispositivo(v.dispositivo),
+      patrimonio: v.dispositivo.numero_patrimonio,
       usuario: v.colaborador?.nome ?? null,
       cargo: v.colaborador?.cargo ?? null,
       desde: new Date(v.data_inicio),
@@ -192,7 +224,8 @@ const dispositivosPorLoja: Gerador = async (supabase, params) => {
       { chave: "tipo", titulo: "Tipo", peso: 0.8 },
       { chave: "marca", titulo: "Marca" },
       { chave: "modelo", titulo: "Modelo", peso: 1.3 },
-      { chave: "identificador", titulo: "Serial/IMEI", peso: 1.4 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.4 },
+      { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
       { chave: "usuario", titulo: "Usuário", peso: 1.5 },
       { chave: "cargo", titulo: "Cargo", peso: 1.1 },
       { chave: "desde", titulo: "Desde", tipo: "data", peso: 0.8 },
@@ -249,7 +282,7 @@ const historicoDispositivo: Gerador = async (supabase, params, agora) => {
 
   const { data: d, error } = await supabase
     .from("dispositivos")
-    .select("tipo, marca, modelo, serial_number, imei1, status")
+    .select("tipo, marca, modelo, serial_number, imei1, numero_patrimonio, status")
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -273,6 +306,7 @@ const historicoDispositivo: Gerador = async (supabase, params, agora) => {
     filtros: [
       { rotulo: "Dispositivo", valor: descricaoDispositivo(d) },
       { rotulo: "Tipo", valor: TIPO_DISPOSITIVO_LABEL[d.tipo] },
+      ...(d.numero_patrimonio ? [{ rotulo: "Patrimônio", valor: d.numero_patrimonio }] : []),
       { rotulo: "Status atual", valor: STATUS_DISPOSITIVO_LABEL[d.status] },
     ],
     colunas: [{ chave: "usuario", titulo: "Usuário", peso: 1.5 }, ...COLUNAS_PERIODO],
@@ -299,7 +333,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
     supabase
       .from("vinculos")
       .select(
-        `${SELECT_HISTORICO}, dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1)`,
+        `${SELECT_HISTORICO}, dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1, numero_patrimonio)`,
       )
       .eq("colaborador_id", id)
       .order("data_inicio", { ascending: false })
@@ -322,7 +356,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
     ],
     colunas: [
       { chave: "dispositivo", titulo: "Dispositivo", peso: 1.4 },
-      { chave: "identificador", titulo: "Serial/IMEI", peso: 1.3 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       ...COLUNAS_PERIODO,
     ],
     linhas: vinculos.map((v) => ({
@@ -342,7 +376,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
 const ENCERRADO_POR_TRANSFERENCIA = "Encerrado por transferência";
 
 const SELECT_MOVIMENTACAO =
-  "id, dispositivo_id, data_inicio, data_fim, observacao, observacao_devolucao, criado_por, encerrado_por, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1)";
+  "id, dispositivo_id, data_inicio, data_fim, observacao, observacao_devolucao, criado_por, encerrado_por, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1, numero_patrimonio)";
 
 const dataSchema = z.iso.date();
 
@@ -486,7 +520,7 @@ const movimentacoes: Gerador = async (supabase, params, agora) => {
       { chave: "quando", titulo: "Data/hora", tipo: "dataHora", peso: 1 },
       { chave: "operacao", titulo: "Operação", peso: 0.9 },
       { chave: "dispositivo", titulo: "Dispositivo", peso: 1.3 },
-      { chave: "identificador", titulo: "Serial/IMEI", peso: 1.3 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       { chave: "de", titulo: "De", peso: 1.2 },
       { chave: "para", titulo: "Para", peso: 1.2 },
       { chave: "loja", titulo: "Loja", peso: 1 },
@@ -519,7 +553,7 @@ const vinculosSemTermo: Gerador = async (supabase, params, agora) => {
     let q = supabase
       .from("vinculos")
       .select(
-        "id, data_inicio, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1)",
+        "id, data_inicio, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1, numero_patrimonio)",
       )
       .is("data_fim", null)
       .is("termo_path", null)
@@ -546,7 +580,7 @@ const vinculosSemTermo: Gerador = async (supabase, params, agora) => {
       { chave: "desde", titulo: "Desde", tipo: "data", peso: 0.8 },
       { chave: "ha", titulo: "Há", peso: 1.1 },
       { chave: "dispositivo", titulo: "Dispositivo", peso: 1.4 },
-      { chave: "identificador", titulo: "Serial/IMEI", peso: 1.4 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.4 },
       { chave: "usuario", titulo: "Usuário", peso: 1.4 },
       { chave: "loja", titulo: "Loja", peso: 1 },
     ],

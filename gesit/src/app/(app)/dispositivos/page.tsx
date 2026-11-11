@@ -13,6 +13,7 @@ import { Suspense } from "react";
 
 import { StatusDispositivoBadge } from "@/components/status-dispositivo-badge";
 import { TabelaCarregando } from "@/components/tabela-carregando";
+import { VidaUtilBadge } from "@/components/vida-util-badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -58,7 +59,7 @@ export default function DispositivosPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Dispositivos</h1>
-          <p className="text-muted-foreground">Notebooks e telefones.</p>
+          <p className="text-muted-foreground">Notebooks, telefones e monitores.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {/* useSearchParams: precisa de Suspense no shell estático. */}
@@ -95,7 +96,7 @@ export default function DispositivosPage({
         <BarraDeFiltros />
       </Suspense>
 
-      <Suspense fallback={<TabelaCarregando colunas={7} />}>
+      <Suspense fallback={<TabelaCarregando colunas={8} />}>
         <TabelaDispositivos searchParams={searchParams} />
       </Suspense>
     </div>
@@ -119,6 +120,12 @@ function paraEdicao(d: VwDispositivoRow): DispositivoEditavel | null {
     serial_number: d.serial_number,
     imei1: d.imei1,
     imei2: d.imei2,
+    numero_patrimonio: d.numero_patrimonio,
+    numero_linha: d.numero_linha,
+    operadora: d.operadora,
+    data_compra: d.data_compra,
+    fim_vida_util: d.fim_vida_util,
+    nota_fiscal_path: d.nota_fiscal_path,
     observacao: d.observacao,
   };
 }
@@ -130,7 +137,7 @@ async function TabelaDispositivos({
 }) {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const params = await searchParams;
-  const { busca, tipo, status, lojaId } = lerFiltrosDispositivos(params);
+  const { busca, tipo, status, lojaId, vidaUtil } = lerFiltrosDispositivos(params);
 
   const pagina = paginaDoParametro(primeiro(params.page));
   const { de, ate } = faixaDaPagina(pagina);
@@ -150,6 +157,7 @@ async function TabelaDispositivos({
 
   // loja_id da view = loja gravada no vínculo aberto (migration 002).
   if (lojaId) query = query.eq("loja_id", lojaId);
+  if (vidaUtil) query = query.eq("situacao_vida_util", vidaUtil);
 
   const filtroBusca = filtroBuscaDispositivos(busca);
   if (filtroBusca) query = query.or(filtroBusca);
@@ -168,7 +176,7 @@ async function TabelaDispositivos({
     );
   }
 
-  const filtrando = Boolean(busca || tipo || status || lojaId);
+  const filtrando = Boolean(busca || tipo || status || lojaId || vidaUtil);
 
   return (
     <div className="space-y-2">
@@ -181,6 +189,7 @@ async function TabelaDispositivos({
               <TableHead>Modelo</TableHead>
               <TableHead>Identificador</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Vida útil</TableHead>
               <TableHead>Usuário atual</TableHead>
               <TableHead className="w-0 text-right">Ações</TableHead>
             </TableRow>
@@ -189,7 +198,7 @@ async function TabelaDispositivos({
             {data.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="py-8 text-center text-muted-foreground"
                 >
                   {filtrando
@@ -221,6 +230,9 @@ async function TabelaDispositivos({
                   </TableCell>
                   <TableCell>
                     <StatusDispositivoBadge status={d.status} />
+                  </TableCell>
+                  <TableCell>
+                    <VidaUtilBadge situacao={d.situacao_vida_util} />
                   </TableCell>
                   <TableCell>
                     {d.colaborador_nome ? (

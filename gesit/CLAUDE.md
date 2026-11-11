@@ -16,6 +16,9 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
 - "Usuários" na UI = tabela colaboradores no banco.
 - Um dispositivo tem no máximo um vínculo aberto (data_fim nula). Vincular usa a função SQL vincular_dispositivo.
 - Termos de responsabilidade: PDF, até 5 MB, bucket privado "termos", enviados direto do navegador para o Storage.
+- Notas fiscais: PDF, JPG ou PNG, até 10 MB, bucket privado "notas-fiscais", em {dispositivo_id}/{timestamp}.{ext}. Enviadas do navegador depois de salvar o dispositivo e gravadas com anexarNotaFiscal; abertas por /api/notas-fiscais (URL assinada no clique).
+- Tipos de dispositivo: notebook (exige serial), telefone (exige IMEI 1; só ele tem linha e operadora) e monitor (exige patrimônio; sem serial nem IMEI). Identificador exibido: IMEI 1, patrimônio ou serial (identificadorDispositivo).
+- Vida útil: situacao_vida_util vem da vw_dispositivos (ok, proximo, vencido, sem_data, baixado), calculada com a data de Palmas. Datas sem hora ("AAAA-MM-DD") exibidas com formatarDataISO, nunca via new Date().
 - Antes de concluir uma tarefa: npm run lint e npm run build sem erros.
 
 ## Identidade visual (Produtécnica Agro)

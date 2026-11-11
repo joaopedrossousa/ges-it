@@ -66,3 +66,36 @@ export function formatarDuracao(inicioIso: string, fim: Date): string {
   });
   return texto || formatDistanceStrict(inicio, fim, { locale: ptBR });
 }
+
+/**
+ * Data sem hora do banco ("AAAA-MM-DD") como "10/11/2026".
+ * Não passa por Date: meia-noite UTC viraria o dia anterior em Palmas.
+ */
+export function formatarDataISO(iso: string): string {
+  const [ano, mes, dia] = iso.slice(0, 10).split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+/** Idade a partir dos meses completos. Ex.: "2 anos e 4 meses", "1 ano", "menos de 1 mês". */
+export function formatarIdadeMeses(meses: number): string {
+  if (meses < 1) return "menos de 1 mês";
+  const anos = Math.floor(meses / 12);
+  const resto = meses % 12;
+  const partes = [
+    anos > 0 && `${anos} ${anos === 1 ? "ano" : "anos"}`,
+    resto > 0 && `${resto} ${resto === 1 ? "mês" : "meses"}`,
+  ].filter(Boolean);
+  return partes.join(" e ");
+}
+
+/**
+ * Quanto falta (ou passou) até uma data "AAAA-MM-DD", contando a partir de
+ * hoje em Palmas. Ex.: "hoje", "em 3 meses", "há 12 dias".
+ */
+export function formatarPrazo(iso: string, hoje = hojeEmPalmas()): string {
+  if (iso === hoje) return "hoje";
+  const alvo = new Date(`${iso}T00:00:00Z`);
+  const base = new Date(`${hoje}T00:00:00Z`);
+  const distancia = formatDistanceStrict(alvo, base, { locale: ptBR });
+  return alvo > base ? `em ${distancia}` : `há ${distancia}`;
+}

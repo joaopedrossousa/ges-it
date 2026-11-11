@@ -7,7 +7,7 @@ export type DispositivoOpcao = {
   tipo: TipoDispositivo;
   marca: string;
   modelo: string;
-  /** IMEI 1 formatado (telefone) ou Serial Number. */
+  /** IMEI 1 formatado (telefone), patrimônio (monitor) ou Serial Number. */
   identificador: string;
   status: StatusDispositivo;
   /** Usuário atual, se houver vínculo aberto. */
@@ -34,6 +34,7 @@ type LinhaVwDispositivo = {
   modelo: string | null;
   serial_number: string | null;
   imei1: string | null;
+  numero_patrimonio: string | null;
   status: StatusDispositivo | null;
   colaborador_id: string | null;
   colaborador_nome: string | null;

@@ -20,8 +20,10 @@ import {
   HistoricoVinculos,
   type LinhaHistorico,
 } from "@/components/historico-vinculos";
+import { LinkNotaFiscal } from "@/components/link-nota-fiscal";
 import { LinkTermo } from "@/components/link-termo";
 import { StatusDispositivoBadge } from "@/components/status-dispositivo-badge";
+import { VidaUtilBadge } from "@/components/vida-util-badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -32,10 +34,15 @@ import {
 } from "@/components/ui/card";
 import { descricaoDispositivo, identificadorDispositivo } from "@/lib/dispositivos";
 import type { DispositivoOpcao } from "@/lib/opcoes-vinculo";
-import { formatarDataHora, formatarDuracao } from "@/lib/format";
+import {
+  formatarDataHora,
+  formatarDataISO,
+  formatarDuracao,
+  formatarIdadeMeses,
+} from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
-import { formatarIMEI } from "@/lib/validators";
+import { formatarIMEI, formatarLinha } from "@/lib/validators";
 
 import { DevolverDialog } from "../devolver-dialog";
 import { DispositivoFormDialog } from "../dispositivo-form-dialog";
@@ -73,8 +80,14 @@ async function DetalheDispositivo({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [dispositivoRes, vinculosRes] = await Promise.all([
+  const [dispositivoRes, vidaUtilRes, vinculosRes] = await Promise.all([
     supabase.from("dispositivos").select("*").eq("id", id).maybeSingle(),
+    // Idade e situação da vida útil: calculadas na view (data de Palmas).
+    supabase
+      .from("vw_dispositivos")
+      .select("idade_meses, situacao_vida_util")
+      .eq("id", id)
+      .maybeSingle(),
     supabase
       .from("vinculos")
       .select(
@@ -85,10 +98,10 @@ async function DetalheDispositivo({
       .order("created_at", { ascending: false }),
   ]);
 
-  if (dispositivoRes.error || vinculosRes.error) {
+  if (dispositivoRes.error || vidaUtilRes.error || vinculosRes.error) {
     console.error(
       "Erro ao carregar dispositivo:",
-      dispositivoRes.error ?? vinculosRes.error,
+      dispositivoRes.error ?? vidaUtilRes.error ?? vinculosRes.error,
     );
     return (
       <p className="text-destructive">Não foi possível carregar o dispositivo.</p>
@@ -98,6 +111,8 @@ async function DetalheDispositivo({
   if (!d) notFound();
 
   const agora = new Date();
+  const idadeMeses = vidaUtilRes.data?.idade_meses ?? null;
+  const situacaoVidaUtil = vidaUtilRes.data?.situacao_vida_util ?? null;
 
   const vinculos = vinculosRes.data;
   const aberto = vinculos.find((v) => v.data_fim === null) ?? null;
@@ -186,6 +201,14 @@ async function DetalheDispositivo({
               </CampoDetalhe>
               <CampoDetalhe rotulo="Marca">{d.marca}</CampoDetalhe>
               <CampoDetalhe rotulo="Modelo">{d.modelo}</CampoDetalhe>
+              <CampoDetalhe rotulo="Nº de patrimônio" mono>
+                {d.numero_patrimonio ?? "—"}
+              </CampoDetalhe>
+              {(d.tipo === "notebook" || d.serial_number) && (
+                <CampoDetalhe rotulo="Serial Number" mono>
+                  {d.serial_number ?? "—"}
+                </CampoDetalhe>
+              )}
               {d.tipo === "telefone" && (
                 <>
                   <CampoDetalhe rotulo="IMEI 1" mono>
@@ -194,13 +217,30 @@ async function DetalheDispositivo({
                   <CampoDetalhe rotulo="IMEI 2" mono>
                     {d.imei2 ? formatarIMEI(d.imei2) : "—"}
                   </CampoDetalhe>
+                  <CampoDetalhe rotulo="Número da linha">
+                    {d.numero_linha ? formatarLinha(d.numero_linha) : "—"}
+                  </CampoDetalhe>
+                  <CampoDetalhe rotulo="Operadora">{d.operadora ?? "—"}</CampoDetalhe>
                 </>
               )}
-              {(d.tipo === "notebook" || d.serial_number) && (
-                <CampoDetalhe rotulo="Serial Number" mono>
-                  {d.serial_number ?? "—"}
-                </CampoDetalhe>
-              )}
+              <CampoDetalhe rotulo="Data de compra">
+                {d.data_compra ? formatarDataISO(d.data_compra) : "—"}
+              </CampoDetalhe>
+              <CampoDetalhe rotulo="Idade">
+                {idadeMeses !== null ? formatarIdadeMeses(idadeMeses) : "—"}
+              </CampoDetalhe>
+              <CampoDetalhe rotulo="Fim da vida útil">
+                <span className="flex flex-wrap items-center gap-2">
+                  {d.fim_vida_util && formatarDataISO(d.fim_vida_util)}
+                  {/* Baixado: o badge vira "—"; com data, basta a data. */}
+                  {(situacaoVidaUtil !== "baixado" || !d.fim_vida_util) && (
+                    <VidaUtilBadge situacao={situacaoVidaUtil} />
+                  )}
+                </span>
+              </CampoDetalhe>
+              <CampoDetalhe rotulo="Nota fiscal">
+                <LinkNotaFiscal path={d.nota_fiscal_path} />
+              </CampoDetalhe>
               <CampoDetalhe rotulo="Cadastrado em">
                 {formatarDataHora(d.created_at)}
               </CampoDetalhe>

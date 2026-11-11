@@ -53,7 +53,54 @@ export function ehStatusEditavel(valor: unknown): valor is StatusEditavel {
 export const TIPO_DISPOSITIVO_LABEL: Record<TipoDispositivo, string> = {
   notebook: "Notebook",
   telefone: "Telefone",
+  monitor: "Monitor",
 };
+
+/** Plural em minúsculas, para textos como "3 monitores". */
+export const TIPO_DISPOSITIVO_PLURAL: Record<TipoDispositivo, string> = {
+  notebook: "notebooks",
+  telefone: "telefones",
+  monitor: "monitores",
+};
+
+/** Operadoras aceitas pela check operadora_valida (migration 009). */
+export const OPERADORAS = ["Vivo", "Claro", "TIM", "Oi", "Algar", "Outra"] as const;
+export type Operadora = (typeof OPERADORAS)[number];
+
+/** A coluna é text no banco; converte para o tipo (null se vazia ou desconhecida). */
+export function paraOperadora(valor: string | null | undefined): Operadora | null {
+  return (OPERADORAS as readonly unknown[]).includes(valor) ? (valor as Operadora) : null;
+}
+
+/**
+ * Situação da vida útil calculada na vw_dispositivos (migration 009).
+ * "baixado" fica fora dos alertas e dos filtros.
+ */
+export const SITUACOES_VIDA_UTIL = ["ok", "proximo", "vencido", "sem_data", "baixado"] as const;
+export type SituacaoVidaUtil = (typeof SITUACOES_VIDA_UTIL)[number];
+
+/** Situações que aparecem no filtro da listagem. */
+export const SITUACOES_VIDA_UTIL_FILTRO = [
+  "ok",
+  "proximo",
+  "vencido",
+  "sem_data",
+] as const satisfies readonly SituacaoVidaUtil[];
+
+export const SITUACAO_VIDA_UTIL_LABEL: Record<SituacaoVidaUtil, string> = {
+  ok: "OK",
+  proximo: "Próximo da troca",
+  vencido: "Vencido",
+  sem_data: "Sem data",
+  baixado: "Baixado",
+};
+
+/** A view devolve text; converte para o tipo (null se desconhecido). */
+export function paraSituacaoVidaUtil(valor: unknown): SituacaoVidaUtil | null {
+  return (SITUACOES_VIDA_UTIL as readonly unknown[]).includes(valor)
+    ? (valor as SituacaoVidaUtil)
+    : null;
+}
 
 export const STATUS_DISPOSITIVO_LABEL: Record<StatusDispositivo, string> = {
   disponivel: "Disponível",

@@ -8,6 +8,7 @@ import {
   errosDoZod,
   type ActionResult,
 } from "@/lib/action-result";
+import { REGEX_CAMINHO_NOTA_FISCAL } from "@/lib/notas-fiscais";
 import { createClient } from "@/lib/supabase/server";
 import {
   STATUS_DISPOSITIVO_LABEL,
@@ -15,6 +16,7 @@ import {
   ehStatusDispositivo,
 } from "@/lib/types";
 import {
+  MENSAGEM_DATA_COMPRA,
   devolucaoSchema,
   dispositivoSchema,
   vinculoSchema,
@@ -24,9 +26,24 @@ import {
   type VinculoFormInput,
 } from "@/lib/validators";
 
-type CampoDispositivo = "marca" | "modelo" | "serial_number" | "imei1" | "imei2";
+type CampoDispositivo =
+  | "marca"
+  | "modelo"
+  | "serial_number"
+  | "imei1"
+  | "imei2"
+  | "numero_patrimonio"
+  | "numero_linha"
+  | "operadora"
+  | "data_compra"
+  | "fim_vida_util";
 
 const DUPLICIDADES = [
+  {
+    coluna: "numero_patrimonio",
+    campo: "numero_patrimonio" as const,
+    mensagem: "Nº de patrimônio já cadastrado em outro dispositivo.",
+  },
   {
     coluna: "serial_number",
     campo: "serial_number" as const,
@@ -61,24 +78,34 @@ function revalidarVinculos() {
   revalidatePath("/colaboradores/[id]", "page");
 }
 
-/** Campos gravados no banco. `status` e `tipo` nunca mudam pela edição. */
+/**
+ * Campos gravados no banco. `status` e `tipo` nunca mudam pela edição;
+ * a nota fiscal é gravada à parte (anexarNotaFiscal), depois do upload.
+ */
 function camposEditaveis(d: DispositivoFormData) {
-  if (d.tipo === "notebook") {
-    return {
-      marca: d.marca,
-      modelo: d.modelo,
-      serial_number: d.serial_number,
-      observacao: d.observacao,
-    };
-  }
-  return {
+  const comuns = {
     marca: d.marca,
     modelo: d.modelo,
-    serial_number: d.serial_number,
-    imei1: d.imei1,
-    imei2: d.imei2,
+    numero_patrimonio: d.numero_patrimonio,
+    data_compra: d.data_compra,
+    fim_vida_util: d.fim_vida_util,
     observacao: d.observacao,
   };
+  switch (d.tipo) {
+    case "notebook":
+      return { ...comuns, serial_number: d.serial_number };
+    case "monitor":
+      return comuns;
+    case "telefone":
+      return {
+        ...comuns,
+        serial_number: d.serial_number,
+        imei1: d.imei1,
+        imei2: d.imei2,
+        numero_linha: d.numero_linha,
+        operadora: d.operadora,
+      };
+  }
 }
 
 /**
@@ -114,25 +141,38 @@ async function conferirImeis(
   return { ok: false, error: mensagem, fieldErrors: { [campo]: mensagem } };
 }
 
+/** Devolve o id criado: o navegador envia a nota fiscal para a pasta dele. */
 export async function criarDispositivo(
   input: DispositivoFormInput,
-): Promise<ActionResult<CampoDispositivo>> {
+): Promise<ActionResult<CampoDispositivo> & { id?: string }> {
   const parsed = dispositivoSchema.safeParse(input);
   if (!parsed.success) return errosDoZod(parsed.error);
+  // Obrigatória só no cadastro novo (os antigos não têm data de compra).
+  if (!parsed.data.data_compra) {
+    return {
+      ok: false,
+      error: "Verifique os campos destacados.",
+      fieldErrors: { data_compra: MENSAGEM_DATA_COMPRA },
+    };
+  }
 
   const supabase = await createClient();
   const conflito = await conferirImeis(supabase, parsed.data);
   if (conflito) return conflito;
 
-  const { error } = await supabase.from("dispositivos").insert({
-    tipo: parsed.data.tipo,
-    status: "disponivel",
-    ...camposEditaveis(parsed.data),
-  });
+  const { data, error } = await supabase
+    .from("dispositivos")
+    .insert({
+      tipo: parsed.data.tipo,
+      status: "disponivel",
+      ...camposEditaveis(parsed.data),
+    })
+    .select("id")
+    .single();
   if (error) return erroDoBanco(error, DUPLICIDADES);
 
   revalidar();
-  return { ok: true };
+  return { ok: true, id: data.id };
 }
 
 export async function atualizarDispositivo(
@@ -156,6 +196,35 @@ export async function atualizarDispositivo(
     .eq("tipo", parsed.data.tipo) // o tipo não pode ser trocado
     .select("id");
   if (error) return erroDoBanco(error, DUPLICIDADES);
+  if (!data?.length) return { ok: false, error: "Dispositivo não encontrado." };
+
+  revalidar();
+  return { ok: true };
+}
+
+/**
+ * Grava (ou substitui) a nota fiscal já enviada pelo navegador para
+ * notas-fiscais/{id}/{timestamp}.{ext}. O banco confere a pasta (check
+ * nota_fiscal_path_valido) e se o arquivo existe (trg_dispositivos_nota_fiscal).
+ * O arquivo anterior, se houver, continua no bucket.
+ */
+export async function anexarNotaFiscal(id: string, path: string): Promise<ActionResult> {
+  if (
+    !idSchema.safeParse(id).success ||
+    typeof path !== "string" ||
+    !REGEX_CAMINHO_NOTA_FISCAL.test(path) ||
+    !path.startsWith(`${id}/`)
+  ) {
+    return { ok: false, error: "Arquivo da nota fiscal inválido." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("dispositivos")
+    .update({ nota_fiscal_path: path })
+    .eq("id", id)
+    .select("id");
+  if (error) return erroDoBanco(error);
   if (!data?.length) return { ok: false, error: "Dispositivo não encontrado." };
 
   revalidar();

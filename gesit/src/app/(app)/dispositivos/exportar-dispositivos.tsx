@@ -8,7 +8,7 @@ import { ExportarMenu } from "@/components/exportar";
 export function ExportarDispositivos() {
   const searchParams = useSearchParams();
   const params = Object.fromEntries(
-    ["q", "tipo", "status", "loja"].map((chave) => [chave, searchParams.get(chave) ?? undefined]),
+    ["q", "tipo", "status", "loja", "vida"].map((chave) => [chave, searchParams.get(chave) ?? undefined]),
   );
   return <ExportarMenu relatorio="inventario" params={params} />;
 }

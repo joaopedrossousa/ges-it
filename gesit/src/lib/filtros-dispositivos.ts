@@ -2,8 +2,10 @@ import { z } from "zod";
 
 import { limparBusca, primeiro } from "@/lib/busca";
 import {
+  SITUACOES_VIDA_UTIL_FILTRO,
   STATUS_DISPOSITIVO,
   TIPOS_DISPOSITIVO,
+  type SituacaoVidaUtil,
   type StatusDispositivo,
   type TipoDispositivo,
 } from "@/lib/types";
@@ -16,6 +18,8 @@ export type FiltrosDispositivos = {
   status?: StatusDispositivo;
   /** Loja gravada no vínculo aberto (loja_id da vw_dispositivos). */
   lojaId?: string;
+  /** situacao_vida_util da vw_dispositivos (sem "baixado"). */
+  vidaUtil?: SituacaoVidaUtil;
 };
 
 type Params =
@@ -24,8 +28,9 @@ type Params =
 
 const tipoSchema = z.enum(TIPOS_DISPOSITIVO);
 const statusSchema = z.enum(STATUS_DISPOSITIVO);
+const vidaUtilSchema = z.enum(SITUACOES_VIDA_UTIL_FILTRO);
 
-/** Lê ?q, ?tipo, ?status e ?loja; valores inválidos são ignorados. */
+/** Lê ?q, ?tipo, ?status, ?loja e ?vida; valores inválidos são ignorados. */
 export function lerFiltrosDispositivos(params: Params): FiltrosDispositivos {
   const ler = (chave: string) =>
     params instanceof URLSearchParams
@@ -38,12 +43,13 @@ export function lerFiltrosDispositivos(params: Params): FiltrosDispositivos {
     tipo: tipoSchema.safeParse(ler("tipo")).data,
     status: statusSchema.safeParse(ler("status")).data,
     lojaId: z.uuid().safeParse(loja).success ? loja : undefined,
+    vidaUtil: vidaUtilSchema.safeParse(ler("vida")).data,
   };
 }
 
 /**
- * Expressão para .or() da busca: marca, modelo, serial e, com 3+ dígitos,
- * IMEI 1 e 2. Null se não houver busca.
+ * Expressão para .or() da busca: marca, modelo, serial, patrimônio e, com
+ * 3+ dígitos, IMEI 1 e 2 e número da linha. Null se não houver busca.
  */
 export function filtroBuscaDispositivos(busca: string): string | null {
   if (!busca) return null;
@@ -51,10 +57,15 @@ export function filtroBuscaDispositivos(busca: string): string | null {
     `marca.ilike.%${busca}%`,
     `modelo.ilike.%${busca}%`,
     `serial_number.ilike.%${busca}%`,
+    `numero_patrimonio.ilike.%${busca}%`,
   ];
   const digitos = somenteDigitos(busca);
   if (digitos.length >= 3) {
-    filtros.push(`imei1.like.%${digitos}%`, `imei2.like.%${digitos}%`);
+    filtros.push(
+      `imei1.like.%${digitos}%`,
+      `imei2.like.%${digitos}%`,
+      `numero_linha.like.%${digitos}%`,
+    );
   }
   return filtros.join(",");
 }

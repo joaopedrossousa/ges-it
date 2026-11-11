@@ -12,7 +12,8 @@ import { somenteDigitos } from "@/lib/validators";
 /**
  * GET /api/busca/dispositivos?q=<texto>
  * Combobox do diálogo de vincular: dispositivos disponíveis ou em uso.
- * Cada palavra precisa casar com marca, modelo, serial, IMEI ou usuário atual.
+ * Cada palavra precisa casar com marca, modelo, serial, patrimônio, IMEI,
+ * número da linha ou usuário atual.
  */
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q") ?? "";
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from("vw_dispositivos")
     .select(
-      "id, tipo, marca, modelo, serial_number, imei1, status, colaborador_id, colaborador_nome",
+      "id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio, status, colaborador_id, colaborador_nome",
     )
     .in("status", [...STATUS_VINCULAVEIS]);
 
@@ -34,11 +35,16 @@ export async function GET(request: NextRequest) {
       `marca.ilike.%${p}%`,
       `modelo.ilike.%${p}%`,
       `serial_number.ilike.%${p}%`,
+      `numero_patrimonio.ilike.%${p}%`,
       `colaborador_nome.ilike.%${p}%`,
     ];
     const digitos = somenteDigitos(p);
     if (digitos.length >= 3) {
-      filtros.push(`imei1.like.%${digitos}%`, `imei2.like.%${digitos}%`);
+      filtros.push(
+        `imei1.like.%${digitos}%`,
+        `imei2.like.%${digitos}%`,
+        `numero_linha.like.%${digitos}%`,
+      );
     }
     query = query.or(filtros.join(","));
   }

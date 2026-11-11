@@ -12,6 +12,8 @@ import {
 import { TODOS, useFiltrosUrl } from "@/hooks/use-filtros-url";
 import type { LojaOpcao } from "@/lib/lojas";
 import {
+  SITUACAO_VIDA_UTIL_LABEL,
+  SITUACOES_VIDA_UTIL_FILTRO,
   STATUS_DISPOSITIVO,
   STATUS_DISPOSITIVO_LABEL,
   TIPOS_DISPOSITIVO,
@@ -25,11 +27,11 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
     <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
       <CampoBusca
         valorInicial={valor("q", "")}
-        placeholder="Buscar por marca, modelo, serial ou IMEI"
+        placeholder="Buscar por marca, modelo, serial, IMEI, patrimônio ou linha"
         onBuscar={(q) => atualizar("q", q)}
       />
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 lg:flex">
         <Select value={valor("tipo")} onValueChange={(v) => atualizar("tipo", v)}>
           <SelectTrigger className="w-full lg:w-36" aria-label="Filtrar por tipo">
             <SelectValue />
@@ -53,6 +55,20 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
             {STATUS_DISPOSITIVO.map((s) => (
               <SelectItem key={s} value={s}>
                 {STATUS_DISPOSITIVO_LABEL[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={valor("vida")} onValueChange={(v) => atualizar("vida", v)}>
+          <SelectTrigger className="w-full lg:w-44" aria-label="Filtrar por situação da vida útil">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS}>Vida útil: todas</SelectItem>
+            {SITUACOES_VIDA_UTIL_FILTRO.map((s) => (
+              <SelectItem key={s} value={s}>
+                {SITUACAO_VIDA_UTIL_LABEL[s]}
               </SelectItem>
             ))}
           </SelectContent>

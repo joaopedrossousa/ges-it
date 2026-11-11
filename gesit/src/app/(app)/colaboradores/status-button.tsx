@@ -3,6 +3,7 @@
 import {
   ChevronRightIcon,
   LaptopIcon,
+  MonitorIcon,
   SmartphoneIcon,
   UserCheckIcon,
   UserXIcon,
@@ -83,7 +84,12 @@ export function StatusButton({ id, nome, ativo, size = "sm" }: Props) {
 
           <ul className="divide-y rounded-lg border">
             {bloqueio?.dispositivos.map((d) => {
-              const Icone = d.tipo === "telefone" ? SmartphoneIcon : LaptopIcon;
+              const Icone =
+                d.tipo === "telefone"
+                  ? SmartphoneIcon
+                  : d.tipo === "monitor"
+                    ? MonitorIcon
+                    : LaptopIcon;
               return (
                 <li key={d.id}>
                   <Link
