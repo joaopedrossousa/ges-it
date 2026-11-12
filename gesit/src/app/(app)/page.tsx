@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/card";
 import { descreverPendencias, FILTRO_DADOS_PENDENTES } from "@/lib/colaboradores";
 import { identificadorDispositivo } from "@/lib/dispositivos";
+import { listarLojasOpcoes } from "@/lib/lojas";
 import {
   formatarDataHora,
   formatarDataISO,
@@ -406,8 +407,12 @@ async function ProximosDaTroca() {
 
 const GRADE_GRAFICOS = "grid gap-4 xl:grid-cols-3";
 
-/** "Filial Gurupi" → "Gurupi" (o eixo X tem pouco espaço). */
-const rotuloFilial = (nome: string) => nome.replace(/^filial\s+/i, "");
+/**
+ * Rótulo do eixo X: só a cidade ("Palmas", "Gurupi"). Sem cidade cadastrada,
+ * o nome sem "Matriz"/"Filial". O tooltip e a tabela usam o nome completo.
+ */
+const rotuloFilial = (nome: string, cidade: string | null | undefined) =>
+  cidade?.trim() || nome.replace(/^(matriz|filial)\s+/i, "");
 
 /**
  * Contagem da vw_ativos_por_filial (migration 014): uma linha por tipo ×
@@ -416,7 +421,11 @@ const rotuloFilial = (nome: string) => nome.replace(/^filial\s+/i, "");
 async function AtivosPorFilial() {
   await connection(); // sessão (o Supabase lê Date.now()): só na requisição
   const supabase = await createClient();
-  const { data, error } = await supabase.from("vw_ativos_por_filial").select("*");
+  const [{ data, error }, lojas] = await Promise.all([
+    supabase.from("vw_ativos_por_filial").select("*"),
+    listarLojasOpcoes(),
+  ]);
+  const cidades = new Map(lojas.map((l) => [l.id, l.cidade]));
 
   if (error) {
     console.error("Erro ao carregar ativos por filial:", error);
@@ -437,7 +446,7 @@ async function AtivosPorFilial() {
             return [{
               lojaId: l.loja_id,
               loja: l.loja_nome,
-              rotulo: rotuloFilial(l.loja_nome),
+              rotulo: rotuloFilial(l.loja_nome, cidades.get(l.loja_id)),
               em_uso,
               em_estoque,
               total: em_uso + em_estoque,

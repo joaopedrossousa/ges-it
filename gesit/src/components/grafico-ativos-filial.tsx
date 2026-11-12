@@ -11,7 +11,7 @@ export type BarraFilial = {
   lojaId: string;
   /** Nome completo (tooltip e tabela). */
   loja: string;
-  /** Nome curto do eixo: sem o prefixo "Filial". */
+  /** Nome curto do eixo: a cidade da loja. */
   rotulo: string;
   em_uso: number;
   em_estoque: number;
