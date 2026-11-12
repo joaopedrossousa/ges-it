@@ -202,6 +202,14 @@ const textoOpcional = (max: number) =>
 const idObrigatorio = (mensagem: string) =>
   z.string({ error: mensagem }).min(1, mensagem).pipe(z.uuid(mensagem));
 
+/** Id opcional (ex.: filial de estoque); vazio vira null. */
+const idOpcional = (mensagem: string) =>
+  z
+    .string()
+    .nullish()
+    .transform((v) => v || null)
+    .refine((v) => v === null || z.uuid().safeParse(v).success, mensagem);
+
 const imeiObrigatorio = z
   .string({ error: "Informe o IMEI." })
   .trim()
@@ -248,6 +256,8 @@ const camposAquisicao = {
     "A data de compra não pode ser futura.",
   ),
   fim_vida_util: dataOpcional,
+  /** Filial onde o aparelho fica quando não está vinculado (migration 014). */
+  loja_estoque_id: idOpcional("Filial de estoque inválida."),
 };
 
 type ComDatas = { data_compra: string | null; fim_vida_util: string | null };
@@ -426,6 +436,8 @@ export const devolucaoSchema = z.object({
   novo_status: statusEditavel,
   perifericos_devolvidos: perifericos,
   formatado,
+  /** Filial de estoque após a devolução; vazio = a loja do vínculo (no banco). */
+  loja_estoque_id: idOpcional("Filial de estoque inválida."),
 });
 
 // Tipos de entrada (formulário) e saída (já normalizada para o banco).

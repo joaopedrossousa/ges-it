@@ -112,7 +112,7 @@ const inventario: Gerador = async (supabase, params) => {
     let q = supabase
       .from("vw_dispositivos")
       .select(
-        "id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio, status, colaborador_nome, loja_nome, vinculado_em, data_compra, idade_meses, fim_vida_util, situacao_vida_util",
+        "id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio, status, colaborador_nome, loja_atual_nome, vinculado_em, data_compra, idade_meses, fim_vida_util, situacao_vida_util",
       )
       .order("tipo")
       .order("marca")
@@ -121,7 +121,7 @@ const inventario: Gerador = async (supabase, params) => {
       .range(de, ate);
     if (f.tipo) q = q.eq("tipo", f.tipo);
     if (f.status) q = q.eq("status", f.status);
-    if (f.lojaId) q = q.eq("loja_id", f.lojaId);
+    if (f.lojaId) q = q.eq("loja_atual_id", f.lojaId);
     if (f.vidaUtil) q = q.eq("situacao_vida_util", f.vidaUtil);
     if (filtroBusca) q = q.or(filtroBusca);
     return q;
@@ -178,7 +178,8 @@ const inventario: Gerador = async (supabase, params) => {
         patrimonio: d.numero_patrimonio,
         status: d.status ? STATUS_DISPOSITIVO_LABEL[d.status] : null,
         usuario: d.colaborador_nome,
-        loja: d.loja_nome,
+        // Loja do vínculo; sem vínculo, a filial de estoque (migration 014).
+        loja: d.loja_atual_nome,
         desde: d.vinculado_em ? new Date(d.vinculado_em) : null,
         compra: dataSemHora(d.data_compra),
         idade: d.idade_meses !== null ? formatarIdadeMeses(d.idade_meses) : null,

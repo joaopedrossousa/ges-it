@@ -81,14 +81,16 @@ export default function DispositivosPage({
               </Button>
             }
           />
-          <DispositivoFormDialog
-            trigger={
-              <Button>
+          <Suspense
+            fallback={
+              <Button disabled>
                 <PlusIcon />
                 Novo dispositivo
               </Button>
             }
-          />
+          >
+            <NovoDispositivo />
+          </Suspense>
         </div>
       </div>
 
@@ -100,6 +102,23 @@ export default function DispositivosPage({
         <TabelaDispositivos searchParams={searchParams} />
       </Suspense>
     </div>
+  );
+}
+
+/** O formulário precisa das lojas (filial de estoque). */
+async function NovoDispositivo() {
+  await connection(); // sessão (o Supabase lê Date.now()): só na requisição
+  const lojas = await listarLojasOpcoes();
+  return (
+    <DispositivoFormDialog
+      lojas={lojas}
+      trigger={
+        <Button>
+          <PlusIcon />
+          Novo dispositivo
+        </Button>
+      }
+    />
   );
 }
 
@@ -126,6 +145,7 @@ function paraEdicao(d: VwDispositivoRow): DispositivoEditavel | null {
     data_compra: d.data_compra,
     fim_vida_util: d.fim_vida_util,
     nota_fiscal_path: d.nota_fiscal_path,
+    loja_estoque_id: d.loja_estoque_id,
     observacao: d.observacao,
   };
 }
@@ -142,6 +162,7 @@ async function TabelaDispositivos({
   const pagina = paginaDoParametro(primeiro(params.page));
   const { de, ate } = faixaDaPagina(pagina);
 
+  const lojasPromise = listarLojasOpcoes();
   const supabase = await createClient();
   let query = supabase
     .from("vw_dispositivos")
@@ -155,14 +176,14 @@ async function TabelaDispositivos({
   if (tipo) query = query.eq("tipo", tipo);
   if (status) query = query.eq("status", status);
 
-  // loja_id da view = loja gravada no vínculo aberto (migration 002).
-  if (lojaId) query = query.eq("loja_id", lojaId);
+  // Loja do vínculo aberto ou, sem vínculo, a filial de estoque (migration 014).
+  if (lojaId) query = query.eq("loja_atual_id", lojaId);
   if (vidaUtil) query = query.eq("situacao_vida_util", vidaUtil);
 
   const filtroBusca = filtroBuscaDispositivos(busca);
   if (filtroBusca) query = query.or(filtroBusca);
 
-  const { data, count, error } = await query;
+  const [{ data, count, error }, lojas] = await Promise.all([query, lojasPromise]);
 
   if (error?.code === "PGRST103") {
     return <PaginaInexistente pathname="/dispositivos" params={params} />;
@@ -190,7 +211,7 @@ async function TabelaDispositivos({
               <TableHead>Identificador</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Vida útil</TableHead>
-              <TableHead>Usuário atual</TableHead>
+              <TableHead>Usuário / filial</TableHead>
               <TableHead className="w-0 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -242,6 +263,13 @@ async function TabelaDispositivos({
                           {d.loja_nome ?? "—"}
                         </div>
                       </div>
+                    ) : d.loja_atual_nome ? (
+                      <div className="leading-tight">
+                        <div className="text-muted-foreground">
+                          {d.status === "baixado" ? "Sem usuário" : "Em estoque"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{d.loja_atual_nome}</div>
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
@@ -251,6 +279,7 @@ async function TabelaDispositivos({
                       <div className="flex justify-end gap-1">
                         <DispositivoFormDialog
                           dispositivo={editavel}
+                          lojas={lojas}
                           trigger={
                             <Button variant="ghost" size="sm">
                               <PencilIcon />

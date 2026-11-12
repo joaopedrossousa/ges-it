@@ -102,6 +102,7 @@ export type Database = {
           id: string
           imei1: string | null
           imei2: string | null
+          loja_estoque_id: string | null
           marca: string
           modelo: string
           nota_fiscal_path: string | null
@@ -121,6 +122,7 @@ export type Database = {
           id?: string
           imei1?: string | null
           imei2?: string | null
+          loja_estoque_id?: string | null
           marca: string
           modelo: string
           nota_fiscal_path?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           id?: string
           imei1?: string | null
           imei2?: string | null
+          loja_estoque_id?: string | null
           marca?: string
           modelo?: string
           nota_fiscal_path?: string | null
@@ -152,7 +155,15 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["tipo_dispositivo"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dispositivos_loja_estoque_id_fkey"
+            columns: ["loja_estoque_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lojas: {
         Row: {
@@ -333,6 +344,17 @@ export type Database = {
       }
     }
     Views: {
+      vw_ativos_por_filial: {
+        Row: {
+          em_estoque: number | null
+          em_uso: number | null
+          loja_ativa: boolean | null
+          loja_id: string | null
+          loja_nome: string | null
+          tipo: Database["public"]["Enums"]["tipo_dispositivo"] | null
+        }
+        Relationships: []
+      }
       vw_dispositivos: {
         Row: {
           colaborador_id: string | null
@@ -344,6 +366,10 @@ export type Database = {
           idade_meses: number | null
           imei1: string | null
           imei2: string | null
+          loja_atual_id: string | null
+          loja_atual_nome: string | null
+          loja_estoque_id: string | null
+          loja_estoque_nome: string | null
           loja_id: string | null
           loja_nome: string | null
           marca: string | null
@@ -363,6 +389,13 @@ export type Database = {
           vinculo_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "dispositivos_loja_estoque_id_fkey"
+            columns: ["loja_estoque_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vinculos_loja_id_fkey"
             columns: ["loja_id"]
@@ -447,6 +480,7 @@ export type Database = {
         Args: {
           p_dispositivo_id: string
           p_formatado?: boolean
+          p_loja_estoque_id?: string
           p_novo_status?: Database["public"]["Enums"]["status_dispositivo"]
           p_observacao?: string
           p_perifericos_devolvidos?: string[]

@@ -5,6 +5,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { Carregando } from "@/components/carregando";
+import { ComboboxLista } from "@/components/combobox-lista";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
+import type { LojaOpcao } from "@/lib/lojas";
+import { opcoesLojas } from "@/lib/opcoes-lojas";
 import {
   PERIFERICOS_POR_TIPO,
   naoDevolvidos,
@@ -46,6 +49,10 @@ import { ConferenciaPerifericos } from "./conferencia-perifericos";
 
 type Props = {
   dispositivo: { id: string; descricao: string; tipo: TipoDispositivo };
+  /** Para a filial de estoque após a devolução. */
+  lojas: LojaOpcao[];
+  /** Loja do vínculo encerrado: padrão da filial de estoque. */
+  lojaVinculoId: string;
   colaboradorNome: string;
   /** perifericos_entrega do vínculo aberto. */
   perifericosEntregues: readonly string[];
@@ -54,6 +61,8 @@ type Props = {
 
 export function DevolverDialog({
   dispositivo,
+  lojas,
+  lojaVinculoId,
   colaboradorNome,
   perifericosEntregues,
   trigger,
@@ -69,6 +78,7 @@ export function DevolverDialog({
   const [novoStatus, setNovoStatus] = useState<StatusEditavel>("disponivel");
   const [devolvidos, setDevolvidos] = useState<Periferico[]>(entregues);
   const [formatado, setFormatado] = useState(false);
+  const [lojaEstoque, setLojaEstoque] = useState(lojaVinculoId);
   /** Já avisou dos itens não devolvidos e o usuário pode confirmar. */
   const [avisado, setAvisado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -83,6 +93,7 @@ export function DevolverDialog({
       setNovoStatus("disponivel");
       setDevolvidos(entregues);
       setFormatado(false);
+      setLojaEstoque(lojaVinculoId);
       setAvisado(false);
       setErro(null);
     }
@@ -109,6 +120,7 @@ export function DevolverDialog({
           novo_status: novoStatus,
           perifericos_devolvidos: conferencia ? devolvidos : [],
           formatado: conferencia ? formatado : null,
+          loja_estoque_id: lojaEstoque,
         }),
       );
       if (!result.ok) {
@@ -153,6 +165,23 @@ export function DevolverDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="dev-loja-estoque">Filial de estoque</Label>
+            <ComboboxLista
+              id="dev-loja-estoque"
+              opcoes={opcoesLojas(lojas.filter((l) => l.ativo || l.id === lojaVinculoId))}
+              value={lojaEstoque}
+              onChange={setLojaEstoque}
+              placeholderBusca="Buscar loja ou cidade..."
+              vazio="Nenhuma loja encontrada."
+              disabled={isPending}
+              descritoPor="dev-loja-estoque-ajuda"
+            />
+            <p id="dev-loja-estoque-ajuda" className="text-xs text-muted-foreground">
+              Onde o aparelho fica guardado depois da devolução. Padrão: a loja do vínculo.
+            </p>
           </div>
 
           {conferencia && (

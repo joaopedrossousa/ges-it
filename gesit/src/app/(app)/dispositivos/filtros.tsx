@@ -81,7 +81,7 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
           opcoes={opcoesLojas(lojas, { todas: true })}
           value={valor("loja")}
           onChange={(v) => atualizar("loja", v)}
-          ariaLabel="Filtrar pela loja do usuário atual"
+          ariaLabel="Filtrar pela filial (do usuário ou de estoque)"
           placeholderBusca="Buscar loja ou cidade..."
           vazio="Nenhuma loja encontrada."
           className="lg:w-52"

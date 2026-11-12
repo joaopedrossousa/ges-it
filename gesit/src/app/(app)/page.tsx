@@ -21,6 +21,11 @@ import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
+import {
+  GraficoAtivosFilial,
+  LegendaAtivosFilial,
+  type BarraFilial,
+} from "@/components/grafico-ativos-filial";
 import { StatTile, StatTileCarregando } from "@/components/stat-tile";
 import { VidaUtilBadge } from "@/components/vida-util-badge";
 import {
@@ -86,6 +91,32 @@ export default function DashboardPage() {
             <ProximosDaTroca />
           </Suspense>
         </div>
+      </section>
+
+      <section aria-labelledby="ativos-por-filial" className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div className="space-y-1">
+            <h2 id="ativos-por-filial" className="text-lg font-semibold tracking-tight">
+              Ativos por filial
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Sem os baixados. Em estoque inclui os em manutenção, na filial de estoque. Clique numa
+              barra para ver os aparelhos.
+            </p>
+          </div>
+          <LegendaAtivosFilial />
+        </div>
+        <Suspense
+          fallback={
+            <div className={GRADE_GRAFICOS}>
+              {TIPOS.map((t) => (
+                <div key={t} className="h-80 animate-pulse rounded-xl bg-muted" />
+              ))}
+            </div>
+          }
+        >
+          <AtivosPorFilial />
+        </Suspense>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
@@ -366,6 +397,59 @@ async function ProximosDaTroca() {
         </CardContent>
       )}
     </Card>
+  );
+}
+
+// ===========================================================================
+// Ativos por filial
+// ===========================================================================
+
+const GRADE_GRAFICOS = "grid gap-4 xl:grid-cols-3";
+
+/** "Filial Gurupi" → "Gurupi" (o eixo X tem pouco espaço). */
+const rotuloFilial = (nome: string) => nome.replace(/^filial\s+/i, "");
+
+/**
+ * Contagem da vw_ativos_por_filial (migration 014): uma linha por tipo ×
+ * loja, mais uma por tipo com loja nula (aparelhos sem filial).
+ */
+async function AtivosPorFilial() {
+  await connection(); // sessão (o Supabase lê Date.now()): só na requisição
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("vw_ativos_por_filial").select("*");
+
+  if (error) {
+    console.error("Erro ao carregar ativos por filial:", error);
+    return <p className="text-destructive">Não foi possível carregar os ativos por filial.</p>;
+  }
+
+  return (
+    <div className={GRADE_GRAFICOS}>
+      {TIPOS.map((tipo) => {
+        const linhas = data.filter((l) => l.tipo === tipo);
+        const barras: BarraFilial[] = linhas
+          .flatMap((l) => {
+            if (!l.loja_id || !l.loja_nome) return [];
+            const em_uso = l.em_uso ?? 0;
+            const em_estoque = l.em_estoque ?? 0;
+            // Loja inativa só aparece se ainda tiver aparelhos.
+            if (l.loja_ativa === false && em_uso + em_estoque === 0) return [];
+            return [{
+              lojaId: l.loja_id,
+              loja: l.loja_nome,
+              rotulo: rotuloFilial(l.loja_nome),
+              em_uso,
+              em_estoque,
+              total: em_uso + em_estoque,
+            }];
+          })
+          .sort((a, b) => a.rotulo.localeCompare(b.rotulo, "pt-BR"));
+        const semFilial = linhas
+          .filter((l) => !l.loja_id)
+          .reduce((soma, l) => soma + (l.em_uso ?? 0) + (l.em_estoque ?? 0), 0);
+        return <GraficoAtivosFilial key={tipo} tipo={tipo} barras={barras} semFilial={semFilial} />;
+      })}
+    </div>
   );
 }
 

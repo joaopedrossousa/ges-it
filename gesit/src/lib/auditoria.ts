@@ -83,6 +83,7 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     data_compra: "Data de compra",
     fim_vida_util: "Fim da vida útil",
     nota_fiscal_path: "Nota fiscal",
+    loja_estoque_id: "Filial de estoque",
   },
   vinculos: {
     dispositivo_id: "Dispositivo",
@@ -156,7 +157,7 @@ export function formatarValorAuditoria(
   const s = texto(valor);
   if (s === null) return JSON.stringify(valor);
 
-  if (campo === "loja_id") return nomes.lojas.get(s) ?? "Loja não encontrada";
+  if (campo === "loja_id" || campo === "loja_estoque_id") return nomes.lojas.get(s) ?? "Loja não encontrada";
   if (campo === "colaborador_id") return nomes.colaboradores.get(s) ?? "Usuário não encontrado";
   if (campo === "dispositivo_id") return nomes.dispositivos.get(s) ?? "Dispositivo não encontrado";
   if (campo === "status" && ehStatusDispositivo(s)) return STATUS_DISPOSITIVO_LABEL[s];

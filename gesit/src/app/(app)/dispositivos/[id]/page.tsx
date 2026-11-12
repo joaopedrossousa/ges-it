@@ -41,6 +41,7 @@ import {
   formatarDuracao,
   formatarIdadeMeses,
 } from "@/lib/format";
+import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
 import { TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
 import { formatarIMEI, formatarLinha } from "@/lib/validators";
@@ -82,7 +83,7 @@ async function DetalheDispositivo({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [dispositivoRes, vidaUtilRes, vinculosRes, servicosRes] = await Promise.all([
+  const [dispositivoRes, vidaUtilRes, vinculosRes, servicosRes, lojas] = await Promise.all([
     supabase.from("dispositivos").select("*").eq("id", id).maybeSingle(),
     // Idade e situação da vida útil: calculadas na view (data de Palmas).
     supabase
@@ -93,7 +94,7 @@ async function DetalheDispositivo({
     supabase
       .from("vinculos")
       .select(
-        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, perifericos_entrega, perifericos_devolucao, formatado_entrega, formatado_devolucao, loja:lojas(nome), colaborador:colaboradores(id, nome, email, loja:lojas(nome))",
+        "id, dispositivo_id, colaborador_id, loja_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, perifericos_entrega, perifericos_devolucao, formatado_entrega, formatado_devolucao, loja:lojas(nome), colaborador:colaboradores(id, nome, email, loja:lojas(nome))",
       )
       .eq("dispositivo_id", id)
       .order("data_inicio", { ascending: false })
@@ -104,6 +105,7 @@ async function DetalheDispositivo({
       .eq("dispositivo_id", id)
       .order("data_servico", { ascending: false })
       .order("created_at", { ascending: false }),
+    listarLojasOpcoes(),
   ]);
 
   if (dispositivoRes.error || vidaUtilRes.error || vinculosRes.error || servicosRes.error) {
@@ -143,6 +145,7 @@ async function DetalheDispositivo({
   const lojaAtualColaborador = aberto?.colaborador?.loja?.nome ?? null;
 
   const podeVincular = d.status === "disponivel" || d.status === "em_uso";
+  const filialEstoque = lojas.find((l) => l.id === d.loja_estoque_id)?.nome ?? null;
 
   // Pré-seleção do diálogo de vincular/transferir.
   const opcaoDispositivo: DispositivoOpcao = {
@@ -187,6 +190,7 @@ async function DetalheDispositivo({
           />
           <DispositivoFormDialog
             dispositivo={d}
+            lojas={lojas}
             trigger={
               <Button>
                 <PencilIcon />
@@ -250,6 +254,7 @@ async function DetalheDispositivo({
               <CampoDetalhe rotulo="Nota fiscal">
                 <LinkNotaFiscal path={d.nota_fiscal_path} />
               </CampoDetalhe>
+              <CampoDetalhe rotulo="Filial de estoque">{filialEstoque ?? "—"}</CampoDetalhe>
               <CampoDetalhe rotulo="Cadastrado em">
                 {formatarDataHora(d.created_at)}
               </CampoDetalhe>
@@ -278,6 +283,8 @@ async function DetalheDispositivo({
                 />
                 <DevolverDialog
                   dispositivo={resumo}
+                  lojas={lojas}
+                  lojaVinculoId={aberto.loja_id}
                   colaboradorNome={aberto.colaborador.nome}
                   perifericosEntregues={aberto.perifericos_entrega}
                   trigger={
@@ -340,6 +347,18 @@ async function DetalheDispositivo({
             ) : (
               <div className="flex flex-col items-start gap-3">
                 <StatusDispositivoBadge status={d.status} />
+                <p className="text-sm">
+                  {filialEstoque ? (
+                    <>
+                      <span className="text-muted-foreground">Filial:</span> {filialEstoque}
+                      {d.status !== "baixado" && (
+                        <span className="text-muted-foreground"> (em estoque)</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">Sem filial de estoque cadastrada.</span>
+                  )}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   {podeVincular
                     ? "Nenhum usuário vinculado a este dispositivo."

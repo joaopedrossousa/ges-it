@@ -16,7 +16,7 @@ export type FiltrosDispositivos = {
   busca: string;
   tipo?: TipoDispositivo;
   status?: StatusDispositivo;
-  /** Loja gravada no vínculo aberto (loja_id da vw_dispositivos). */
+  /** Loja atual: a do vínculo aberto ou, sem vínculo, a filial de estoque (loja_atual_id). */
   lojaId?: string;
   /** situacao_vida_util da vw_dispositivos (sem "baixado"). */
   vidaUtil?: SituacaoVidaUtil;

@@ -92,6 +92,7 @@ function camposEditaveis(d: DispositivoFormData) {
     numero_patrimonio: d.numero_patrimonio,
     data_compra: d.data_compra,
     fim_vida_util: d.fim_vida_util,
+    loja_estoque_id: d.loja_estoque_id,
     observacao: d.observacao,
   };
   switch (d.tipo) {
@@ -352,11 +353,17 @@ export async function vincularDispositivo(
 /** Encerra o vínculo aberto e define o novo status do dispositivo. */
 export async function devolverDispositivo(
   input: DevolucaoFormInput,
-): Promise<ActionResult<"observacao" | "novo_status">> {
+): Promise<ActionResult<"observacao" | "novo_status" | "loja_estoque_id">> {
   const parsed = devolucaoSchema.safeParse(input);
   if (!parsed.success) return errosDoZod(parsed.error);
-  const { dispositivo_id, observacao, novo_status, perifericos_devolvidos, formatado } =
-    parsed.data;
+  const {
+    dispositivo_id,
+    observacao,
+    novo_status,
+    perifericos_devolvidos,
+    formatado,
+    loja_estoque_id,
+  } = parsed.data;
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("devolver_dispositivo", {
@@ -365,6 +372,7 @@ export async function devolverDispositivo(
     p_novo_status: novo_status,
     p_perifericos_devolvidos: perifericos_devolvidos,
     p_formatado: formatado ?? undefined,
+    p_loja_estoque_id: loja_estoque_id ?? undefined,
   });
   if (error) return erroDoBanco(error);
 

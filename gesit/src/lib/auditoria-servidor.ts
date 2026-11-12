@@ -119,7 +119,7 @@ export async function montarLinhasAuditoria(
   const vinculos = new Map(vinculosLista.map((v) => [v.id, v]));
   const servicos = new Map(servicosLista.map((s) => [s.id, s]));
 
-  const idsLojas = unicos([...porTabela("lojas"), ...idsDoCampo(linhas, "loja_id")]);
+  const idsLojas = unicos([...porTabela("lojas"), ...idsDoCampo(linhas, "loja_id"), ...idsDoCampo(linhas, "loja_estoque_id")]);
   const idsColaboradores = unicos([
     ...porTabela("colaboradores"),
     ...idsDoCampo(linhas, "colaborador_id"),

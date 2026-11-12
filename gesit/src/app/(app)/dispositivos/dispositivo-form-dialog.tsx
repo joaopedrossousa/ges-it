@@ -36,6 +36,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
+import type { LojaOpcao } from "@/lib/lojas";
+import { opcoesLojas } from "@/lib/opcoes-lojas";
 import { hojeEmPalmas } from "@/lib/format";
 import {
   NOTA_FISCAL_ACCEPT,
@@ -80,12 +82,15 @@ export type DispositivoEditavel = {
   data_compra: string | null;
   fim_vida_util: string | null;
   nota_fiscal_path: string | null;
+  loja_estoque_id: string | null;
   observacao: string | null;
 };
 
 type Props = {
   /** Ausente = cadastro (com seletor de tipo). */
   dispositivo?: DispositivoEditavel;
+  /** Para a filial de estoque. */
+  lojas: LojaOpcao[];
   trigger: ReactNode;
 };
 
@@ -97,7 +102,7 @@ const ICONE_TIPO = {
 
 const TIPOS_CADASTRO = ["notebook", "telefone", "monitor"] as const satisfies readonly TipoDispositivo[];
 
-export function DispositivoFormDialog({ dispositivo, trigger }: Props) {
+export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState<TipoDispositivo>(
     dispositivo?.tipo ?? "notebook",
@@ -111,6 +116,7 @@ export function DispositivoFormDialog({ dispositivo, trigger }: Props) {
 
   const propsForm: FormProps = {
     dispositivo,
+    lojas,
     onSalvo: (avisoNotaFiscal) => {
       toast.success(editando ? "Dispositivo atualizado." : "Dispositivo cadastrado.");
       if (avisoNotaFiscal) {
@@ -177,6 +183,7 @@ export function DispositivoFormDialog({ dispositivo, trigger }: Props) {
 
 type FormProps = {
   dispositivo?: DispositivoEditavel;
+  lojas: LojaOpcao[];
   /** `avisoNotaFiscal`: os dados foram salvos, mas a nota fiscal não. */
   onSalvo: (avisoNotaFiscal?: string) => void;
   onCancelar: () => void;
@@ -190,6 +197,7 @@ function valoresComuns(d?: DispositivoEditavel) {
     numero_patrimonio: d?.numero_patrimonio ?? "",
     data_compra: d?.data_compra ?? "",
     fim_vida_util: d?.fim_vida_util ?? "",
+    loja_estoque_id: d?.loja_estoque_id ?? "",
     observacao: d?.observacao ?? "",
   };
 }
@@ -200,10 +208,11 @@ const CAMPOS_COMUNS = [
   "numero_patrimonio",
   "data_compra",
   "fim_vida_util",
+  "loja_estoque_id",
   "observacao",
 ] as const;
 
-function NotebookForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
+function NotebookForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
   const nota = useNotaFiscal();
   const {
@@ -247,6 +256,13 @@ function NotebookForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
         disabled={isPending}
         novo={!dispositivo}
       />
+      <CampoFilialEstoque
+        control={control}
+        lojas={lojas}
+        atual={dispositivo?.loja_estoque_id ?? null}
+        erro={errors.loja_estoque_id?.message}
+        disabled={isPending}
+      />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
       <Rodape erro={errors.root?.message} etapa={etapa} onCancelar={onCancelar} />
@@ -254,7 +270,7 @@ function NotebookForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
   );
 }
 
-function TelefoneForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
+function TelefoneForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
   const nota = useNotaFiscal();
   const {
@@ -325,6 +341,13 @@ function TelefoneForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
         disabled={isPending}
         novo={!dispositivo}
       />
+      <CampoFilialEstoque
+        control={control}
+        lojas={lojas}
+        atual={dispositivo?.loja_estoque_id ?? null}
+        erro={errors.loja_estoque_id?.message}
+        disabled={isPending}
+      />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
       <Rodape erro={errors.root?.message} etapa={etapa} onCancelar={onCancelar} />
@@ -332,7 +355,7 @@ function TelefoneForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
   );
 }
 
-function MonitorForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
+function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
   const nota = useNotaFiscal();
   const {
@@ -369,6 +392,13 @@ function MonitorForm({ dispositivo, onSalvo, onCancelar }: FormProps) {
         errors={errors}
         disabled={isPending}
         novo={!dispositivo}
+      />
+      <CampoFilialEstoque
+        control={control}
+        lojas={lojas}
+        atual={dispositivo?.loja_estoque_id ?? null}
+        erro={errors.loja_estoque_id?.message}
+        disabled={isPending}
       />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
@@ -748,6 +778,59 @@ function CampoLinha({
           />
         )}
       />
+      <MensagemErro id={`${id}-erro`} mensagem={erro} />
+    </div>
+  );
+}
+
+/** Valor da opção "sem filial" (o ComboboxLista não tem opção vazia). */
+const SEM_FILIAL = "nenhuma";
+
+/** Filial onde o aparelho fica guardado quando não está vinculado. */
+function CampoFilialEstoque<T extends FieldValues, U extends FieldValues>({
+  control,
+  lojas,
+  atual,
+  erro,
+  disabled,
+}: {
+  control: Control<T, unknown, U>;
+  lojas: LojaOpcao[];
+  /** Filial já gravada (uma loja inativa só aparece se for ela). */
+  atual: string | null;
+  erro?: string;
+  disabled: boolean;
+}) {
+  const id = "disp-loja-estoque";
+  const opcoes = [
+    { value: SEM_FILIAL, label: "Não informada" },
+    ...opcoesLojas(lojas.filter((l) => l.ativo || l.id === atual)),
+  ];
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>Filial de estoque (opcional)</Label>
+      <Controller
+        control={control}
+        name={"loja_estoque_id" as Path<T>}
+        render={({ field }) => (
+          <ComboboxLista
+            id={id}
+            ref={field.ref}
+            opcoes={opcoes}
+            value={typeof field.value === "string" && field.value ? field.value : SEM_FILIAL}
+            onChange={(v) => field.onChange(v === SEM_FILIAL ? "" : v)}
+            onBlur={field.onBlur}
+            placeholderBusca="Buscar loja ou cidade..."
+            vazio="Nenhuma loja encontrada."
+            disabled={disabled}
+            invalid={Boolean(erro)}
+            descritoPor={erro ? `${id}-erro ${id}-ajuda` : `${id}-ajuda`}
+          />
+        )}
+      />
+      <p id={`${id}-ajuda`} className="text-xs text-muted-foreground">
+        Onde o aparelho fica quando não está com um usuário.
+      </p>
       <MensagemErro id={`${id}-erro`} mensagem={erro} />
     </div>
   );
