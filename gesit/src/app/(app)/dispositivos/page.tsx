@@ -148,6 +148,7 @@ function paraEdicao(d: VwDispositivoRow): DispositivoEditavel | null {
     nota_fiscal_path: d.nota_fiscal_path,
     loja_estoque_id: d.loja_estoque_id,
     observacao: d.observacao,
+    status: d.status,
   };
 }
 

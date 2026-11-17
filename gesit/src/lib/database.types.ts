@@ -178,6 +178,77 @@ export type Database = {
           },
         ]
       }
+      dispositivo_imagens: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          dispositivo_id: string
+          id: string
+          legenda: string | null
+          momento: Database["public"]["Enums"]["momento_imagem"]
+          path: string
+          removida: boolean
+          removida_em: string | null
+          removida_por: string | null
+          vinculo_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          dispositivo_id: string
+          id?: string
+          legenda?: string | null
+          momento?: Database["public"]["Enums"]["momento_imagem"]
+          path: string
+          removida?: boolean
+          removida_em?: string | null
+          removida_por?: string | null
+          vinculo_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          dispositivo_id?: string
+          id?: string
+          legenda?: string | null
+          momento?: Database["public"]["Enums"]["momento_imagem"]
+          path?: string
+          removida?: boolean
+          removida_em?: string | null
+          removida_por?: string | null
+          vinculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispositivo_imagens_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispositivo_imagens_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispositivo_imagens_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vinculos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispositivo_imagens_vinculo_id_fkey"
+            columns: ["vinculo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dispositivos"
+            referencedColumns: ["vinculo_id"]
+          },
+        ]
+      }
       dispositivos: {
         Row: {
           created_at: string
@@ -921,6 +992,15 @@ export type Database = {
       }
     }
     Functions: {
+      adicionar_imagens_dispositivo: {
+        Args: {
+          p_dispositivo_id: string
+          p_imagens: Json
+          p_momento: Database["public"]["Enums"]["momento_imagem"]
+          p_vinculo_id?: string
+        }
+        Returns: string[]
+      }
       anexar_termo: {
         Args: { p_termo_path: string; p_vinculo_id: string }
         Returns: undefined
@@ -1026,6 +1106,10 @@ export type Database = {
         Returns: string[]
       }
       ping: { Args: never; Returns: number }
+      remover_imagem_dispositivo: {
+        Args: { p_imagem_id: string }
+        Returns: undefined
+      }
       restaurar_atividade: {
         Args: { p_atividade: string; p_coluna?: string }
         Returns: undefined
@@ -1070,6 +1154,12 @@ export type Database = {
         | "roxo"
         | "rosa"
         | "vermelho"
+      momento_imagem:
+        | "cadastro"
+        | "entrega"
+        | "transferencia"
+        | "devolucao"
+        | "outro"
       motivo_baixa:
         | "roubo"
         | "furto"
@@ -1241,6 +1331,13 @@ export const Constants = {
         "roxo",
         "rosa",
         "vermelho",
+      ],
+      momento_imagem: [
+        "cadastro",
+        "entrega",
+        "transferencia",
+        "devolucao",
+        "outro",
       ],
       motivo_baixa: [
         "roubo",

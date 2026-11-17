@@ -12,6 +12,8 @@ export type ItemAnexo = {
   chave: string;
   arquivo: File;
   url: string;
+  /** Com `comLegenda` (imagens do item). */
+  legenda?: string;
 };
 
 type Props = {
@@ -29,6 +31,8 @@ type Props = {
   invalid?: boolean;
   /** id da ajuda/erro do campo (aria-describedby). */
   descritoPor?: string;
+  /** Campo de legenda em cada item (miniaturas maiores). */
+  comLegenda?: boolean;
 };
 
 const ehImagem = (f: File) => f.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(f.name);
@@ -61,6 +65,7 @@ export function CampoAnexos({
   disabled,
   invalid,
   descritoPor,
+  comLegenda,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arrastando, setArrastando] = useState(false);
@@ -193,8 +198,16 @@ export function CampoAnexos({
           nome: i.arquivo.name,
           tipo: ehImagem(i.arquivo) ? "imagem" : "pdf",
           url: i.url,
+          legenda: i.legenda,
         }))}
         onRemover={remover}
+        onLegenda={
+          comLegenda
+            ? (chave, legenda) =>
+                onChange(itens.map((i) => (i.chave === chave ? { ...i, legenda } : i)))
+            : undefined
+        }
+        tamanho={comLegenda ? "md" : "sm"}
         disabled={disabled}
       />
       {itens.length > 0 && (

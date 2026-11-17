@@ -4,6 +4,7 @@ import { hojeEmPalmas } from "./format";
 import { PERIFERICOS } from "./perifericos";
 import {
   CORES_KANBAN,
+  MOMENTOS_IMAGEM,
   MOTIVOS_BAIXA,
   OPERADORAS,
   PRIORIDADES_ATIVIDADE,
@@ -506,6 +507,27 @@ export const baixaSchema = z.object({
     .default([]),
 });
 
+/**
+ * Imagens do item (adicionar_imagens_dispositivo, migration 020), já
+ * enviadas pelo navegador ao bucket "imagens-dispositivos".
+ */
+export const REGEX_CAMINHO_IMAGEM = /^[0-9a-f-]{36}\/\d+-[a-z0-9]{8}\.(jpg|png|webp)$/;
+
+export const imagensDispositivoSchema = z.object({
+  dispositivo_id: idObrigatorio("Dispositivo inválido."),
+  momento: z.enum(MOMENTOS_IMAGEM, { error: "Momento inválido." }),
+  vinculo_id: idOpcional("Vínculo inválido."),
+  imagens: z
+    .array(
+      z.object({
+        path: z.string().regex(REGEX_CAMINHO_IMAGEM, "Imagem inválida."),
+        legenda: textoOpcional(200),
+      }),
+    )
+    .min(1, "Envie ao menos uma imagem.")
+    .max(20, "Envie no máximo 20 imagens por vez."),
+});
+
 // ===========================================================================
 // Gestão Financeira (migration 015)
 // ===========================================================================
@@ -670,6 +692,7 @@ export type ServicoFormData = z.output<typeof servicoSchema>;
 export type DevolucaoFormInput = z.input<typeof devolucaoSchema>;
 export type DevolucaoFormData = z.output<typeof devolucaoSchema>;
 export type BaixaInput = z.input<typeof baixaSchema>;
+export type ImagensDispositivoInput = z.input<typeof imagensDispositivoSchema>;
 
 /* ===========================================================================
  * Testes simples (exemplos conferidos manualmente)

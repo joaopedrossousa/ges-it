@@ -21,11 +21,13 @@ import {
   MENSAGEM_DATA_COMPRA,
   baixaSchema,
   devolucaoSchema,
+  imagensDispositivoSchema,
   dispositivoSchema,
   servicoSchema,
   vinculoSchema,
   type BaixaInput,
   type DevolucaoFormInput,
+  type ImagensDispositivoInput,
   type DispositivoFormData,
   type DispositivoFormInput,
   type ServicoFormInput,
@@ -336,6 +338,50 @@ export async function baixarDispositivo(input: BaixaInput): Promise<ActionResult
 }
 
 // ===========================================================================
+// Imagens do item (migrations 020 e 021)
+// ===========================================================================
+
+/**
+ * Grava imagens já enviadas ao bucket "imagens-dispositivos". A função
+ * adicionar_imagens_dispositivo confere a pasta, o vínculo, o momento e
+ * recusa dispositivo baixado.
+ */
+export async function adicionarImagensDispositivo(
+  input: ImagensDispositivoInput,
+): Promise<ActionResult> {
+  const parsed = imagensDispositivoSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+  const { dispositivo_id, momento, vinculo_id, imagens } = parsed.data;
+  if (imagens.some((i) => !i.path.startsWith(`${dispositivo_id}/`))) {
+    return { ok: false, error: "Arquivo de imagem inválido." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("adicionar_imagens_dispositivo", {
+    p_dispositivo_id: dispositivo_id,
+    p_momento: momento,
+    p_imagens: imagens,
+    p_vinculo_id: vinculo_id ?? undefined,
+  });
+  if (error) return erroDoBanco(error);
+
+  revalidarVinculos();
+  return { ok: true };
+}
+
+/** Marca a imagem como removida (continua no bucket e no log de auditoria). */
+export async function removerImagemDispositivo(id: string): Promise<ActionResult> {
+  if (!idSchema.safeParse(id).success) return { ok: false, error: "Imagem inválida." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remover_imagem_dispositivo", { p_imagem_id: id });
+  if (error) return erroDoBanco(error);
+
+  revalidarVinculos();
+  return { ok: true };
+}
+
+// ===========================================================================
 // Vínculos
 // ===========================================================================
 
@@ -355,7 +401,7 @@ function mensagemStatus(texto: string) {
  */
 export async function vincularDispositivo(
   input: VinculoFormInput,
-): Promise<ActionResult<CampoVinculo>> {
+): Promise<ActionResult<CampoVinculo> & { vinculoId?: string }> {
   const parsed = vinculoSchema.safeParse(input);
   if (!parsed.success) return errosDoZod(parsed.error);
   const { dispositivo_id, colaborador_id, termo_path, observacao, perifericos, formatado } =
@@ -374,7 +420,7 @@ export async function vincularDispositivo(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("vincular_dispositivo", {
+  const { data: vinculoId, error } = await supabase.rpc("vincular_dispositivo", {
     p_dispositivo_id: dispositivo_id,
     p_colaborador_id: colaborador_id,
     p_termo_path: termo_path ?? undefined,
@@ -397,7 +443,8 @@ export async function vincularDispositivo(
   }
 
   revalidarVinculos();
-  return { ok: true };
+  // O navegador grava as imagens da entrega/transferência neste vínculo.
+  return { ok: true, vinculoId };
 }
 
 /** Encerra o vínculo aberto e define o novo status do dispositivo. */

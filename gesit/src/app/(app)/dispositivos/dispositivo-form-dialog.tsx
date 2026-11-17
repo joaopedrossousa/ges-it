@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LaptopIcon, MonitorIcon, NetworkIcon, SmartphoneIcon } from "lucide-react";
-import { useState, useTransition, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import {
   Controller,
   useForm,
@@ -16,9 +16,11 @@ import {
 } from "react-hook-form";
 import { toast } from "sonner";
 
+import type { ItemAnexo } from "@/components/campo-anexos";
 import { CampoArquivo } from "@/components/campo-arquivo";
 import { CampoData } from "@/components/campo-data";
 import { Carregando } from "@/components/carregando";
+import { CampoImagens } from "@/components/campo-imagens";
 import { ComboboxLista } from "@/components/combobox-lista";
 import { LinkNotaFiscal } from "@/components/link-nota-fiscal";
 import { MensagemErro } from "@/components/mensagem-erro";
@@ -34,20 +36,31 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
 import type { LojaOpcao } from "@/lib/lojas";
 import { opcoesLojas } from "@/lib/opcoes-lojas";
 import { hojeEmPalmas } from "@/lib/format";
+import { gravarImagens } from "@/lib/imagens-dispositivos";
 import {
   NOTA_FISCAL_ACCEPT,
   enviarNotaFiscal,
   validarArquivoNotaFiscal,
 } from "@/lib/notas-fiscais";
 import {
+  MOMENTOS_SEM_VINCULO,
+  MOMENTO_IMAGEM_LABEL,
   OPERADORAS,
   TIPO_DISPOSITIVO_LABEL,
   paraOperadora,
+  type StatusDispositivo,
   type TipoDispositivo,
 } from "@/lib/types";
 import {
@@ -90,6 +103,8 @@ export type DispositivoEditavel = {
   nota_fiscal_path: string | null;
   loja_estoque_id: string | null;
   observacao: string | null;
+  /** Baixado não recebe imagens novas (migration 021). */
+  status?: StatusDispositivo | null;
 };
 
 type Props = {
@@ -137,11 +152,17 @@ export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
   const propsForm: FormProps = {
     dispositivo,
     lojas,
-    onSalvo: (avisoNotaFiscal) => {
+    onSalvo: ({ notaFiscal, imagens }) => {
       toast.success(editando ? "Dispositivo atualizado." : "Dispositivo cadastrado.");
-      if (avisoNotaFiscal) {
+      if (notaFiscal) {
         toast.warning("A nota fiscal não foi anexada.", {
-          description: `${avisoNotaFiscal} Tente de novo pela edição do dispositivo.`,
+          description: `${notaFiscal} Tente de novo pela edição do dispositivo.`,
+          duration: 15000,
+        });
+      }
+      if (imagens) {
+        toast.warning("As imagens não foram gravadas.", {
+          description: `${imagens} Tente de novo pela edição ou pelo detalhe do dispositivo.`,
           duration: 15000,
         });
       }
@@ -205,8 +226,8 @@ export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
 type FormProps = {
   dispositivo?: DispositivoEditavel;
   lojas: LojaOpcao[];
-  /** `avisoNotaFiscal`: os dados foram salvos, mas a nota fiscal não. */
-  onSalvo: (avisoNotaFiscal?: string) => void;
+  /** Os dados foram salvos; os avisos dizem o que não foi (nota fiscal, imagens). */
+  onSalvo: (avisos: { notaFiscal?: string; imagens?: string }) => void;
   onCancelar: () => void;
 };
 
@@ -234,6 +255,7 @@ const CAMPOS_COMUNS = [
 function NotebookForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
   const nota = useNotaFiscal();
+  const imagens = useImagensForm();
   const {
     register,
     control,
@@ -251,7 +273,7 @@ function NotebookForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   });
 
   const onSubmit = handleSubmit((values) =>
-    salvar(values, nota.arquivo, (r) =>
+    salvar(values, nota.arquivo, imagens, (r) =>
       aplicarErros(r, setError, [...CAMPOS_COMUNS, "marca", "serial_number"]),
     ),
   );
@@ -284,6 +306,7 @@ function NotebookForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
         disabled={isPending}
       />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
+      <SecaoImagensForm imagens={imagens} dispositivo={dispositivo} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
       <Rodape erro={errors.root?.message} etapa={etapa} onCancelar={onCancelar} />
     </form>
@@ -293,6 +316,7 @@ function NotebookForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
 function TelefoneForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
   const nota = useNotaFiscal();
+  const imagens = useImagensForm();
   const {
     register,
     control,
@@ -314,7 +338,7 @@ function TelefoneForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   });
 
   const onSubmit = handleSubmit((values) =>
-    salvar(values, nota.arquivo, (r) =>
+    salvar(values, nota.arquivo, imagens, (r) =>
       aplicarErros(r, setError, [
         ...CAMPOS_COMUNS,
         "marca",
@@ -371,6 +395,7 @@ function TelefoneForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
         disabled={isPending}
       />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
+      <SecaoImagensForm imagens={imagens} dispositivo={dispositivo} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
       <Rodape erro={errors.root?.message} etapa={etapa} onCancelar={onCancelar} />
     </form>
@@ -380,6 +405,7 @@ function TelefoneForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
 function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
   const nota = useNotaFiscal();
+  const imagens = useImagensForm();
   const {
     register,
     control,
@@ -396,7 +422,7 @@ function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   });
 
   const onSubmit = handleSubmit((values) =>
-    salvar(values, nota.arquivo, (r) => aplicarErros(r, setError, [...CAMPOS_COMUNS, "marca"])),
+    salvar(values, nota.arquivo, imagens, (r) => aplicarErros(r, setError, [...CAMPOS_COMUNS, "marca"])),
   );
 
   return (
@@ -424,6 +450,7 @@ function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
         disabled={isPending}
       />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
+      <SecaoImagensForm imagens={imagens} dispositivo={dispositivo} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
       <Rodape erro={errors.root?.message} etapa={etapa} onCancelar={onCancelar} />
     </form>
@@ -437,6 +464,7 @@ function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
 function InfraestruturaForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
   const nota = useNotaFiscal();
+  const imagens = useImagensForm();
   const {
     register,
     control,
@@ -456,7 +484,7 @@ function InfraestruturaForm({ dispositivo, lojas, onSalvo, onCancelar }: FormPro
   });
 
   const onSubmit = handleSubmit((values) =>
-    salvar(values, nota.arquivo, (r) =>
+    salvar(values, nota.arquivo, imagens, (r) =>
       aplicarErros(r, setError, [...CAMPOS_COMUNS, "equipamento", "serial_number"]),
     ),
   );
@@ -506,6 +534,7 @@ function InfraestruturaForm({ dispositivo, lojas, onSalvo, onCancelar }: FormPro
         obrigatoria
       />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
+      <SecaoImagensForm imagens={imagens} dispositivo={dispositivo} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
       <Rodape erro={errors.root?.message} etapa={etapa} onCancelar={onCancelar} />
     </form>
@@ -516,7 +545,8 @@ function InfraestruturaForm({ dispositivo, lojas, onSalvo, onCancelar }: FormPro
 // Salvar + nota fiscal
 // ---------------------------------------------------------------------------
 
-type Etapa = "salvando" | "enviando" | null;
+/** Texto do botão enquanto salva ("Salvando...", "Enviando imagens (1 de 3)..."). */
+type Etapa = string | null;
 
 type ResultadoErro = {
   error: string;
@@ -539,10 +569,11 @@ function useSalvarDispositivo(
   function salvar(
     values: DispositivoFormData,
     arquivo: File | null,
+    imagens: ImagensFormEstado,
     onErro: (r: ResultadoErro) => void,
   ) {
     startTransition(async () => {
-      setEtapa("salvando");
+      setEtapa("Salvando...");
       const result = await executarAcao(() =>
         dispositivo ? atualizarDispositivo(dispositivo.id, values) : criarDispositivo(values),
       );
@@ -556,23 +587,99 @@ function useSalvarDispositivo(
       const id =
         dispositivo?.id ??
         ("id" in result && typeof result.id === "string" ? result.id : undefined);
-      let aviso: string | undefined;
+      const avisos: { notaFiscal?: string; imagens?: string } = {};
       if (arquivo && id) {
-        setEtapa("enviando");
+        setEtapa("Enviando nota fiscal...");
         const envio = await enviarNotaFiscal(id, arquivo);
         if ("erro" in envio) {
-          aviso = envio.erro;
+          avisos.notaFiscal = envio.erro;
         } else {
           const anexo = await executarAcao(() => anexarNotaFiscal(id, envio.path));
-          if (!anexo.ok) aviso = anexo.error;
+          if (!anexo.ok) avisos.notaFiscal = anexo.error;
         }
       }
+      // Imagens: depois dos dados (no cadastro, a pasta do id só existe agora).
+      if (imagens.itens.length > 0 && id) {
+        const erro = await gravarImagens({
+          dispositivoId: id,
+          momento: imagens.momento,
+          itens: imagens.itens,
+          enviadas: imagens.enviadas.current,
+          onProgresso: setEtapa,
+        });
+        if (erro) avisos.imagens = erro;
+      }
       setEtapa(null);
-      onSalvo(aviso);
+      onSalvo(avisos);
     });
   }
 
-  return { salvar, isPending, etapa: isPending ? (etapa ?? "salvando") : null };
+  return { salvar, isPending, etapa: isPending ? (etapa ?? "Salvando...") : null };
+}
+
+// ---------------------------------------------------------------------------
+// Imagens do item (migration 020)
+// ---------------------------------------------------------------------------
+
+type ImagensFormEstado = ReturnType<typeof useImagensForm>;
+
+type MomentoSemVinculo = (typeof MOMENTOS_SEM_VINCULO)[number];
+
+function useImagensForm() {
+  const [itens, setItens] = useState<ItemAnexo[]>([]);
+  const [momento, setMomento] = useState<MomentoSemVinculo>("cadastro");
+  // Já enviadas ao bucket (chave → caminho): o envio não se repete.
+  const enviadas = useRef(new Map<string, string>());
+  return { itens, setItens, momento, setMomento, enviadas };
+}
+
+/** "Imagens (opcional)" do cadastro/edição; some para dispositivo baixado. */
+function SecaoImagensForm({
+  imagens,
+  dispositivo,
+  disabled,
+}: {
+  imagens: ImagensFormEstado;
+  dispositivo?: DispositivoEditavel;
+  disabled: boolean;
+}) {
+  if (dispositivo?.status === "baixado") return null;
+  return (
+    <fieldset className="grid gap-3 rounded-lg border p-3">
+      <legend className="px-1 text-sm font-medium">Imagens (opcional)</legend>
+      {imagens.itens.length > 0 && (
+        <div className="grid gap-2 sm:max-w-56">
+          <Label htmlFor="disp-imagens-momento">Momento</Label>
+          <Select
+            value={imagens.momento}
+            onValueChange={(v) => {
+              const m = MOMENTOS_SEM_VINCULO.find((x) => x === v);
+              if (m) imagens.setMomento(m);
+            }}
+            disabled={disabled}
+          >
+            <SelectTrigger id="disp-imagens-momento" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MOMENTOS_SEM_VINCULO.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {MOMENTO_IMAGEM_LABEL[m]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      <CampoImagens
+        id="disp-imagens"
+        rotulo="Estado do item"
+        itens={imagens.itens}
+        onChange={imagens.setItens}
+        disabled={disabled}
+      />
+    </fieldset>
+  );
 }
 
 type NotaFiscalEstado = ReturnType<typeof useNotaFiscal>;
@@ -1092,11 +1199,7 @@ function Rodape({
         </Button>
         <Button type="submit" disabled={ocupado}>
           {ocupado && <Carregando decorativo tamanho="sm" />}
-          {etapa === "enviando"
-            ? "Enviando nota fiscal..."
-            : ocupado
-              ? "Salvando..."
-              : "Salvar"}
+          {etapa ?? "Salvar"}
         </Button>
       </DialogFooter>
     </>

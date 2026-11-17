@@ -53,6 +53,7 @@ import { formatarIMEI, formatarLinha } from "@/lib/validators";
 
 import { DevolverDialog } from "../devolver-dialog";
 import { HistoricoServicos } from "./historico-servicos";
+import { ImagensDispositivo, type ImagemDispositivo } from "./imagens-dispositivo";
 import { SecaoBaixa } from "./secao-baixa";
 import { DispositivoFormDialog } from "../dispositivo-form-dialog";
 import { StatusDialog } from "../status-dialog";
@@ -89,7 +90,8 @@ async function DetalheDispositivo({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [dispositivoRes, vidaUtilRes, vinculosRes, servicosRes, baixaRes, lojas] = await Promise.all([
+  const [dispositivoRes, vidaUtilRes, vinculosRes, servicosRes, baixaRes, imagensRes, lojas] =
+    await Promise.all([
     supabase.from("dispositivos").select("*").eq("id", id).maybeSingle(),
     // Idade e situação da vida útil: calculadas na view (data de Palmas).
     supabase
@@ -113,6 +115,16 @@ async function DetalheDispositivo({
       .order("created_at", { ascending: false }),
     // Registro de baixa (migration 019): com ele, o status não sai de "Baixado".
     supabase.from("dispositivo_baixas").select("id").eq("dispositivo_id", id).maybeSingle(),
+    // Imagens do item (migration 020); removidas ficam fora das galerias.
+    supabase
+      .from("dispositivo_imagens")
+      .select(
+        "id, vinculo_id, momento, legenda, criado_por, created_at, vinculo:vinculos(colaborador:colaboradores(nome))",
+      )
+      .eq("dispositivo_id", id)
+      .eq("removida", false)
+      .order("created_at")
+      .order("id"),
     listarLojasOpcoes(),
   ]);
 
@@ -121,7 +133,8 @@ async function DetalheDispositivo({
     vidaUtilRes.error ||
     vinculosRes.error ||
     servicosRes.error ||
-    baixaRes.error
+    baixaRes.error ||
+    imagensRes.error
   ) {
     console.error(
       "Erro ao carregar dispositivo:",
@@ -129,7 +142,8 @@ async function DetalheDispositivo({
         vidaUtilRes.error ??
         vinculosRes.error ??
         servicosRes.error ??
-        baixaRes.error,
+        baixaRes.error ??
+        imagensRes.error,
     );
     return (
       <p className="text-destructive">Não foi possível carregar o dispositivo.</p>
@@ -147,10 +161,36 @@ async function DetalheDispositivo({
   const descricao = descricaoDispositivo(d);
   const resumo = { id: d.id, descricao, tipo: d.tipo };
 
+  // Imagens: autor por e-mail (quem gravou aparece no log, ver emails_operadores).
+  const linhasImagens = imagensRes.data;
+  const autores = new Map<string, string>();
+  const idsAutores = [...new Set(linhasImagens.flatMap((i) => (i.criado_por ? [i.criado_por] : [])))];
+  if (idsAutores.length) {
+    const { data } = await supabase.rpc("emails_operadores", { p_ids: idsAutores });
+    data?.forEach((u) => autores.set(u.id, u.email));
+  }
+  const imagens: ImagemDispositivo[] = linhasImagens.map((i) => ({
+    id: i.id,
+    momento: i.momento,
+    legenda: i.legenda,
+    detalhe: [
+      i.vinculo?.colaborador?.nome,
+      formatarDataHora(i.created_at),
+      i.criado_por ? (autores.get(i.criado_por) ?? "—") : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  }));
+  const imagensPorVinculo = new Map<string, number>();
+  for (const i of linhasImagens) {
+    if (i.vinculo_id) imagensPorVinculo.set(i.vinculo_id, (imagensPorVinculo.get(i.vinculo_id) ?? 0) + 1);
+  }
+
   const historico: LinhaHistorico[] = vinculos.map(
     ({ loja, colaborador, ...v }) => ({
       ...v,
       tipo_dispositivo: d.tipo,
+      imagens: imagensPorVinculo.get(v.id) ?? 0,
       loja_nome: loja?.nome ?? null,
       colaborador: colaborador
         ? { id: colaborador.id, nome: colaborador.nome }
@@ -340,6 +380,7 @@ async function DetalheDispositivo({
                 <DevolverDialog
                   dispositivo={resumo}
                   lojas={lojas}
+                  vinculoId={aberto.id}
                   lojaVinculoId={aberto.loja_id}
                   colaboradorNome={aberto.colaborador.nome}
                   perifericosEntregues={aberto.perifericos_entrega}
@@ -460,6 +501,12 @@ async function DetalheDispositivo({
           </CardContent>
         </Card>
       )}
+
+      <ImagensDispositivo
+        dispositivoId={d.id}
+        imagens={imagens}
+        podeAdicionar={d.status !== "baixado"}
+      />
 
       <HistoricoServicos dispositivoId={d.id} servicos={servicosRes.data} />
 

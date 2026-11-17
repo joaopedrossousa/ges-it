@@ -1,10 +1,12 @@
 "use client";
 
 import { InfoIcon, TriangleAlertIcon } from "lucide-react";
-import { useState, useTransition, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import type { ItemAnexo } from "@/components/campo-anexos";
 import { CampoArquivo } from "@/components/campo-arquivo";
+import { CampoImagens } from "@/components/campo-imagens";
 import { Carregando } from "@/components/carregando";
 import { ComboboxBusca, type OpcaoCombobox } from "@/components/combobox";
 import { MensagemErro } from "@/components/mensagem-erro";
@@ -21,6 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
+import { gravarImagens } from "@/lib/imagens-dispositivos";
 import type { ColaboradorOpcao, DispositivoOpcao } from "@/lib/opcoes-vinculo";
 import { temConferencia, type Periferico } from "@/lib/perifericos";
 import { enviarTermo, validarArquivoTermo } from "@/lib/termos";
@@ -108,8 +111,12 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
   const [orfao, setOrfao] = useState<string | null>(null);
   const [enviado, setEnviado] = useState<Enviado | null>(null);
   const [etapa, setEtapa] = useState<"enviando" | "salvando" | null>(null);
+  const [imagens, setImagens] = useState<ItemAnexo[]>([]);
+  /** Texto do botão enquanto as imagens sobem ("Enviando imagens (1 de 2)..."). */
+  const [progressoImagens, setProgressoImagens] = useState<string | null>(null);
+  const imagensEnviadas = useRef(new Map<string, string>());
   const [, startTransition] = useTransition();
-  const ocupado = etapa !== null;
+  const ocupado = etapa !== null || progressoImagens !== null;
 
   const usuarioAtual = dispositivo?.dados.colaborador_id
     ? {
@@ -130,6 +137,9 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
       setErros({});
       setOrfao(null);
       setEnviado(null);
+      setImagens([]);
+      setProgressoImagens(null);
+      imagensEnviadas.current = new Map();
     }
     setOpen(next);
   }
@@ -162,6 +172,8 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
     const colaboradorId = colaborador.value;
     // Monitor: sem periféricos e sem "formatado" (o banco recusa).
     const conferencia = temConferencia(dispositivo.dados.tipo);
+    // Transferência: já há usuário; senão, entrega (momento das imagens).
+    const momento = usuarioAtual ? "transferencia" : "entrega";
     setErros({});
     setOrfao(null);
 
@@ -220,6 +232,26 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
           ? `Dispositivo transferido para ${colaborador.label}.`
           : `Dispositivo vinculado a ${colaborador.label}.`,
       );
+
+      // Imagens do estado do item, ligadas ao vínculo criado.
+      const vinculoId = "vinculoId" in result ? result.vinculoId : undefined;
+      if (imagens.length > 0 && vinculoId) {
+        const erroImagens = await gravarImagens({
+          dispositivoId,
+          momento,
+          vinculoId,
+          itens: imagens,
+          enviadas: imagensEnviadas.current,
+          onProgresso: setProgressoImagens,
+        });
+        setProgressoImagens(null);
+        if (erroImagens) {
+          toast.warning("As imagens não foram gravadas.", {
+            description: `${erroImagens} Adicione-as pelo detalhe do dispositivo.`,
+            duration: 15000,
+          });
+        }
+      }
       setOpen(false);
     });
   }
@@ -339,6 +371,14 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
             <MensagemErro id="vinc-termo-erro" mensagem={erros.termo} />
           </div>
 
+          <CampoImagens
+            id="vinc-imagens"
+            rotulo="Imagens do estado do item (opcional)"
+            itens={imagens}
+            onChange={setImagens}
+            disabled={ocupado}
+          />
+
           <div className="grid gap-2">
             <Label htmlFor="vinc-obs">Observação (opcional)</Label>
             <Textarea
@@ -383,7 +423,9 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
           </Button>
           <Button type="button" onClick={salvar} disabled={ocupado}>
             {ocupado && <Carregando decorativo tamanho="sm" />}
-            {etapa === "enviando"
+            {progressoImagens
+              ? progressoImagens
+              : etapa === "enviando"
               ? "Enviando termo..."
               : etapa === "salvando"
                 ? "Salvando..."

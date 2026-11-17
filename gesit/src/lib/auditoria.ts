@@ -11,9 +11,11 @@ import {
 import { formatarDataHora, formatarDataISO, formatarMoeda } from "@/lib/format";
 import { rotulosPerifericos } from "@/lib/perifericos";
 import {
+  MOMENTO_IMAGEM_LABEL,
   MOTIVO_BAIXA_LABEL,
   STATUS_DISPOSITIVO_LABEL,
   TIPO_DISPOSITIVO_LABEL,
+  ehMomentoImagem,
   ehMotivoBaixa,
   TIPO_SERVICO_LABEL,
   ehStatusDispositivo,
@@ -30,6 +32,7 @@ import { formatarIMEI, formatarLinha } from "@/lib/validators";
 export const TABELAS_AUDITORIA = [
   "colaboradores",
   "dispositivos",
+  "dispositivo_imagens",
   "lojas",
   "vinculos",
   "servicos",
@@ -44,6 +47,7 @@ export type TabelaAuditoria = (typeof TABELAS_AUDITORIA)[number];
 export const TIPO_REGISTRO_LABEL: Record<TabelaAuditoria, string> = {
   colaboradores: "Usuário",
   dispositivos: "Dispositivo",
+  dispositivo_imagens: "Imagem de Dispositivo",
   lojas: "Loja",
   vinculos: "Vínculo",
   servicos: "Serviço",
@@ -112,6 +116,16 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     baixa_informacoes: "Informações da baixa",
     baixa_data: "Data da baixa",
     baixa_anexos: "Anexos da baixa",
+  },
+  // Migration 020: inserção e remoção (removida/removida_em).
+  dispositivo_imagens: {
+    dispositivo_id: "Dispositivo",
+    vinculo_id: "Vínculo",
+    momento: "Momento",
+    legenda: "Legenda",
+    path: "Imagem",
+    removida: "Removida",
+    removida_em: "Removida em",
   },
   vinculos: {
     dispositivo_id: "Dispositivo",
@@ -196,14 +210,16 @@ const CAMPOS_OCULTOS = new Set([
   "updated_at",
   "id",
   "posicao",
+  // Imagens: quem removeu já é o Usuário do log.
+  "removida_por",
 ]);
 
 /** Caminhos de arquivo: mostrados como "arquivo anexado/substituído". */
-const CAMPOS_ARQUIVO = new Set(["termo_path", "nota_fiscal_path", "anexo_path"]);
+const CAMPOS_ARQUIVO = new Set(["termo_path", "nota_fiscal_path", "anexo_path", "path"]);
 
 const DATAS = new Set(["baixa_data", "data_compra", "fim_vida_util", "data_servico", "vencimento", "data_pagamento", "prazo"]);
 const MOEDA = new Set(["custo", "valor", "valor_referencia"]);
-const DATAS_HORA = new Set(["data_inicio", "data_fim"]);
+const DATAS_HORA = new Set(["data_inicio", "data_fim", "removida_em"]);
 
 export function rotuloCampo(tabela: TabelaAuditoria, campo: string): string {
   return CAMPOS[tabela][campo] ?? campo;
@@ -218,6 +234,8 @@ export type NomesAuditoria = {
   lojas: Map<string, string>;
   colaboradores: Map<string, string>;
   dispositivos: Map<string, string>;
+  /** Vínculo → nome do usuário (imagens de entrega/transferência/devolução). */
+  vinculos: Map<string, string>;
   servicosFinanceiros: Map<string, string>;
   colunasKanban: Map<string, string>;
   categoriasKanban: Map<string, string>;
@@ -255,6 +273,8 @@ export function formatarValorAuditoria(
   if (campo === "loja_id" || campo === "loja_estoque_id") return nomes.lojas.get(s) ?? "Loja não encontrada";
   if (campo === "colaborador_id") return nomes.colaboradores.get(s) ?? "Usuário não encontrado";
   if (campo === "dispositivo_id") return nomes.dispositivos.get(s) ?? "Dispositivo não encontrado";
+  if (campo === "vinculo_id") return nomes.vinculos.get(s) ?? "Vínculo não encontrado";
+  if (campo === "momento" && ehMomentoImagem(s)) return MOMENTO_IMAGEM_LABEL[s];
   if (campo === "coluna_id") return nomes.colunasKanban.get(s) ?? "Coluna não encontrada";
   if (campo === "responsavel_id") return nomes.usuarios.get(s) ?? "Usuário removido";
   if (campo === "prioridade") return PRIORIDADE_LABEL[s as keyof typeof PRIORIDADE_LABEL] ?? s;

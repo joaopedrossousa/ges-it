@@ -29,11 +29,29 @@ export type TipoDispositivo = Enums<"tipo_dispositivo">;
 export type StatusDispositivo = Enums<"status_dispositivo">;
 export type TipoServico = Enums<"tipo_servico">;
 export type MotivoBaixa = Enums<"motivo_baixa">;
+export type MomentoImagem = Enums<"momento_imagem">;
 
 export const TIPOS_DISPOSITIVO = Constants.public.Enums.tipo_dispositivo;
 export const STATUS_DISPOSITIVO = Constants.public.Enums.status_dispositivo;
 export const TIPOS_SERVICO = Constants.public.Enums.tipo_servico;
 export const MOTIVOS_BAIXA = Constants.public.Enums.motivo_baixa;
+export const MOMENTOS_IMAGEM = Constants.public.Enums.momento_imagem;
+
+/** Momento da imagem do item (migration 020), na ordem da galeria. */
+export const MOMENTO_IMAGEM_LABEL: Record<MomentoImagem, string> = {
+  cadastro: "Cadastro",
+  entrega: "Entrega",
+  transferencia: "Transferência",
+  devolucao: "Devolução",
+  outro: "Outro",
+};
+
+export function ehMomentoImagem(valor: unknown): valor is MomentoImagem {
+  return (MOMENTOS_IMAGEM as readonly unknown[]).includes(valor);
+}
+
+/** Momentos sem vínculo: os únicos do cadastro e do "Adicionar imagens" do detalhe. */
+export const MOMENTOS_SEM_VINCULO = ["cadastro", "outro"] as const satisfies readonly MomentoImagem[];
 
 /** Motivo da baixa (migration 019). */
 export const MOTIVO_BAIXA_LABEL: Record<MotivoBaixa, string> = {

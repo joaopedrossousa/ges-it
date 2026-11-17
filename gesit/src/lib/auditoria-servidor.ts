@@ -14,7 +14,7 @@ import { descricaoDispositivo } from "@/lib/dispositivos";
 import { formatarCompetenciaCurta, nomeFinanceiro } from "@/lib/financeiro";
 import { limitesPeriodo, type FiltrosAuditoria } from "@/lib/filtros-auditoria";
 import type { createClient } from "@/lib/supabase/server";
-import { TIPO_SERVICO_LABEL } from "@/lib/types";
+import { MOMENTO_IMAGEM_LABEL, TIPO_SERVICO_LABEL } from "@/lib/types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -127,8 +127,15 @@ export async function montarLinhasAuditoria(
 
   // Vínculos e serviços apontam para dispositivos/usuários: busca-os primeiro.
   // Lançamentos aparecem pela descrição e competência.
+  // Imagens: o dispositivo e o momento vêm da própria linha (a remoção só
+  // traz removida/removida_em no log).
+  const imagensLista = await emLotes(porTabela("dispositivo_imagens"), (lote) =>
+    supabase.from("dispositivo_imagens").select("id, dispositivo_id, momento").in("id", lote),
+  );
+  const imagensMap = new Map(imagensLista.map((i) => [i.id, i]));
+
   const [vinculosLista, servicosLista, lancamentosLista] = await Promise.all([
-    emLotes(porTabela("vinculos"), (lote) =>
+    emLotes(unicos([...porTabela("vinculos"), ...idsDoCampo(linhas, "vinculo_id")]), (lote) =>
       supabase.from("vinculos").select("id, dispositivo_id, colaborador_id").in("id", lote),
     ),
     emLotes(porTabela("servicos"), (lote) =>
@@ -156,6 +163,7 @@ export async function montarLinhasAuditoria(
     ...idsDoCampo(linhas, "dispositivo_id"),
     ...vinculosLista.map((v) => v.dispositivo_id),
     ...servicosLista.map((s) => s.dispositivo_id),
+    ...imagensLista.map((i) => i.dispositivo_id),
   ]);
   const idsServicosFinanceiros = unicos([
     ...porTabela("servicos_financeiros"),
@@ -222,6 +230,12 @@ export async function montarLinhasAuditoria(
     lojas: new Map(lojas.map((l) => [l.id, l.nome])),
     colaboradores: new Map(colaboradores.map((c) => [c.id, c.nome])),
     dispositivos: new Map(dispositivos.map((d) => [d.id, descricaoDispositivo(d)])),
+    vinculos: new Map(
+      vinculosLista.map((v) => [
+        v.id,
+        colaboradores.find((c) => c.id === v.colaborador_id)?.nome ?? "Usuário não encontrado",
+      ]),
+    ),
     servicosFinanceiros: new Map(
       servicosFinanceiros.map((s) => [s.id, nomeFinanceiro(s)]),
     ),
@@ -254,6 +268,14 @@ export async function montarLinhasAuditoria(
         const d = dispositivo(v?.dispositivo_id);
         const c = v ? nomes.colaboradores.get(v.colaborador_id) : undefined;
         return { texto: c ? `${d.texto} → ${c}` : d.texto, href: d.href };
+      }
+      case "dispositivo_imagens": {
+        const i = imagensMap.get(l.registro_id);
+        const d = dispositivo(i?.dispositivo_id);
+        return {
+          texto: i ? `Imagem (${MOMENTO_IMAGEM_LABEL[i.momento]}) · ${d.texto}` : d.texto,
+          href: d.href ? `${d.href}#imagens` : null,
+        };
       }
       case "servicos": {
         const s = servicos.get(l.registro_id);

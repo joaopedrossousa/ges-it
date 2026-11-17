@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { descreverPendencias } from "@/lib/colaboradores";
 import { identificadorDispositivo, nomeDispositivo } from "@/lib/dispositivos";
+import { contarImagensPorVinculo } from "@/lib/imagens-servidor";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
@@ -116,10 +117,16 @@ async function DetalheColaborador({
     v.data_fim === null && dispositivo ? [{ ...v, dispositivo }] : [],
   );
 
+  const imagensPorVinculo = await contarImagensPorVinculo(
+    supabase,
+    vinculos.map((v) => v.id),
+  );
+
   const historico: LinhaHistorico[] = vinculos.map(
     ({ loja, dispositivo, ...v }) => ({
       ...v,
       tipo_dispositivo: dispositivo?.tipo ?? null,
+      imagens: imagensPorVinculo.get(v.id) ?? 0,
       loja_nome: loja?.nome ?? null,
       dispositivo: dispositivo
         ? {

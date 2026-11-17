@@ -38,8 +38,8 @@ export function validarArquivoBaixa(arquivo: File): string | null {
   return null;
 }
 
-/** 8 caracteres [a-z0-9] (o mesmo padrão das checks da migration 019). */
-function aleatorio() {
+/** 8 caracteres [a-z0-9] (o mesmo padrão das checks das migrations 019 e 020). */
+export function aleatorio() {
   const letras = "abcdefghijklmnopqrstuvwxyz0123456789";
   const bytes = crypto.getRandomValues(new Uint8Array(8));
   return Array.from(bytes, (b) => letras[b % letras.length]).join("");

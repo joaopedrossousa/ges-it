@@ -1,9 +1,11 @@
 "use client";
 
 import { TriangleAlertIcon } from "lucide-react";
-import { useState, useTransition, type ReactNode } from "react";
+import { useRef, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import type { ItemAnexo } from "@/components/campo-anexos";
+import { CampoImagens } from "@/components/campo-imagens";
 import { Carregando } from "@/components/carregando";
 import { ComboboxLista } from "@/components/combobox-lista";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { executarAcao } from "@/lib/executar-acao";
+import { gravarImagens } from "@/lib/imagens-dispositivos";
 import type { LojaOpcao } from "@/lib/lojas";
 import { opcoesLojas } from "@/lib/opcoes-lojas";
 import {
@@ -49,6 +52,8 @@ import { ConferenciaPerifericos } from "./conferencia-perifericos";
 
 type Props = {
   dispositivo: { id: string; descricao: string; tipo: TipoDispositivo };
+  /** Vínculo aberto: as imagens da devolução ficam ligadas a ele. */
+  vinculoId: string;
   /** Para a filial de estoque após a devolução. */
   lojas: LojaOpcao[];
   /** Loja do vínculo encerrado: padrão da filial de estoque. */
@@ -61,6 +66,7 @@ type Props = {
 
 export function DevolverDialog({
   dispositivo,
+  vinculoId,
   lojas,
   lojaVinculoId,
   colaboradorNome,
@@ -83,6 +89,9 @@ export function DevolverDialog({
   const [avisado, setAvisado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [imagens, setImagens] = useState<ItemAnexo[]>([]);
+  const [etapa, setEtapa] = useState<string | null>(null);
+  const imagensEnviadas = useRef(new Map<string, string>());
 
   const faltando = conferencia ? naoDevolvidos(entregues, devolvidos) : [];
 
@@ -96,6 +105,9 @@ export function DevolverDialog({
       setLojaEstoque(lojaVinculoId);
       setAvisado(false);
       setErro(null);
+      setImagens([]);
+      setEtapa(null);
+      imagensEnviadas.current = new Map();
     }
     setOpen(next);
   }
@@ -128,6 +140,25 @@ export function DevolverDialog({
         return;
       }
       toast.success(`Devolução de ${colaboradorNome} registrada.`);
+
+      // Imagens do estado na devolução, ligadas ao vínculo agora encerrado.
+      if (imagens.length > 0) {
+        const erroImagens = await gravarImagens({
+          dispositivoId: dispositivo.id,
+          momento: "devolucao",
+          vinculoId,
+          itens: imagens,
+          enviadas: imagensEnviadas.current,
+          onProgresso: setEtapa,
+        });
+        setEtapa(null);
+        if (erroImagens) {
+          toast.warning("As imagens não foram gravadas.", {
+            description: `${erroImagens} Adicione-as pelo detalhe do dispositivo.`,
+            duration: 15000,
+          });
+        }
+      }
       setOpen(false);
     });
   }
@@ -222,6 +253,14 @@ export function DevolverDialog({
             </p>
           )}
 
+          <CampoImagens
+            id="dev-imagens"
+            rotulo="Imagens do estado do item (opcional)"
+            itens={imagens}
+            onChange={setImagens}
+            disabled={isPending}
+          />
+
           <div className="grid gap-2">
             <Label htmlFor="dev-obs">Observação da devolução (opcional)</Label>
             <Textarea
@@ -257,7 +296,7 @@ export function DevolverDialog({
           <Button type="button" onClick={salvar} disabled={isPending}>
             {isPending && <Carregando decorativo tamanho="sm" />}
             {isPending
-              ? "Salvando..."
+              ? (etapa ?? "Salvando...")
               : avisado && faltando.length > 0
                 ? "Confirmar devolução"
                 : "Registrar devolução"}

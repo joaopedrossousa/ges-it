@@ -43,6 +43,8 @@ export type LinhaHistorico = {
   loja_nome: string | null;
   colaborador?: { id: string; nome: string } | null;
   dispositivo?: { id: string; descricao: string; identificador: string } | null;
+  /** Imagens do estado do item ligadas ao vínculo (não removidas; migration 020). */
+  imagens?: number;
 };
 
 type Props = {
@@ -55,7 +57,7 @@ type Props = {
 
 /** Histórico de vínculos, do mais recente para o mais antigo. */
 export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
-  const colunas = 10;
+  const colunas = 11;
 
   return (
     <Table>
@@ -70,6 +72,7 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
           <TableHead>Periféricos Entregues</TableHead>
           <TableHead>Periféricos Devolvidos</TableHead>
           <TableHead>Formatado</TableHead>
+          <TableHead>Imagens</TableHead>
           <TableHead>Observações</TableHead>
         </TableRow>
       </TableHeader>
@@ -157,6 +160,22 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
                     : "—"
                 }
               />
+            </TableCell>
+            <TableCell className="whitespace-nowrap text-sm">
+              {v.imagens ? (
+                <Link
+                  href={
+                    contexto === "dispositivo"
+                      ? "#imagens"
+                      : `/dispositivos/${v.dispositivo_id}#imagens`
+                  }
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  {v.imagens} {v.imagens === 1 ? "imagem" : "imagens"}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
             </TableCell>
             <TableCell className="min-w-48 text-sm whitespace-normal">
               {v.observacao || v.observacao_devolucao ? (
