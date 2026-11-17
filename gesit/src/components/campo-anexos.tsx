@@ -33,6 +33,11 @@ type Props = {
   descritoPor?: string;
   /** Campo de legenda em cada item (miniaturas maiores). */
   comLegenda?: boolean;
+  /**
+   * Recebe prints colados (Ctrl+V) na página. Desligue quando houver outro
+   * CampoAnexos aberto na tela, para o print não ir para os dois.
+   */
+  colar?: boolean;
 };
 
 const ehImagem = (f: File) => f.type.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(f.name);
@@ -66,6 +71,7 @@ export function CampoAnexos({
   invalid,
   descritoPor,
   comLegenda,
+  colar = true,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [arrastando, setArrastando] = useState(false);
@@ -117,7 +123,7 @@ export function CampoAnexos({
 
   // Colar print: só age se a área de transferência tiver arquivos.
   useEffect(() => {
-    if (disabled) return;
+    if (disabled || !colar) return;
     function aoColar(e: ClipboardEvent) {
       const arquivos = Array.from(e.clipboardData?.files ?? []);
       if (arquivos.length === 0) return;
@@ -178,9 +184,15 @@ export function CampoAnexos({
           Escolher arquivos
         </Button>
         <p className="flex flex-wrap items-center justify-center gap-1 text-muted-foreground">
-          ou arraste para cá, ou cole um print com
-          <kbd className="rounded border bg-muted px-1.5 font-mono text-xs">Ctrl+V</kbd>
-          <ClipboardPasteIcon className="size-3.5" aria-hidden />
+          {colar ? (
+            <>
+              ou arraste para cá, ou cole um print com
+              <kbd className="rounded border bg-muted px-1.5 font-mono text-xs">Ctrl+V</kbd>
+              <ClipboardPasteIcon className="size-3.5" aria-hidden />
+            </>
+          ) : (
+            "ou arraste para cá"
+          )}
         </p>
       </div>
 

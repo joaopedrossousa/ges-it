@@ -134,6 +134,12 @@ export async function montarLinhasAuditoria(
   );
   const imagensMap = new Map(imagensLista.map((i) => [i.id, i]));
 
+  // Comentários: a atividade vem da própria linha (edição e remoção não a trazem no log).
+  const comentariosLista = await emLotes(porTabela("kanban_comentarios"), (lote) =>
+    supabase.from("kanban_comentarios").select("id, atividade_id").in("id", lote),
+  );
+  const comentariosMap = new Map(comentariosLista.map((c) => [c.id, c]));
+
   const [vinculosLista, servicosLista, lancamentosLista] = await Promise.all([
     emLotes(unicos([...porTabela("vinculos"), ...idsDoCampo(linhas, "vinculo_id")]), (lote) =>
       supabase.from("vinculos").select("id, dispositivo_id, colaborador_id").in("id", lote),
@@ -170,13 +176,17 @@ export async function montarLinhasAuditoria(
     ...idsDoCampo(linhas, "servico_id"),
   ]);
   const idsUsuarios = unicos(linhas.map((l) => l.alterado_por));
-  const idsAtividades = porTabela("kanban_atividades");
+  const idsAtividades = unicos([
+    ...porTabela("kanban_atividades"),
+    ...comentariosLista.map((c) => c.atividade_id),
+  ]);
   const idsColunasKanban = unicos([...porTabela("kanban_colunas"), ...idsDoCampo(linhas, "coluna_id")]);
   const idsCategoriasKanban = unicos([
     ...porTabela("kanban_categorias"),
     ...idsDaLista(linhas, "categorias"),
   ]);
-  const temResponsavel = idsDoCampo(linhas, "responsavel_id").length > 0;
+  const temResponsavel =
+    idsDoCampo(linhas, "responsavel_id").length > 0 || idsDoCampo(linhas, "urgente_por").length > 0;
 
   const [
     lojas,
@@ -230,6 +240,7 @@ export async function montarLinhasAuditoria(
     lojas: new Map(lojas.map((l) => [l.id, l.nome])),
     colaboradores: new Map(colaboradores.map((c) => [c.id, c.nome])),
     dispositivos: new Map(dispositivos.map((d) => [d.id, descricaoDispositivo(d)])),
+    atividades: new Map(atividadesLista.map((a) => [a.id, a.titulo])),
     vinculos: new Map(
       vinculosLista.map((v) => [
         v.id,
@@ -301,6 +312,14 @@ export async function montarLinhasAuditoria(
         return a.arquivada
           ? { texto: `${a.titulo} (arquivada)`, href: "/atividades/arquivadas" }
           : { texto: a.titulo, href: `/atividades?atividade=${a.id}` };
+      }
+      case "kanban_comentarios": {
+        const c = comentariosMap.get(l.registro_id);
+        const a = c ? atividades.get(c.atividade_id) : undefined;
+        if (!a) return { texto: "Comentário de atividade não encontrada", href: null };
+        return a.arquivada
+          ? { texto: `Comentário · ${a.titulo} (arquivada)`, href: "/atividades/arquivadas" }
+          : { texto: `Comentário · ${a.titulo}`, href: `/atividades?atividade=${a.id}` };
       }
       case "kanban_colunas":
         return {

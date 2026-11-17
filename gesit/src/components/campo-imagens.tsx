@@ -2,7 +2,7 @@
 
 import { CampoAnexos, type ItemAnexo } from "@/components/campo-anexos";
 import { Label } from "@/components/ui/label";
-import { IMAGEM_ACCEPT, IMAGENS_MAXIMO, validarImagem } from "@/lib/imagens-dispositivos";
+import { IMAGEM_ACCEPT, IMAGENS_MAXIMO, validarImagem } from "@/lib/imagens-cliente";
 
 type Props = {
   id: string;

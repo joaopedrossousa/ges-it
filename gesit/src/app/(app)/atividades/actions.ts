@@ -9,9 +9,13 @@ import {
   atividadeSchema,
   categoriaKanbanSchema,
   colunaKanbanSchema,
+  comentarioSchema,
+  edicaoComentarioSchema,
   type AtividadeFormInput,
   type CategoriaKanbanFormInput,
   type ColunaKanbanFormInput,
+  type ComentarioInput,
+  type EdicaoComentarioInput,
 } from "@/lib/validators";
 
 /**
@@ -113,19 +117,19 @@ export async function restaurarColuna(id: string): Promise<ActionResult> {
 
 type CampoAtividade = keyof AtividadeFormInput;
 
+/** Devolve o id: o painel marca "Urgente" logo depois, se pedido. */
 export async function criarAtividade(
   input: AtividadeFormInput,
-): Promise<ActionResult<CampoAtividade>> {
+): Promise<ActionResult<CampoAtividade> & { id?: string }> {
   const parsed = atividadeSchema.safeParse(input);
   if (!parsed.success) return errosDoZod(parsed.error);
   const d = parsed.data;
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("criar_atividade", {
+  const { data: id, error } = await supabase.rpc("criar_atividade", {
     p_coluna: d.coluna_id,
     p_titulo: d.titulo,
     p_prioridade: d.prioridade,
-    p_descricao: d.descricao ?? undefined,
     p_responsavel: d.responsavel_id ?? undefined,
     p_prazo: d.prazo ?? undefined,
     p_categorias: d.categorias,
@@ -133,7 +137,7 @@ export async function criarAtividade(
   if (error) return erroDoBanco(error);
 
   revalidar();
-  return { ok: true };
+  return { ok: true, id };
 }
 
 /** Trocar a coluna aqui leva a atividade para o fim da nova coluna. */
@@ -152,7 +156,6 @@ export async function atualizarAtividade(
     p_coluna: d.coluna_id,
     p_titulo: d.titulo,
     p_prioridade: d.prioridade,
-    p_descricao: d.descricao ?? undefined,
     p_responsavel: d.responsavel_id ?? undefined,
     p_prazo: d.prazo ?? undefined,
     p_categorias: d.categorias,
@@ -206,6 +209,82 @@ export async function restaurarAtividade(id: string, colunaId?: string): Promise
     p_atividade: id,
     p_coluna: colunaId,
   });
+  if (error) return erroDoBanco(error);
+
+  revalidar();
+  return { ok: true };
+}
+
+/** Liga ou desliga a flag "Urgente" (o banco grava quem marcou e quando). */
+export async function marcarUrgente(id: string, urgente: boolean): Promise<ActionResult> {
+  if (!idSchema.safeParse(id).success) return invalido("Atividade");
+  if (typeof urgente !== "boolean") return { ok: false, error: "Valor inválido." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("marcar_urgente", { p_atividade: id, p_urgente: urgente });
+  if (error) return erroDoBanco(error);
+
+  revalidar();
+  return { ok: true };
+}
+
+// ===========================================================================
+// Comentários (migration 022). As imagens já foram enviadas pelo navegador
+// ao bucket "atividades"; as funções conferem a pasta e o arquivo.
+// ===========================================================================
+
+type CampoComentario = "texto" | "anexos";
+
+export async function adicionarComentario(
+  input: ComentarioInput,
+): Promise<ActionResult<CampoComentario>> {
+  const parsed = comentarioSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+  const { atividade_id, texto, anexos } = parsed.data;
+  if (!texto && anexos.length === 0) {
+    return { ok: false, error: "Escreva um comentário ou anexe uma imagem." };
+  }
+  if (anexos.some((a) => !a.path.startsWith(`${atividade_id}/`))) return invalido("Imagem");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("adicionar_comentario", {
+    p_atividade: atividade_id,
+    p_texto: texto ?? "", // vazio = sem texto (a função usa nullif)
+    p_anexos: anexos,
+  });
+  if (error) return erroDoBanco(error);
+
+  revalidar();
+  return { ok: true };
+}
+
+/** Só o autor (conferido no banco). */
+export async function editarComentario(
+  input: EdicaoComentarioInput,
+): Promise<ActionResult<CampoComentario>> {
+  const parsed = edicaoComentarioSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+  const d = parsed.data;
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("editar_comentario", {
+    p_comentario: d.comentario_id,
+    p_texto: d.texto ?? "",
+    p_anexos_novos: d.anexos_novos,
+    p_anexos_removidos: d.anexos_removidos,
+  });
+  if (error) return erroDoBanco(error);
+
+  revalidar();
+  return { ok: true };
+}
+
+/** Só o autor (conferido no banco). Marca como removido. */
+export async function removerComentario(id: string): Promise<ActionResult> {
+  if (!idSchema.safeParse(id).success) return invalido("Comentário");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remover_comentario", { p_comentario: id });
   if (error) return erroDoBanco(error);
 
   revalidar();

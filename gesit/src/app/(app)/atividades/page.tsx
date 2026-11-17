@@ -12,6 +12,7 @@ import {
   listarUsuariosSistema,
 } from "@/lib/atividades-servidor";
 import { hojeEmPalmas } from "@/lib/format";
+import { createClient } from "@/lib/supabase/server";
 
 import { NovaColunaBotao } from "./coluna-form-dialog";
 import { Quadro } from "./quadro";
@@ -55,12 +56,14 @@ async function QuadroComDados() {
       listarAtividadesAtivas(),
       listarCategoriasKanban(),
       listarUsuariosSistema(),
+      // Usuário logado: só o autor edita/remove o próprio comentário.
+      createClient().then((s) => s.auth.getClaims()),
     ]);
   } catch (e) {
     console.error("Erro ao carregar o quadro de atividades:", e);
     return <p className="text-destructive">Não foi possível carregar o quadro.</p>;
   }
-  const [colunas, atividades, categorias, usuarios] = dados;
+  const [colunas, atividades, categorias, usuarios, sessao] = dados;
   return (
     <Quadro
       colunas={colunas}
@@ -68,6 +71,7 @@ async function QuadroComDados() {
       categorias={categorias}
       usuarios={usuarios}
       hoje={hojeEmPalmas()}
+      usuarioId={sessao.data?.claims.sub ?? null}
     />
   );
 }

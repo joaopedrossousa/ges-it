@@ -645,9 +645,9 @@ export const categoriaKanbanSchema = z.object({
 });
 
 /** Atividade (cartão). A posição é definida pelas funções do banco. */
+/** A descrição virou comentários (migration 022). */
 export const atividadeSchema = z.object({
   titulo: textoObrigatorio("o título", 200),
-  descricao: textoOpcional(5000),
   prioridade: z
     .enum(PRIORIDADES_ATIVIDADE, { error: "Prioridade inválida." })
     .default("media"),
@@ -660,7 +660,33 @@ export const atividadeSchema = z.object({
   prazo: dataOpcional,
 });
 
+/** Imagens do comentário, já no bucket "atividades" ({atividade_id}/...). */
+const anexosComentario = z
+  .array(
+    z.object({
+      path: z.string().regex(REGEX_CAMINHO_IMAGEM, "Imagem inválida."),
+      nome: z.string().trim().min(1).max(255),
+    }),
+  )
+  .max(20, "Envie no máximo 20 imagens por comentário.")
+  .default([]);
+
+export const comentarioSchema = z.object({
+  atividade_id: idObrigatorio("Atividade inválida."),
+  texto: textoOpcional(5000),
+  anexos: anexosComentario,
+});
+
+export const edicaoComentarioSchema = z.object({
+  comentario_id: idObrigatorio("Comentário inválido."),
+  texto: textoOpcional(5000),
+  anexos_novos: anexosComentario,
+  anexos_removidos: z.array(z.uuid("Imagem inválida.")).max(20).default([]),
+});
+
 // Tipos de entrada (formulário) e saída (já normalizada para o banco).
+export type ComentarioInput = z.input<typeof comentarioSchema>;
+export type EdicaoComentarioInput = z.input<typeof edicaoComentarioSchema>;
 export type ColunaKanbanFormInput = z.input<typeof colunaKanbanSchema>;
 export type CategoriaKanbanFormInput = z.input<typeof categoriaKanbanSchema>;
 export type CategoriaKanbanFormData = z.output<typeof categoriaKanbanSchema>;

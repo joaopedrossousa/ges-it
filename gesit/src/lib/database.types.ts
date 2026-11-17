@@ -345,6 +345,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "kanban_atividade_categorias_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "vw_atividades_urgentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_atividade_categorias_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "vw_minhas_atividades"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "kanban_atividade_categorias_categoria_id_fkey"
             columns: ["categoria_id"]
             isOneToOne: false
@@ -367,6 +381,9 @@ export type Database = {
           responsavel_id: string | null
           titulo: string
           updated_at: string
+          urgente: boolean
+          urgente_em: string | null
+          urgente_por: string | null
         }
         Insert: {
           arquivada?: boolean
@@ -381,6 +398,9 @@ export type Database = {
           responsavel_id?: string | null
           titulo: string
           updated_at?: string
+          urgente?: boolean
+          urgente_em?: string | null
+          urgente_por?: string | null
         }
         Update: {
           arquivada?: boolean
@@ -395,6 +415,9 @@ export type Database = {
           responsavel_id?: string | null
           titulo?: string
           updated_at?: string
+          urgente?: boolean
+          urgente_em?: string | null
+          urgente_por?: string | null
         }
         Relationships: [
           {
@@ -462,6 +485,96 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      kanban_comentario_anexos: {
+        Row: {
+          comentario_id: string
+          created_at: string
+          id: string
+          nome_arquivo: string
+          path: string
+          removido: boolean
+        }
+        Insert: {
+          comentario_id: string
+          created_at?: string
+          id?: string
+          nome_arquivo: string
+          path: string
+          removido?: boolean
+        }
+        Update: {
+          comentario_id?: string
+          created_at?: string
+          id?: string
+          nome_arquivo?: string
+          path?: string
+          removido?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_comentario_anexos_comentario_id_fkey"
+            columns: ["comentario_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_comentarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kanban_comentarios: {
+        Row: {
+          atividade_id: string
+          autor_id: string | null
+          created_at: string
+          editado_em: string | null
+          id: string
+          removido: boolean
+          removido_em: string | null
+          texto: string | null
+        }
+        Insert: {
+          atividade_id: string
+          autor_id?: string | null
+          created_at?: string
+          editado_em?: string | null
+          id?: string
+          removido?: boolean
+          removido_em?: string | null
+          texto?: string | null
+        }
+        Update: {
+          atividade_id?: string
+          autor_id?: string | null
+          created_at?: string
+          editado_em?: string | null
+          id?: string
+          removido?: boolean
+          removido_em?: string | null
+          texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "vw_atividades_urgentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "vw_minhas_atividades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lancamentos: {
         Row: {
@@ -773,6 +886,33 @@ export type Database = {
       }
     }
     Views: {
+      vw_atividades_urgentes: {
+        Row: {
+          coluna_cor: Database["public"]["Enums"]["cor_kanban"] | null
+          coluna_id: string | null
+          coluna_nome: string | null
+          comentarios: number | null
+          created_at: string | null
+          id: string | null
+          prazo: string | null
+          prioridade: Database["public"]["Enums"]["prioridade_atividade"] | null
+          responsavel_id: string | null
+          titulo: string | null
+          updated_at: string | null
+          urgente: boolean | null
+          urgente_em: string | null
+          urgente_por: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_atividades_coluna_id_fkey"
+            columns: ["coluna_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_colunas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_ativos_por_filial: {
         Row: {
           em_estoque: number | null
@@ -879,6 +1019,35 @@ export type Database = {
           },
         ]
       }
+      vw_kanban_comentarios_contagem: {
+        Row: {
+          atividade_id: string | null
+          total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "vw_atividades_urgentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_comentarios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "vw_minhas_atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_lancamentos: {
         Row: {
           anexo_path: string | null
@@ -920,6 +1089,32 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_minhas_atividades: {
+        Row: {
+          coluna_cor: Database["public"]["Enums"]["cor_kanban"] | null
+          coluna_id: string | null
+          coluna_nome: string | null
+          comentarios: number | null
+          created_at: string | null
+          id: string | null
+          prazo: string | null
+          prioridade: Database["public"]["Enums"]["prioridade_atividade"] | null
+          responsavel_id: string | null
+          titulo: string | null
+          updated_at: string | null
+          urgente: boolean | null
+          urgente_em: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_atividades_coluna_id_fkey"
+            columns: ["coluna_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_colunas"
             referencedColumns: ["id"]
           },
         ]
@@ -992,6 +1187,10 @@ export type Database = {
       }
     }
     Functions: {
+      adicionar_comentario: {
+        Args: { p_anexos?: Json; p_atividade: string; p_texto: string }
+        Returns: string
+      }
       adicionar_imagens_dispositivo: {
         Args: {
           p_dispositivo_id: string
@@ -1068,6 +1267,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      editar_comentario: {
+        Args: {
+          p_anexos_novos?: Json
+          p_anexos_removidos?: string[]
+          p_comentario: string
+          p_texto: string
+        }
+        Returns: undefined
+      }
       emails_operadores: {
         Args: { p_ids: string[] }
         Returns: {
@@ -1079,11 +1287,27 @@ export type Database = {
         Args: { p_atividade: string; p_categorias: string[] }
         Returns: undefined
       }
+      kanban_gravar_anexos_comentario: {
+        Args: { p_anexos: Json; p_atividade: string; p_comentario: string }
+        Returns: undefined
+      }
+      kanban_log_anexos_comentario: {
+        Args: { p_antes: string[]; p_comentario: string; p_depois: string[] }
+        Returns: undefined
+      }
+      kanban_nomes_anexos_comentario: {
+        Args: { p_comentario: string }
+        Returns: string[]
+      }
       kanban_reindexar_atividades: {
         Args: { p_coluna: string }
         Returns: undefined
       }
       kanban_reindexar_colunas: { Args: never; Returns: undefined }
+      marcar_urgente: {
+        Args: { p_atividade: string; p_urgente: boolean }
+        Returns: undefined
+      }
       mascarar_cpf_auditoria: { Args: { p_cpf: string }; Returns: Json }
       mover_atividade: {
         Args: {
@@ -1106,6 +1330,7 @@ export type Database = {
         Returns: string[]
       }
       ping: { Args: never; Returns: number }
+      remover_comentario: { Args: { p_comentario: string }; Returns: undefined }
       remover_imagem_dispositivo: {
         Args: { p_imagem_id: string }
         Returns: undefined

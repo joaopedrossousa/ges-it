@@ -1,6 +1,6 @@
 "use client";
 
-import { ArchiveIcon, XIcon } from "lucide-react";
+import { ArchiveIcon, SirenIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 
 import { CampoBusca } from "@/components/campo-busca";
@@ -59,11 +59,11 @@ export function BarraFiltros({
       <CampoBusca
         key={filtros.q ? "busca" : "busca-vazia"}
         valorInicial={filtros.q}
-        placeholder="Buscar no título ou na descrição"
+        placeholder="Buscar no título"
         onBuscar={gravar("q")}
       />
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:flex">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 lg:flex">
         <ComboboxLista
           opcoes={opcoesCategorias}
           value={valor(filtros.categoria)}
@@ -97,6 +97,16 @@ export function BarraFiltros({
           vazio="Nenhum usuário encontrado."
           className="lg:w-56"
         />
+
+        <Button
+          type="button"
+          variant={filtros.urgente ? "default" : "outline"}
+          aria-pressed={Boolean(filtros.urgente)}
+          onClick={() => onChange("urgente", filtros.urgente ? "" : "1")}
+        >
+          <SirenIcon />
+          Urgentes
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-2 lg:ml-auto">

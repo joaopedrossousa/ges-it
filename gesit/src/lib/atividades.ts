@@ -109,7 +109,6 @@ export type AtividadeQuadro = {
   id: string;
   coluna_id: string;
   titulo: string;
-  descricao: string | null;
   prioridade: PrioridadeAtividade;
   responsavel_id: string | null;
   prazo: string | null;
@@ -118,7 +117,26 @@ export type AtividadeQuadro = {
   criado_por: string | null;
   created_at: string;
   updated_at: string;
+  /** Flag "Urgente" (migration 022): quem marcou e quando. */
+  urgente: boolean;
+  urgente_por: string | null;
+  urgente_em: string | null;
+  /** Comentários não removidos (vw_kanban_comentarios_contagem). */
+  comentarios: number;
 };
+
+/** Comentário do painel (GET /api/atividades/comentarios). */
+export type ComentarioAtividade = {
+  id: string;
+  texto: string | null;
+  autor_id: string | null;
+  created_at: string;
+  editado_em: string | null;
+  anexos: { id: string; nome: string }[];
+};
+
+/** Imagem do comentário: URL assinada de 60 s gerada no clique/carga. */
+export const urlAnexoComentario = (id: string) => `/api/atividades/anexo?id=${id}`;
 
 /** Nome para exibir: o do cadastro, senão o e-mail. */
 export function nomeUsuario(u: UsuarioSistema | undefined): string {
@@ -144,7 +162,7 @@ export function situacaoPrazo(prazo: string, hoje: string): SituacaoPrazo {
 }
 
 // ===========================================================================
-// Filtros do quadro (no navegador; ?q, ?categoria, ?prioridade, ?responsavel)
+// Filtros do quadro (no navegador; ?q, ?categoria, ?prioridade, ?responsavel, ?urgente)
 // ===========================================================================
 
 /** Valor de ?responsavel para atividades sem responsável. */
@@ -155,15 +173,24 @@ export type FiltrosQuadro = {
   categoria: string;
   prioridade: string;
   responsavel: string;
+  /** "1" = só urgentes. */
+  urgente: string;
 };
 
-export const FILTROS_VAZIOS: FiltrosQuadro = { q: "", categoria: "", prioridade: "", responsavel: "" };
+export const FILTROS_VAZIOS: FiltrosQuadro = {
+  q: "",
+  categoria: "",
+  prioridade: "",
+  responsavel: "",
+  urgente: "",
+};
 
 export const temFiltro = (f: FiltrosQuadro) =>
-  Boolean(f.q || f.categoria || f.prioridade || f.responsavel);
+  Boolean(f.q || f.categoria || f.prioridade || f.responsavel || f.urgente);
 
-/** A atividade passa nos filtros? Busca sem acento no título e na descrição. */
+/** A atividade passa nos filtros? Busca sem acento no título. */
 export function passaNosFiltros(a: AtividadeQuadro, f: FiltrosQuadro): boolean {
+  if (f.urgente && !a.urgente) return false;
   if (f.prioridade && a.prioridade !== f.prioridade) return false;
   if (f.categoria && !a.categorias.includes(f.categoria)) return false;
   if (f.responsavel === SEM_RESPONSAVEL) {
@@ -172,6 +199,6 @@ export function passaNosFiltros(a: AtividadeQuadro, f: FiltrosQuadro): boolean {
     return false;
   }
   const termo = normalizarBusca(f.q);
-  if (termo && !normalizarBusca(`${a.titulo} ${a.descricao ?? ""}`).includes(termo)) return false;
+  if (termo && !normalizarBusca(a.titulo).includes(termo)) return false;
   return true;
 }

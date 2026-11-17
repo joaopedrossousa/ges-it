@@ -30,15 +30,17 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "cn";
 import {
   AlarmClockIcon,
-  AlignLeftIcon,
   ArchiveIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   CalendarIcon,
   GripVerticalIcon,
+  MessageCircleIcon,
   MoreHorizontalIcon,
+  PanelRightOpenIcon,
   PencilIcon,
   PlusIcon,
+  SirenIcon,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
@@ -80,7 +82,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { executarAcao } from "@/lib/executar-acao";
 import { formatarDataISO } from "@/lib/format";
 
-import { arquivarColuna, moverAtividade, moverColuna } from "./actions";
+import { arquivarColuna, marcarUrgente, moverAtividade, moverColuna } from "./actions";
 import { ColunaFormDialog } from "./coluna-form-dialog";
 import { BarraFiltros } from "./filtros-quadro";
 import { PainelAtividade, type EstadoPainel } from "./painel-atividade";
@@ -94,6 +96,8 @@ type Props = {
   usuarios: UsuarioSistema[];
   /** "AAAA-MM-DD" em Palmas, calculado no servidor. */
   hoje: string;
+  /** Usuário logado (autor dos comentários). */
+  usuarioId: string | null;
 };
 
 /** Ids do dnd-kit: "c:<id>" para colunas e "a:<id>" para atividades. */
@@ -118,7 +122,7 @@ function colunaDe(id: string, itens: Itens): string | undefined {
   return Object.keys(itens).find((c) => itens[c].includes(id));
 }
 
-const FILTROS_URL = ["q", "categoria", "prioridade", "responsavel"] as const;
+const FILTROS_URL = ["q", "categoria", "prioridade", "responsavel", "urgente"] as const;
 
 /** Grava ?chave=valor sem recarregar (os filtros rodam no navegador). */
 function gravarNaUrl(mudancas: Record<string, string>) {
@@ -131,7 +135,7 @@ function gravarNaUrl(mudancas: Record<string, string>) {
   window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
 }
 
-export function Quadro({ colunas, atividades, categorias, usuarios, hoje }: Props) {
+export function Quadro({ colunas, atividades, categorias, usuarios, hoje, usuarioId }: Props) {
   const searchParams = useSearchParams();
 
   // Estado local (otimista) da ordem; volta a seguir o servidor quando não há
@@ -154,6 +158,7 @@ export function Quadro({ colunas, atividades, categorias, usuarios, hoje }: Prop
     categoria: searchParams.get("categoria") ?? "",
     prioridade: searchParams.get("prioridade") ?? "",
     responsavel: searchParams.get("responsavel") ?? "",
+    urgente: searchParams.get("urgente") === "1" ? "1" : "",
   }));
 
   const [painel, setPainel] = useState<EstadoPainel>(() => {
@@ -486,6 +491,7 @@ export function Quadro({ colunas, atividades, categorias, usuarios, hoje }: Prop
         colunas={colunasEmOrdem}
         categorias={categorias}
         usuarios={usuarios}
+        usuarioId={usuarioId}
         onFechar={fecharPainel}
       />
 
@@ -684,7 +690,11 @@ function CartaoAtividade({
   }
 
   return (
-    <li ref={setNodeRef} style={{ transform: CSS.Translate.toString(transform), transition }}>
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className="relative"
+    >
       <div
         {...attributes}
         {...listeners}
@@ -697,13 +707,59 @@ function CartaoAtividade({
           categoriasPorId={categoriasPorId}
           usuariosPorId={usuariosPorId}
           hoje={hoje}
+          comMenu
           className={cn(
             "cursor-grab touch-manipulation active:cursor-grabbing",
             isDragging && "opacity-40",
           )}
         />
       </div>
+      {/* Fora da área arrastável: o botão não dispara o arrasto nem abre o painel. */}
+      {!isDragging && <MenuCartao atividade={atividade} onAbrir={onAbrir} />}
     </li>
+  );
+}
+
+/** Menu "..." do cartão: abrir e ligar/desligar "Urgente". */
+function MenuCartao({ atividade, onAbrir }: { atividade: AtividadeQuadro; onAbrir: () => void }) {
+  const [isPending, startTransition] = useTransition();
+
+  function alternarUrgente() {
+    const valor = !atividade.urgente;
+    startTransition(async () => {
+      const r = await executarAcao(() => marcarUrgente(atividade.id, valor));
+      if (!r.ok) {
+        toast.error("Não foi possível alterar \"Urgente\".", { description: r.error });
+        return;
+      }
+      toast.success(valor ? "Marcada como urgente." : "Deixou de ser urgente.");
+    });
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="absolute top-2 right-2 text-muted-foreground"
+          aria-label={`Ações da atividade ${atividade.titulo}`}
+          disabled={isPending}
+        >
+          {isPending ? <Carregando decorativo tamanho="sm" /> : <MoreHorizontalIcon />}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onAbrir}>
+          <PanelRightOpenIcon />
+          Abrir
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={alternarUrgente}>
+          <SirenIcon />
+          {atividade.urgente ? "Desmarcar urgente" : "Marcar como urgente"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -712,12 +768,15 @@ function CartaoConteudo({
   categoriasPorId,
   usuariosPorId,
   hoje,
+  comMenu,
   className,
 }: {
   atividade: AtividadeQuadro;
   categoriasPorId: Map<string, CategoriaKanban>;
   usuariosPorId: Map<string, UsuarioSistema>;
   hoje: string;
+  /** Deixa espaço no título para o botão "..." do cartão. */
+  comMenu?: boolean;
   className?: string;
 }) {
   const categorias = a.categorias
@@ -730,22 +789,36 @@ function CartaoConteudo({
     <div
       className={cn(
         "grid gap-2 rounded-lg border bg-cartao-kanban p-3 text-card-foreground shadow-xs transition-colors hover:border-ring/50 in-focus-visible:ring-3 in-focus-visible:ring-ring/50",
+        // Urgente: faixa suave à esquerda, no tom pastel do vermelho.
+        a.urgente && "border-l-4 border-l-etiqueta-vermelho-texto/40",
         className,
       )}
     >
-      <p className="text-sm leading-snug font-medium break-words">{a.titulo}</p>
+      <p className={cn("text-sm leading-snug font-medium break-words", comMenu && "pr-6")}>
+        {a.titulo}
+      </p>
 
       <div className="flex flex-wrap items-center gap-1">
+        {a.urgente && (
+          <Etiqueta cor="vermelho">
+            <SirenIcon aria-hidden className="size-3" />
+            Urgente
+          </Etiqueta>
+        )}
         <SeloPrioridade prioridade={a.prioridade} />
         {categorias.map((c) => (
           <Etiqueta key={c.id} cor={c.cor}>
             {c.nome}
           </Etiqueta>
         ))}
-        {a.descricao && (
-          <span title="Tem descrição" className="text-muted-foreground">
-            <AlignLeftIcon aria-hidden className="size-3.5" />
-            <span className="sr-only">Tem descrição</span>
+        {a.comentarios > 0 && (
+          <span
+            title={`${a.comentarios} ${a.comentarios === 1 ? "comentário" : "comentários"}`}
+            className="flex items-center gap-0.5 text-xs text-muted-foreground tabular-nums"
+          >
+            <MessageCircleIcon aria-hidden className="size-3.5" />
+            {a.comentarios}
+            <span className="sr-only">{a.comentarios === 1 ? " comentário" : " comentários"}</span>
           </span>
         )}
       </div>

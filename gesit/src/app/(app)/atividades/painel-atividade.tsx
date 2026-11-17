@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArchiveIcon } from "lucide-react";
+import { ArchiveIcon, SirenIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   PRIORIDADE_LABEL,
   nomeUsuario,
@@ -56,7 +56,14 @@ import {
   type AtividadeFormInput,
 } from "@/lib/validators";
 
-import { arquivarAtividade, atualizarAtividade, criarAtividade, restaurarAtividade } from "./actions";
+import {
+  arquivarAtividade,
+  atualizarAtividade,
+  criarAtividade,
+  marcarUrgente,
+  restaurarAtividade,
+} from "./actions";
+import { ComentariosAtividade } from "./comentarios-atividade";
 
 /** O que o painel mostra: nova atividade numa coluna ou edição de uma existente. */
 export type EstadoPainel = { modo: "nova"; colunaId: string } | { modo: "editar"; id: string } | null;
@@ -68,10 +75,20 @@ type Props = {
   colunas: ColunaQuadro[];
   categorias: CategoriaKanban[];
   usuarios: UsuarioSistema[];
+  /** Usuário logado (autor dos comentários). */
+  usuarioId: string | null;
   onFechar: () => void;
 };
 
-export function PainelAtividade({ estado, atividade, colunas, categorias, usuarios, onFechar }: Props) {
+export function PainelAtividade({
+  estado,
+  atividade,
+  colunas,
+  categorias,
+  usuarios,
+  usuarioId,
+  onFechar,
+}: Props) {
   const aberto = estado !== null && (estado.modo === "nova" || atividade !== null);
   const editando = estado?.modo === "editar";
 
@@ -99,6 +116,7 @@ export function PainelAtividade({ estado, atividade, colunas, categorias, usuari
             colunas={colunas}
             categorias={categorias}
             usuarios={usuarios}
+            usuarioId={usuarioId}
             onFechar={onFechar}
           />
         )}
@@ -108,7 +126,7 @@ export function PainelAtividade({ estado, atividade, colunas, categorias, usuari
 }
 
 type Campo = keyof AtividadeFormInput;
-const CAMPOS: Campo[] = ["titulo", "descricao", "prioridade", "coluna_id", "categorias", "responsavel_id", "prazo"];
+const CAMPOS: Campo[] = ["titulo", "prioridade", "coluna_id", "categorias", "responsavel_id", "prazo"];
 
 function FormAtividade({
   atividade,
@@ -116,6 +134,7 @@ function FormAtividade({
   colunas,
   categorias,
   usuarios,
+  usuarioId,
   onFechar,
 }: {
   atividade: AtividadeQuadro | null;
@@ -123,10 +142,13 @@ function FormAtividade({
   colunas: ColunaQuadro[];
   categorias: CategoriaKanban[];
   usuarios: UsuarioSistema[];
+  usuarioId: string | null;
   onFechar: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [confirmarArquivo, setConfirmarArquivo] = useState(false);
+  // Nova atividade: aplicado logo depois de criar.
+  const [urgenteNova, setUrgenteNova] = useState(false);
 
   const {
     register,
@@ -138,7 +160,6 @@ function FormAtividade({
     resolver: zodResolver(atividadeSchema),
     defaultValues: {
       titulo: atividade?.titulo ?? "",
-      descricao: atividade?.descricao ?? "",
       prioridade: atividade?.prioridade ?? "media",
       coluna_id: colunaInicial,
       categorias: atividade?.categorias ?? [],
@@ -152,6 +173,12 @@ function FormAtividade({
       const r = await executarAcao(() =>
         atividade ? atualizarAtividade(atividade.id, values) : criarAtividade(values),
       );
+      // Nova e marcada como urgente: a flag vai numa chamada própria.
+      if (r.ok && !atividade && urgenteNova && "id" in r && typeof r.id === "string") {
+        const id = r.id;
+        const u = await executarAcao(() => marcarUrgente(id, true));
+        if (!u.ok) toast.warning("A atividade foi criada, mas não foi marcada como urgente.", { description: u.error });
+      }
       if (!r.ok) {
         let algum = false;
         for (const campo of CAMPOS) {
@@ -207,8 +234,9 @@ function FormAtividade({
 
   return (
     <>
-      <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="grid flex-1 content-start gap-4 overflow-y-auto p-4">
+          <form id="form-atividade" onSubmit={onSubmit} noValidate className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="at-titulo">Título</Label>
             <Input
@@ -225,19 +253,22 @@ function FormAtividade({
             <MensagemErro id="at-titulo-erro" mensagem={erro("titulo")} />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="at-descricao">Descrição (opcional)</Label>
-            <Textarea
-              id="at-descricao"
-              rows={5}
-              maxLength={5000}
-              aria-invalid={Boolean(erro("descricao"))}
-              aria-describedby={descrito("descricao", erro("descricao"))}
-              disabled={isPending}
-              {...register("descricao")}
-            />
-            <MensagemErro id="at-descricao-erro" mensagem={erro("descricao")} />
-          </div>
+          {atividade ? (
+            <CampoUrgente atividade={atividade} usuarios={usuarios} disabled={isPending} />
+          ) : (
+            <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+              <Label htmlFor="at-urgente" className="flex items-center gap-2">
+                <SirenIcon className="size-4 text-etiqueta-vermelho-texto" aria-hidden />
+                Urgente
+              </Label>
+              <Switch
+                id="at-urgente"
+                checked={urgenteNova}
+                onCheckedChange={setUrgenteNova}
+                disabled={isPending}
+              />
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
@@ -379,6 +410,16 @@ function FormAtividade({
               {errors.root.message}
             </p>
           )}
+          </form>
+
+          {/* Comentários: fora do formulário (têm envio próprio). */}
+          {atividade && (
+            <ComentariosAtividade
+              atividadeId={atividade.id}
+              usuarioId={usuarioId}
+              usuarios={usuarios}
+            />
+          )}
         </div>
 
         <SheetFooter>
@@ -397,12 +438,12 @@ function FormAtividade({
           <Button type="button" variant="outline" onClick={onFechar} disabled={isPending}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" form="form-atividade" disabled={isPending}>
             {isPending && <Carregando decorativo tamanho="sm" />}
             {isPending ? "Salvando..." : "Salvar"}
           </Button>
         </SheetFooter>
-      </form>
+      </div>
 
       <Dialog open={confirmarArquivo} onOpenChange={setConfirmarArquivo}>
         <DialogContent>
@@ -425,5 +466,61 @@ function FormAtividade({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+/**
+ * "Urgente" de uma atividade existente: grava na hora (não depende do
+ * Salvar). Mostra quem marcou e quando.
+ */
+function CampoUrgente({
+  atividade,
+  usuarios,
+  disabled,
+}: {
+  atividade: AtividadeQuadro;
+  usuarios: UsuarioSistema[];
+  disabled: boolean;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const marcadoPor = atividade.urgente_por
+    ? nomeUsuario(usuarios.find((u) => u.id === atividade.urgente_por))
+    : null;
+
+  function alternar(valor: boolean) {
+    startTransition(async () => {
+      const r = await executarAcao(() => marcarUrgente(atividade.id, valor));
+      if (!r.ok) {
+        toast.error("Não foi possível alterar \"Urgente\".", { description: r.error });
+        return;
+      }
+      toast.success(valor ? "Marcada como urgente." : "Deixou de ser urgente.");
+    });
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+      <div className="grid gap-0.5">
+        <Label htmlFor="at-urgente" className="flex items-center gap-2">
+          <SirenIcon className="size-4 text-etiqueta-vermelho-texto" aria-hidden />
+          Urgente
+        </Label>
+        <p id="at-urgente-ajuda" className="text-xs text-muted-foreground">
+          {atividade.urgente && atividade.urgente_em
+            ? `Marcada${marcadoPor ? ` por ${marcadoPor}` : ""} em ${formatarDataHora(atividade.urgente_em)}.`
+            : "Grava na hora, sem precisar salvar."}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        {isPending && <Carregando rotulo="Salvando..." tamanho="sm" />}
+        <Switch
+          id="at-urgente"
+          checked={atividade.urgente}
+          onCheckedChange={alternar}
+          disabled={disabled || isPending}
+          aria-describedby="at-urgente-ajuda"
+        />
+      </div>
+    </div>
   );
 }

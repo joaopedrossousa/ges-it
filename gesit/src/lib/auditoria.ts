@@ -39,6 +39,7 @@ export const TABELAS_AUDITORIA = [
   "servicos_financeiros",
   "lancamentos",
   "kanban_atividades",
+  "kanban_comentarios",
   "kanban_colunas",
   "kanban_categorias",
 ] as const;
@@ -54,6 +55,7 @@ export const TIPO_REGISTRO_LABEL: Record<TabelaAuditoria, string> = {
   servicos_financeiros: "Serviço Financeiro",
   lancamentos: "Lançamento",
   kanban_atividades: "Atividade",
+  kanban_comentarios: "Comentário de Atividade",
   kanban_colunas: "Coluna do Quadro",
   kanban_categorias: "Categoria de Atividade",
 };
@@ -186,6 +188,18 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     prazo: "Prazo",
     arquivada: "Arquivada",
     categorias: "Categorias",
+    // Migration 022
+    urgente: "Urgente",
+    urgente_por: "Marcada como urgente por",
+    urgente_em: "Urgente desde",
+  },
+  kanban_comentarios: {
+    atividade_id: "Atividade",
+    texto: "Comentário",
+    anexos: "Imagens",
+    editado_em: "Editado em",
+    removido: "Removido",
+    removido_em: "Removido em",
   },
   kanban_colunas: {
     nome: "Nome",
@@ -212,6 +226,8 @@ const CAMPOS_OCULTOS = new Set([
   "posicao",
   // Imagens: quem removeu já é o Usuário do log.
   "removida_por",
+  // Comentários: o autor é o Usuário do log da inserção.
+  "autor_id",
 ]);
 
 /** Caminhos de arquivo: mostrados como "arquivo anexado/substituído". */
@@ -219,7 +235,14 @@ const CAMPOS_ARQUIVO = new Set(["termo_path", "nota_fiscal_path", "anexo_path", 
 
 const DATAS = new Set(["baixa_data", "data_compra", "fim_vida_util", "data_servico", "vencimento", "data_pagamento", "prazo"]);
 const MOEDA = new Set(["custo", "valor", "valor_referencia"]);
-const DATAS_HORA = new Set(["data_inicio", "data_fim", "removida_em"]);
+const DATAS_HORA = new Set([
+  "data_inicio",
+  "data_fim",
+  "removida_em",
+  "urgente_em",
+  "editado_em",
+  "removido_em",
+]);
 
 export function rotuloCampo(tabela: TabelaAuditoria, campo: string): string {
   return CAMPOS[tabela][campo] ?? campo;
@@ -236,6 +259,8 @@ export type NomesAuditoria = {
   dispositivos: Map<string, string>;
   /** Vínculo → nome do usuário (imagens de entrega/transferência/devolução). */
   vinculos: Map<string, string>;
+  /** Atividade → título (comentários). */
+  atividades: Map<string, string>;
   servicosFinanceiros: Map<string, string>;
   colunasKanban: Map<string, string>;
   categoriasKanban: Map<string, string>;
@@ -260,7 +285,7 @@ export function formatarValorAuditoria(
     const lista = valor.map((id) => (typeof id === "string" && nomes.categoriasKanban.get(id)) || "Categoria não encontrada");
     return lista.join(", ") || "Nenhuma";
   }
-  if (campo === "baixa_anexos" && Array.isArray(valor)) {
+  if ((campo === "baixa_anexos" || campo === "anexos") && Array.isArray(valor)) {
     return valor.filter((x): x is string => typeof x === "string").join(", ") || "Nenhum";
   }
   if (Array.isArray(valor)) {
@@ -276,7 +301,10 @@ export function formatarValorAuditoria(
   if (campo === "vinculo_id") return nomes.vinculos.get(s) ?? "Vínculo não encontrado";
   if (campo === "momento" && ehMomentoImagem(s)) return MOMENTO_IMAGEM_LABEL[s];
   if (campo === "coluna_id") return nomes.colunasKanban.get(s) ?? "Coluna não encontrada";
-  if (campo === "responsavel_id") return nomes.usuarios.get(s) ?? "Usuário removido";
+  if (campo === "responsavel_id" || campo === "urgente_por") {
+    return nomes.usuarios.get(s) ?? "Usuário removido";
+  }
+  if (campo === "atividade_id") return nomes.atividades.get(s) ?? "Atividade não encontrada";
   if (campo === "prioridade") return PRIORIDADE_LABEL[s as keyof typeof PRIORIDADE_LABEL] ?? s;
   if (campo === "cor") return COR_LABEL[s as keyof typeof COR_LABEL] ?? s;
   if (campo === "servico_id") return nomes.servicosFinanceiros.get(s) ?? "Serviço não encontrado";
