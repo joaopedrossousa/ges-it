@@ -4,10 +4,12 @@ import { hojeEmPalmas } from "./format";
 import { PERIFERICOS } from "./perifericos";
 import {
   CORES_KANBAN,
+  MOTIVOS_BAIXA,
   OPERADORAS,
   PRIORIDADES_ATIVIDADE,
   SITUACOES_PAGAMENTO,
   STATUS_EDITAVEIS,
+  STATUS_SEM_BAIXA,
   TIPOS_DESPESA,
   TIPOS_SERVICO,
 } from "./types";
@@ -467,11 +469,41 @@ export const vinculoSchema = z.object({
 export const devolucaoSchema = z.object({
   dispositivo_id: idObrigatorio("Dispositivo inválido."),
   observacao: textoOpcional(1000),
-  novo_status: statusEditavel,
+  /** "Baixado" só pelo formulário de baixa (migration 019). */
+  novo_status: z
+    .enum(STATUS_SEM_BAIXA, { error: "Status inválido." })
+    .default("disponivel"),
   perifericos_devolvidos: perifericos,
   formatado,
   /** Filial de estoque após a devolução; vazio = a loja do vínculo (no banco). */
   loja_estoque_id: idOpcional("Filial de estoque inválida."),
+});
+
+/**
+ * Baixa do dispositivo (baixar_dispositivo, migration 019). Os anexos já
+ * foram enviados pelo navegador ao bucket "baixas".
+ */
+export const REGEX_CAMINHO_ANEXO_BAIXA = /^[0-9a-f-]{36}\/\d+-[a-z0-9]{8}\.(pdf|jpg|png|webp)$/;
+
+export const baixaSchema = z.object({
+  dispositivo_id: idObrigatorio("Dispositivo inválido."),
+  motivo: z.enum(MOTIVOS_BAIXA, { error: "Selecione o motivo." }),
+  informacoes: textoObrigatorio("as informações da baixa", 2000),
+  data_baixa: z
+    .string({ error: "Informe a data da baixa." })
+    .trim()
+    .min(1, "Informe a data da baixa.")
+    .pipe(z.iso.date("Data inválida."))
+    .refine((v) => v <= hojeEmPalmas(), "A data da baixa não pode ser futura."),
+  anexos: z
+    .array(
+      z.object({
+        path: z.string().regex(REGEX_CAMINHO_ANEXO_BAIXA, "Anexo inválido."),
+        nome: z.string().trim().min(1).max(255),
+      }),
+    )
+    .max(20, "Envie no máximo 20 anexos.")
+    .default([]),
 });
 
 // ===========================================================================
@@ -637,6 +669,7 @@ export type ServicoFormInput = z.input<typeof servicoSchema>;
 export type ServicoFormData = z.output<typeof servicoSchema>;
 export type DevolucaoFormInput = z.input<typeof devolucaoSchema>;
 export type DevolucaoFormData = z.output<typeof devolucaoSchema>;
+export type BaixaInput = z.input<typeof baixaSchema>;
 
 /* ===========================================================================
  * Testes simples (exemplos conferidos manualmente)

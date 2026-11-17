@@ -14,15 +14,17 @@ import { REGEX_CAMINHO_NOTA_FISCAL } from "@/lib/notas-fiscais";
 import { createClient } from "@/lib/supabase/server";
 import {
   STATUS_DISPOSITIVO_LABEL,
-  STATUS_EDITAVEIS,
+  STATUS_SEM_BAIXA,
   ehStatusDispositivo,
 } from "@/lib/types";
 import {
   MENSAGEM_DATA_COMPRA,
+  baixaSchema,
   devolucaoSchema,
   dispositivoSchema,
   servicoSchema,
   vinculoSchema,
+  type BaixaInput,
   type DevolucaoFormInput,
   type DispositivoFormData,
   type DispositivoFormInput,
@@ -68,7 +70,8 @@ const DUPLICIDADES = [
 ];
 
 const idSchema = z.uuid();
-const statusSchema = z.enum(STATUS_EDITAVEIS, { error: "Status inválido." });
+/** "Baixado" só pelo formulário de baixa (baixarDispositivo; migration 019). */
+const statusSchema = z.enum(STATUS_SEM_BAIXA, { error: "Status inválido." });
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -243,14 +246,18 @@ export async function anexarNotaFiscal(id: string, path: string): Promise<Action
 }
 
 /**
- * Muda o status para disponível, manutenção ou baixado.
- * Bloqueado enquanto houver vínculo aberto: "em uso" só sai pela devolução.
+ * Muda o status para disponível ou manutenção. "Baixado" exige o formulário
+ * de baixa (baixarDispositivo). Bloqueado enquanto houver vínculo aberto:
+ * "em uso" só sai pela devolução.
  */
 export async function alterarStatusDispositivo(
   id: string,
   // `unknown`: Server Actions recebem dados vindos da rede; o zod valida.
   status: unknown,
 ): Promise<ActionResult> {
+  if (status === "baixado") {
+    return { ok: false, error: "Para dar baixa, preencha o formulário de baixa." };
+  }
   const parsedStatus = statusSchema.safeParse(status);
   if (!idSchema.safeParse(id).success || !parsedStatus.success) {
     return { ok: false, error: "Dados inválidos." };
@@ -289,6 +296,42 @@ export async function alterarStatusDispositivo(
   }
 
   revalidar();
+  return { ok: true };
+}
+
+// ===========================================================================
+// Baixa (migration 019)
+// ===========================================================================
+
+type CampoBaixa = "motivo" | "informacoes" | "data_baixa" | "anexos";
+
+/**
+ * Dá baixa pela função baixar_dispositivo: recusa com vínculo aberto, grava
+ * a baixa e os anexos (já enviados ao bucket "baixas") e muda o status, numa
+ * transação só.
+ */
+export async function baixarDispositivo(input: BaixaInput): Promise<ActionResult<CampoBaixa>> {
+  const parsed = baixaSchema.safeParse(input);
+  if (!parsed.success) return errosDoZod(parsed.error);
+  const { dispositivo_id, motivo, informacoes, data_baixa, anexos } = parsed.data;
+
+  // Cada anexo precisa estar na pasta deste dispositivo (a função confere de novo).
+  if (anexos.some((a) => !a.path.startsWith(`${dispositivo_id}/`))) {
+    return { ok: false, error: "Arquivo de anexo inválido." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("baixar_dispositivo", {
+    p_dispositivo_id: dispositivo_id,
+    p_motivo: motivo,
+    p_informacoes: informacoes,
+    p_data_baixa: data_baixa,
+    p_anexos: anexos,
+  });
+  if (error) return erroDoBanco(error);
+
+  revalidar();
+  revalidatePath("/relatorios");
   return { ok: true };
 }
 

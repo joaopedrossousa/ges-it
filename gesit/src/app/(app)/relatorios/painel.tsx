@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArchiveXIcon,
   CalendarRangeIcon,
   FileWarningIcon,
   NetworkIcon,
@@ -26,6 +27,8 @@ import { TODOS } from "@/hooks/use-filtros-url";
 import type { LojaOpcao } from "@/lib/lojas";
 import { opcoesLojas } from "@/lib/opcoes-lojas";
 import {
+  MOTIVOS_BAIXA,
+  MOTIVO_BAIXA_LABEL,
   TIPOS_DISPOSITIVO,
   TIPOS_SERVICO,
   TIPO_DISPOSITIVO_LABEL,
@@ -49,6 +52,7 @@ export function PainelRelatorios({ lojas, periodoPadrao }: Props) {
       <Movimentacoes periodoPadrao={periodoPadrao} />
       <SemTermo lojas={lojas} />
       <Servicos lojas={lojas} periodoPadrao={periodoPadrao} />
+      <Baixas lojas={lojas} periodoPadrao={periodoPadrao} />
     </div>
   );
 }
@@ -269,6 +273,52 @@ function Servicos({ lojas, periodoPadrao }: Props) {
           placeholderBusca="Buscar tipo..."
           vazio="Nenhum tipo encontrado."
         />
+      </div>
+      <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
+    </CartaoRelatorio>
+  );
+}
+
+function Baixas({ lojas, periodoPadrao }: Props) {
+  const id = useId();
+  const periodo = usePeriodo(periodoPadrao);
+  const [motivo, setMotivo] = useState(TODOS);
+  const [loja, setLoja] = useState(TODOS);
+
+  return (
+    <CartaoRelatorio
+      icone={ArchiveXIcon}
+      titulo="Baixas por Período"
+      descricao="Dispositivos baixados, com motivo, informações e anexos. A filial é a de estoque do dispositivo."
+      rodape={
+        <ExportarBotoes
+          relatorio="baixas"
+          params={{
+            de: periodo.de,
+            ate: periodo.ate,
+            motivo: filtro(motivo),
+            loja: filtro(loja),
+          }}
+          desabilitado={Boolean(periodo.erro)}
+        />
+      }
+    >
+      <CamposPeriodo id={id} periodo={periodo} />
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-motivo`}>Motivo</Label>
+        <Select value={motivo} onValueChange={setMotivo}>
+          <SelectTrigger id={`${id}-motivo`} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS}>Todos os motivos</SelectItem>
+            {MOTIVOS_BAIXA.map((m) => (
+              <SelectItem key={m} value={m}>
+                {MOTIVO_BAIXA_LABEL[m]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
     </CartaoRelatorio>

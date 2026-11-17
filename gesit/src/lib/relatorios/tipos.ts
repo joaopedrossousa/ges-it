@@ -29,6 +29,7 @@ export const TIPOS_RELATORIO = [
   "movimentacoes",
   "vinculos-sem-termo",
   "servicos",
+  "baixas",
   "auditoria",
   // Gestão Financeira (dados-financeiro.ts)
   "financeiro-controle-mensal",

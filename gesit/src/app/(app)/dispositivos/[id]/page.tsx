@@ -53,6 +53,7 @@ import { formatarIMEI, formatarLinha } from "@/lib/validators";
 
 import { DevolverDialog } from "../devolver-dialog";
 import { HistoricoServicos } from "./historico-servicos";
+import { SecaoBaixa } from "./secao-baixa";
 import { DispositivoFormDialog } from "../dispositivo-form-dialog";
 import { StatusDialog } from "../status-dialog";
 import { VincularDialog } from "../vincular-dialog";
@@ -88,7 +89,7 @@ async function DetalheDispositivo({
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [dispositivoRes, vidaUtilRes, vinculosRes, servicosRes, lojas] = await Promise.all([
+  const [dispositivoRes, vidaUtilRes, vinculosRes, servicosRes, baixaRes, lojas] = await Promise.all([
     supabase.from("dispositivos").select("*").eq("id", id).maybeSingle(),
     // Idade e situação da vida útil: calculadas na view (data de Palmas).
     supabase
@@ -110,13 +111,25 @@ async function DetalheDispositivo({
       .eq("dispositivo_id", id)
       .order("data_servico", { ascending: false })
       .order("created_at", { ascending: false }),
+    // Registro de baixa (migration 019): com ele, o status não sai de "Baixado".
+    supabase.from("dispositivo_baixas").select("id").eq("dispositivo_id", id).maybeSingle(),
     listarLojasOpcoes(),
   ]);
 
-  if (dispositivoRes.error || vidaUtilRes.error || vinculosRes.error || servicosRes.error) {
+  if (
+    dispositivoRes.error ||
+    vidaUtilRes.error ||
+    vinculosRes.error ||
+    servicosRes.error ||
+    baixaRes.error
+  ) {
     console.error(
       "Erro ao carregar dispositivo:",
-      dispositivoRes.error ?? vidaUtilRes.error ?? vinculosRes.error ?? servicosRes.error,
+      dispositivoRes.error ??
+        vidaUtilRes.error ??
+        vinculosRes.error ??
+        servicosRes.error ??
+        baixaRes.error,
     );
     return (
       <p className="text-destructive">Não foi possível carregar o dispositivo.</p>
@@ -193,6 +206,8 @@ async function DetalheDispositivo({
               descricao,
               status: d.status,
               colaboradorNome: aberto?.colaborador?.nome ?? null,
+              baixaRegistrada: Boolean(baixaRes.data),
+              dataCompra: d.data_compra,
             }}
             trigger={
               <Button variant="outline">
@@ -427,6 +442,12 @@ async function DetalheDispositivo({
         </Card>
         )}
       </div>
+
+      {d.status === "baixado" && (
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-muted" />}>
+          <SecaoBaixa dispositivoId={d.id} />
+        </Suspense>
+      )}
 
       {/* Infraestrutura nunca tem vínculos: sem histórico de uso. */}
       {!infraestrutura && (

@@ -201,6 +201,18 @@ async function TabelaDispositivos({
 
   const filtrando = Boolean(busca || tipo || status || lojaId || vidaUtil);
 
+  // Baixados com registro de baixa (migration 019) não saem de "Baixado".
+  const idsBaixados = data.flatMap((d) => (d.status === "baixado" && d.id ? [d.id] : []));
+  const comBaixa = new Set<string>();
+  if (idsBaixados.length) {
+    const { data: baixas, error: erroBaixas } = await supabase
+      .from("dispositivo_baixas")
+      .select("dispositivo_id")
+      .in("dispositivo_id", idsBaixados);
+    if (erroBaixas) console.error("Erro ao carregar baixas:", erroBaixas);
+    baixas?.forEach((b) => comBaixa.add(b.dispositivo_id));
+  }
+
   return (
     <div className="space-y-2">
       <div className="rounded-lg border">
@@ -302,6 +314,8 @@ async function TabelaDispositivos({
                             descricao: `${nome} · ${identificadorDispositivo(d)}`,
                             status: d.status,
                             colaboradorNome: d.colaborador_nome,
+                            baixaRegistrada: comBaixa.has(editavel.id),
+                            dataCompra: d.data_compra,
                           }}
                           trigger={
                             <Button variant="ghost" size="sm">

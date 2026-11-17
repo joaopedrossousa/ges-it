@@ -28,6 +28,8 @@ import {
   textoFormatado,
 } from "@/lib/perifericos";
 import {
+  MOTIVOS_BAIXA,
+  MOTIVO_BAIXA_LABEL,
   SITUACAO_VIDA_UTIL_LABEL,
   STATUS_DISPOSITIVO_LABEL,
   TIPOS_DISPOSITIVO,
@@ -857,6 +859,109 @@ const servicos: Gerador = async (supabase, params, agora) => {
 };
 
 // ===========================================================================
+// 7b. Baixas por período (migration 019)
+// ===========================================================================
+
+const motivoBaixaSchema = z.enum(MOTIVOS_BAIXA);
+
+/**
+ * ?de, ?ate (data da baixa; padrão: mês atual), ?motivo e ?loja (filial de
+ * estoque do dispositivo, onde ele estava ao ser baixado).
+ */
+const baixas: Gerador = async (supabase, params, agora) => {
+  const { de, ate } = periodoMovimentacoes(params, agora);
+  const motivo = motivoBaixaSchema.safeParse(params.get("motivo")).data;
+  const lojaId = lojaDoParametro(params);
+
+  const dados = await buscarTodas((a, b) => {
+    let q = supabase
+      .from("vw_dispositivo_baixas")
+      .select(
+        "id, motivo, informacoes, data_baixa, criado_por, created_at, tipo, marca, modelo, equipamento, serial_number, imei1, numero_patrimonio, loja_nome, qtd_anexos",
+      )
+      .gte("data_baixa", de)
+      .lte("data_baixa", ate)
+      .order("data_baixa")
+      .order("id")
+      .range(a, b);
+    if (motivo) q = q.eq("motivo", motivo);
+    if (lojaId) q = q.eq("loja_id", lojaId);
+    return q;
+  });
+
+  // E-mail de quem registrou (aparece no log da mudança de status).
+  const ids = [...new Set(dados.flatMap((d) => (d.criado_por ? [d.criado_por] : [])))];
+  const emails = new Map<string, string>();
+  if (ids.length) {
+    const { data } = await supabase.rpc("emails_operadores", { p_ids: ids });
+    data?.forEach((u) => emails.set(u.id, u.email));
+  }
+
+  // "2 Roubo · 1 Furto", na ordem dos motivos.
+  const porMotivo = MOTIVOS_BAIXA.flatMap((m) => {
+    const n = dados.filter((d) => d.motivo === m).length;
+    return n ? [`${n} ${MOTIVO_BAIXA_LABEL[m]}`] : [];
+  }).join(" · ");
+
+  const filtros = [
+    { rotulo: "Período", valor: `${dataBR(de)} a ${dataBR(ate)}` },
+    motivo && { rotulo: "Motivo", valor: MOTIVO_BAIXA_LABEL[motivo] },
+    lojaId
+      ? { rotulo: "Filial", valor: (await nomeDaLoja(supabase, lojaId)) ?? "" }
+      : { rotulo: "Filiais", valor: "todas" },
+    {
+      rotulo: "Totais",
+      valor: `${dados.length} ${dados.length === 1 ? "baixa" : "baixas"}${porMotivo ? ` · ${porMotivo}` : ""}`,
+    },
+  ].filter((x) => !!x);
+
+  return {
+    slug: "baixas",
+    titulo: "Baixas por Período",
+    aba: "Baixas",
+    orientacao: "paisagem",
+    filtros,
+    colunas: [
+      { chave: "data", titulo: "Data da Baixa", tipo: "data", peso: 0.8 },
+      { chave: "motivo", titulo: "Motivo", peso: 1 },
+      { chave: "tipo", titulo: "Tipo", peso: 0.8 },
+      { chave: "dispositivo", titulo: "Dispositivo", peso: 1.4 },
+      { chave: "identificador", titulo: "Identificador", peso: 1.3 },
+      { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
+      { chave: "loja", titulo: "Filial", peso: 1.1 },
+      { chave: "informacoes", titulo: "Informações da Baixa", peso: 2.2 },
+      { chave: "anexos", titulo: "Anexos", tipo: "numero", peso: 0.6 },
+      { chave: "registrada_por", titulo: "Registrada por", peso: 1.3 },
+      { chave: "registrada_em", titulo: "Registrada em", tipo: "dataHora", peso: 1 },
+    ],
+    colunasPdf: [
+      { chave: "data", titulo: "Data", tipo: "data", peso: 0.75 },
+      { chave: "motivo", titulo: "Motivo", peso: 1 },
+      { chave: "dispositivo_pdf", titulo: "Dispositivo", peso: 2 },
+      { chave: "loja", titulo: "Filial", peso: 1.1 },
+      { chave: "informacoes", titulo: "Informações da Baixa", peso: 2.4 },
+      { chave: "anexos", titulo: "Anexos", tipo: "numero", peso: 0.6 },
+    ],
+    linhas: dados.map((d) => ({
+      data: dataSemHora(d.data_baixa),
+      motivo: d.motivo ? MOTIVO_BAIXA_LABEL[d.motivo] : null,
+      tipo: d.tipo ? TIPO_DISPOSITIVO_LABEL[d.tipo] : null,
+      dispositivo: nomeDispositivo(d),
+      // PDF: sem colunas de identificação, ela vai junto ("Dell Latitude · ABC123").
+      dispositivo_pdf: descricaoDispositivo(d),
+      identificador: identificadorDispositivo(d),
+      patrimonio: d.numero_patrimonio,
+      loja: d.loja_nome,
+      informacoes: d.informacoes,
+      anexos: d.qtd_anexos ?? 0,
+      registrada_por: d.criado_por ? (emails.get(d.criado_por) ?? "—") : "—",
+      registrada_em: d.created_at ? new Date(d.created_at) : null,
+    })),
+    vazio: "Nenhuma baixa no período com esses filtros.",
+  };
+};
+
+// ===========================================================================
 // 8. Log de auditoria (só Excel; mesmos filtros de /auditoria)
 // ===========================================================================
 
@@ -917,6 +1022,7 @@ export const GERADORES: Record<TipoRelatorio, Gerador> = {
   movimentacoes,
   "vinculos-sem-termo": vinculosSemTermo,
   servicos,
+  baixas,
   auditoria,
   ...GERADORES_FINANCEIRO,
 };

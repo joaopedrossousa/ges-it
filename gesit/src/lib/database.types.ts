@@ -94,6 +94,90 @@ export type Database = {
           },
         ]
       }
+      dispositivo_baixa_anexos: {
+        Row: {
+          baixa_id: string
+          created_at: string
+          id: string
+          nome_arquivo: string
+          path: string
+        }
+        Insert: {
+          baixa_id: string
+          created_at?: string
+          id?: string
+          nome_arquivo: string
+          path: string
+        }
+        Update: {
+          baixa_id?: string
+          created_at?: string
+          id?: string
+          nome_arquivo?: string
+          path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispositivo_baixa_anexos_baixa_id_fkey"
+            columns: ["baixa_id"]
+            isOneToOne: false
+            referencedRelation: "dispositivo_baixas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispositivo_baixa_anexos_baixa_id_fkey"
+            columns: ["baixa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dispositivo_baixas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispositivo_baixas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_baixa: string
+          dispositivo_id: string
+          id: string
+          informacoes: string
+          motivo: Database["public"]["Enums"]["motivo_baixa"]
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_baixa: string
+          dispositivo_id: string
+          id?: string
+          informacoes: string
+          motivo: Database["public"]["Enums"]["motivo_baixa"]
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_baixa?: string
+          dispositivo_id?: string
+          id?: string
+          informacoes?: string
+          motivo?: Database["public"]["Enums"]["motivo_baixa"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispositivo_baixas_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: true
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispositivo_baixas_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: true
+            referencedRelation: "vw_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dispositivos: {
         Row: {
           created_at: string
@@ -629,6 +713,50 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dispositivo_baixas: {
+        Row: {
+          created_at: string | null
+          criado_por: string | null
+          data_baixa: string | null
+          dispositivo_id: string | null
+          equipamento: string | null
+          id: string | null
+          imei1: string | null
+          informacoes: string | null
+          loja_id: string | null
+          loja_nome: string | null
+          marca: string | null
+          modelo: string | null
+          motivo: Database["public"]["Enums"]["motivo_baixa"] | null
+          numero_patrimonio: string | null
+          qtd_anexos: number | null
+          serial_number: string | null
+          tipo: Database["public"]["Enums"]["tipo_dispositivo"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispositivo_baixas_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: true
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispositivo_baixas_dispositivo_id_fkey"
+            columns: ["dispositivo_id"]
+            isOneToOne: true
+            referencedRelation: "vw_dispositivos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispositivos_loja_estoque_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_dispositivos: {
         Row: {
           colaborador_id: string | null
@@ -820,6 +948,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      baixar_dispositivo: {
+        Args: {
+          p_anexos?: Json
+          p_data_baixa: string
+          p_dispositivo_id: string
+          p_informacoes: string
+          p_motivo: Database["public"]["Enums"]["motivo_baixa"]
+        }
+        Returns: string
+      }
       criar_atividade: {
         Args: {
           p_categorias?: string[]
@@ -932,6 +1070,15 @@ export type Database = {
         | "roxo"
         | "rosa"
         | "vermelho"
+      motivo_baixa:
+        | "roubo"
+        | "furto"
+        | "perda_extravio"
+        | "defeito_irreparavel"
+        | "obsolescencia"
+        | "doacao"
+        | "venda"
+        | "outro"
       prioridade_atividade: "alta" | "media" | "baixa"
       situacao_pagamento:
         | "solicitado_compras"
@@ -1094,6 +1241,16 @@ export const Constants = {
         "roxo",
         "rosa",
         "vermelho",
+      ],
+      motivo_baixa: [
+        "roubo",
+        "furto",
+        "perda_extravio",
+        "defeito_irreparavel",
+        "obsolescencia",
+        "doacao",
+        "venda",
+        "outro",
       ],
       prioridade_atividade: ["alta", "media", "baixa"],
       situacao_pagamento: [

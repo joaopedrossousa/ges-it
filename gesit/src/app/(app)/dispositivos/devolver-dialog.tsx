@@ -38,9 +38,9 @@ import {
 } from "@/lib/perifericos";
 import {
   STATUS_DISPOSITIVO_LABEL,
-  STATUS_EDITAVEIS,
-  ehStatusEditavel,
-  type StatusEditavel,
+  STATUS_SEM_BAIXA,
+  ehStatusSemBaixa,
+  type StatusSemBaixa,
   type TipoDispositivo,
 } from "@/lib/types";
 
@@ -75,7 +75,7 @@ export function DevolverDialog({
 
   const [open, setOpen] = useState(false);
   const [observacao, setObservacao] = useState("");
-  const [novoStatus, setNovoStatus] = useState<StatusEditavel>("disponivel");
+  const [novoStatus, setNovoStatus] = useState<StatusSemBaixa>("disponivel");
   const [devolvidos, setDevolvidos] = useState<Periferico[]>(entregues);
   const [formatado, setFormatado] = useState(false);
   const [lojaEstoque, setLojaEstoque] = useState(lojaVinculoId);
@@ -150,7 +150,7 @@ export function DevolverDialog({
             <Select
               value={novoStatus}
               onValueChange={(v) => {
-                if (ehStatusEditavel(v)) setNovoStatus(v);
+                if (ehStatusSemBaixa(v)) setNovoStatus(v);
               }}
               disabled={isPending}
             >
@@ -158,13 +158,16 @@ export function DevolverDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_EDITAVEIS.map((s) => (
+                {STATUS_SEM_BAIXA.map((s) => (
                   <SelectItem key={s} value={s}>
                     {STATUS_DISPOSITIVO_LABEL[s]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Para dar baixa, registre a devolução e depois use Status &gt; Baixado.
+            </p>
           </div>
 
           <div className="grid gap-2">

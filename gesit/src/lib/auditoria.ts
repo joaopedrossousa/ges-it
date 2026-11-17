@@ -11,8 +11,10 @@ import {
 import { formatarDataHora, formatarDataISO, formatarMoeda } from "@/lib/format";
 import { rotulosPerifericos } from "@/lib/perifericos";
 import {
+  MOTIVO_BAIXA_LABEL,
   STATUS_DISPOSITIVO_LABEL,
   TIPO_DISPOSITIVO_LABEL,
+  ehMotivoBaixa,
   TIPO_SERVICO_LABEL,
   ehStatusDispositivo,
   type TipoDispositivo,
@@ -105,6 +107,11 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     fim_vida_util: "Fim da vida útil",
     nota_fiscal_path: "Nota fiscal",
     loja_estoque_id: "Filial de estoque",
+    // Baixa (migration 019): baixar_dispositivo junta na linha da mudança de status.
+    baixa_motivo: "Motivo da baixa",
+    baixa_informacoes: "Informações da baixa",
+    baixa_data: "Data da baixa",
+    baixa_anexos: "Anexos da baixa",
   },
   vinculos: {
     dispositivo_id: "Dispositivo",
@@ -194,7 +201,7 @@ const CAMPOS_OCULTOS = new Set([
 /** Caminhos de arquivo: mostrados como "arquivo anexado/substituído". */
 const CAMPOS_ARQUIVO = new Set(["termo_path", "nota_fiscal_path", "anexo_path"]);
 
-const DATAS = new Set(["data_compra", "fim_vida_util", "data_servico", "vencimento", "data_pagamento", "prazo"]);
+const DATAS = new Set(["baixa_data", "data_compra", "fim_vida_util", "data_servico", "vencimento", "data_pagamento", "prazo"]);
 const MOEDA = new Set(["custo", "valor", "valor_referencia"]);
 const DATAS_HORA = new Set(["data_inicio", "data_fim"]);
 
@@ -235,6 +242,9 @@ export function formatarValorAuditoria(
     const lista = valor.map((id) => (typeof id === "string" && nomes.categoriasKanban.get(id)) || "Categoria não encontrada");
     return lista.join(", ") || "Nenhuma";
   }
+  if (campo === "baixa_anexos" && Array.isArray(valor)) {
+    return valor.filter((x): x is string => typeof x === "string").join(", ") || "Nenhum";
+  }
   if (Array.isArray(valor)) {
     return rotulosPerifericos(valor.filter((x): x is string => typeof x === "string")) || "Nenhum";
   }
@@ -251,6 +261,7 @@ export function formatarValorAuditoria(
   if (campo === "cor") return COR_LABEL[s as keyof typeof COR_LABEL] ?? s;
   if (campo === "servico_id") return nomes.servicosFinanceiros.get(s) ?? "Serviço não encontrado";
   if (campo === "status" && ehStatusDispositivo(s)) return STATUS_DISPOSITIVO_LABEL[s];
+  if (campo === "baixa_motivo" && ehMotivoBaixa(s)) return MOTIVO_BAIXA_LABEL[s];
   if (campo === "tipo" && tabela === "dispositivos") {
     return TIPO_DISPOSITIVO_LABEL[s as TipoDispositivo] ?? s;
   }

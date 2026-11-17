@@ -28,10 +28,28 @@ export type { Database };
 export type TipoDispositivo = Enums<"tipo_dispositivo">;
 export type StatusDispositivo = Enums<"status_dispositivo">;
 export type TipoServico = Enums<"tipo_servico">;
+export type MotivoBaixa = Enums<"motivo_baixa">;
 
 export const TIPOS_DISPOSITIVO = Constants.public.Enums.tipo_dispositivo;
 export const STATUS_DISPOSITIVO = Constants.public.Enums.status_dispositivo;
 export const TIPOS_SERVICO = Constants.public.Enums.tipo_servico;
+export const MOTIVOS_BAIXA = Constants.public.Enums.motivo_baixa;
+
+/** Motivo da baixa (migration 019). */
+export const MOTIVO_BAIXA_LABEL: Record<MotivoBaixa, string> = {
+  roubo: "Roubo",
+  furto: "Furto",
+  perda_extravio: "Perda/Extravio",
+  defeito_irreparavel: "Defeito Irreparável",
+  obsolescencia: "Obsolescência",
+  doacao: "Doação",
+  venda: "Venda",
+  outro: "Outro",
+};
+
+export function ehMotivoBaixa(valor: unknown): valor is MotivoBaixa {
+  return (MOTIVOS_BAIXA as readonly unknown[]).includes(valor);
+}
 
 /** Gestão Financeira (migration 015). Rótulos em src/lib/financeiro.ts. */
 export type TipoDespesa = Enums<"tipo_despesa">;
@@ -73,6 +91,20 @@ export function ehStatusDispositivo(valor: unknown): valor is StatusDispositivo 
 
 export function ehStatusEditavel(valor: unknown): valor is StatusEditavel {
   return (STATUS_EDITAVEIS as readonly unknown[]).includes(valor);
+}
+
+/**
+ * Status escolhíveis sem formulário (Status direto e devolução). "Baixado"
+ * só sai pelo formulário de baixa (baixar_dispositivo, migration 019).
+ */
+export const STATUS_SEM_BAIXA = [
+  "disponivel",
+  "manutencao",
+] as const satisfies readonly StatusEditavel[];
+export type StatusSemBaixa = (typeof STATUS_SEM_BAIXA)[number];
+
+export function ehStatusSemBaixa(valor: unknown): valor is StatusSemBaixa {
+  return (STATUS_SEM_BAIXA as readonly unknown[]).includes(valor);
 }
 
 export const TIPO_DISPOSITIVO_LABEL: Record<TipoDispositivo, string> = {
