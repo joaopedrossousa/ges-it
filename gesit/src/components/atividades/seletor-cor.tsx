@@ -55,7 +55,8 @@ export function SeletorCor({
             onClick={() => onChange(cor)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(
-              "flex size-8 items-center justify-center rounded-full ring-offset-2 ring-offset-background transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
+              // Borda sempre visível: a opção aparece mesmo se a cor não carregar.
+              "flex size-8 cursor-pointer items-center justify-center rounded-full border border-black/15 ring-offset-2 ring-offset-background transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25",
               CLASSES_COR[cor].ponto,
               marcada && "ring-2 ring-foreground",
             )}
@@ -64,6 +65,9 @@ export function SeletorCor({
           </button>
         );
       })}
+      <span className="self-center text-sm text-muted-foreground" aria-hidden>
+        {COR_LABEL[value]}
+      </span>
     </div>
   );
 }
