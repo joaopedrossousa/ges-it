@@ -4,7 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { Etiqueta, PontoCor, SeloPrioridade } from "@/components/atividades/etiquetas";
+import { Etiqueta, AmostraCor, SeloPrioridade } from "@/components/atividades/etiquetas";
 import { TabelaCarregando } from "@/components/tabela-carregando";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,7 +148,7 @@ async function TabelaAtividades() {
                 <TableCell>
                   {coluna ? (
                     <span className="flex items-center gap-1.5">
-                      <PontoCor cor={coluna.cor} />
+                      <AmostraCor cor={coluna.cor} />
                       {coluna.nome}
                       {coluna.arquivada && (
                         <span className="text-xs text-muted-foreground">(arquivada)</span>
@@ -212,7 +212,7 @@ async function TabelaColunas() {
             <TableRow key={c.id}>
               <TableCell>
                 <span className="flex items-center gap-1.5">
-                  <PontoCor cor={c.cor} />
+                  <AmostraCor cor={c.cor} />
                   {c.nome}
                 </span>
               </TableCell>

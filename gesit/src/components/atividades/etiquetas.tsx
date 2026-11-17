@@ -28,12 +28,12 @@ export function Etiqueta({
   );
 }
 
-/** Ponto sólido da cor (cabeçalho da coluna, opções de cor). */
-export function PontoCor({ cor, className }: { cor: CorKanban; className?: string }) {
+/** Quadradinho pastel que identifica a cor da coluna em listas e menus. */
+export function AmostraCor({ cor, className }: { cor: CorKanban; className?: string }) {
   return (
     <span
       aria-hidden
-      className={cn("inline-block size-2.5 shrink-0 rounded-full", CLASSES_COR[cor].ponto, className)}
+      className={cn("inline-block size-3 shrink-0 rounded-sm border", CLASSES_COR[cor].amostra, className)}
     />
   );
 }

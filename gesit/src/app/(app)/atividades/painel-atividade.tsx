@@ -7,7 +7,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { CampoCategorias } from "@/components/atividades/campo-categorias";
-import { PontoCor } from "@/components/atividades/etiquetas";
+import { AmostraCor } from "@/components/atividades/etiquetas";
 import { CampoData } from "@/components/campo-data";
 import { Carregando } from "@/components/carregando";
 import { ComboboxLista } from "@/components/combobox-lista";
@@ -287,7 +287,7 @@ function FormAtividade({
                     <SelectContent>
                       {colunas.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          <PontoCor cor={c.cor} />
+                          <AmostraCor cor={c.cor} />
                           {c.nome}
                         </SelectItem>
                       ))}

@@ -105,7 +105,7 @@ function FormColuna({ coluna, onFechar }: { coluna?: ColunaQuadro; onFechar: () 
         <span id="coluna-cor-rotulo" className="text-sm font-medium">
           Cor
         </span>
-        <SeletorCor value={cor} onChange={setCor} idRotulo="coluna-cor-rotulo" disabled={isPending} />
+        <SeletorCor value={cor} onChange={setCor} idRotulo="coluna-cor-rotulo" disabled={isPending} previa={nome} />
       </div>
 
       {erro && (

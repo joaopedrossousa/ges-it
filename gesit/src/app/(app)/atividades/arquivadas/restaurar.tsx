@@ -4,7 +4,7 @@ import { ArchiveRestoreIcon, ChevronDownIcon } from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
-import { PontoCor } from "@/components/atividades/etiquetas";
+import { AmostraCor } from "@/components/atividades/etiquetas";
 import { Carregando } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,14 +56,14 @@ export function RestaurarAtividade({
         <DropdownMenuLabel>Restaurar na coluna</DropdownMenuLabel>
         {original && (
           <DropdownMenuItem onSelect={() => restaurar(original)}>
-            <PontoCor cor={original.cor} />
+            <AmostraCor cor={original.cor} />
             {original.nome} (onde estava)
           </DropdownMenuItem>
         )}
         {original && outras.length > 0 && <DropdownMenuSeparator />}
         {outras.map((c) => (
           <DropdownMenuItem key={c.id} onSelect={() => restaurar(c)}>
-            <PontoCor cor={c.cor} />
+            <AmostraCor cor={c.cor} />
             {c.nome}
           </DropdownMenuItem>
         ))}

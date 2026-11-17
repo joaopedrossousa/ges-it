@@ -35,20 +35,63 @@ export const COR_LABEL: Record<CorKanban, string> = {
 };
 
 /**
- * Classes por cor (tokens --etiqueta-* em globals.css). Escritas por extenso
- * para o Tailwind encontrá-las. `etiqueta`: fundo + texto; `ponto`: sólido.
+ * Classes por cor (tokens --coluna-* e --etiqueta-* em globals.css), em tons
+ * pastel. Escritas por extenso para o Tailwind encontrá-las: nunca montar
+ * `bg-${cor}`. `coluna`: fundo e borda da coluna inteira; `etiqueta`: selo do
+ * título da coluna e etiquetas de categoria (texto ≥ 4,5:1); `amostra`:
+ * quadradinho que identifica a cor em listas e menus.
  */
-export const CLASSES_COR: Record<CorKanban, { etiqueta: string; ponto: string }> = {
-  cinza: { etiqueta: "bg-etiqueta-cinza text-etiqueta-cinza-texto", ponto: "bg-etiqueta-cinza-ponto" },
-  marrom: { etiqueta: "bg-etiqueta-marrom text-etiqueta-marrom-texto", ponto: "bg-etiqueta-marrom-ponto" },
-  laranja: { etiqueta: "bg-etiqueta-laranja text-etiqueta-laranja-texto", ponto: "bg-etiqueta-laranja-ponto" },
-  amarelo: { etiqueta: "bg-etiqueta-amarelo text-etiqueta-amarelo-texto", ponto: "bg-etiqueta-amarelo-ponto" },
-  verde: { etiqueta: "bg-etiqueta-verde text-etiqueta-verde-texto", ponto: "bg-etiqueta-verde-ponto" },
-  ciano: { etiqueta: "bg-etiqueta-ciano text-etiqueta-ciano-texto", ponto: "bg-etiqueta-ciano-ponto" },
-  azul: { etiqueta: "bg-etiqueta-azul text-etiqueta-azul-texto", ponto: "bg-etiqueta-azul-ponto" },
-  roxo: { etiqueta: "bg-etiqueta-roxo text-etiqueta-roxo-texto", ponto: "bg-etiqueta-roxo-ponto" },
-  rosa: { etiqueta: "bg-etiqueta-rosa text-etiqueta-rosa-texto", ponto: "bg-etiqueta-rosa-ponto" },
-  vermelho: { etiqueta: "bg-etiqueta-vermelho text-etiqueta-vermelho-texto", ponto: "bg-etiqueta-vermelho-ponto" },
+export const CLASSES_COR: Record<CorKanban, { coluna: string; etiqueta: string; amostra: string }> = {
+  cinza: {
+    coluna: "bg-coluna-cinza border-coluna-cinza-borda",
+    etiqueta: "bg-etiqueta-cinza text-etiqueta-cinza-texto",
+    amostra: "bg-etiqueta-cinza border-coluna-cinza-borda",
+  },
+  marrom: {
+    coluna: "bg-coluna-marrom border-coluna-marrom-borda",
+    etiqueta: "bg-etiqueta-marrom text-etiqueta-marrom-texto",
+    amostra: "bg-etiqueta-marrom border-coluna-marrom-borda",
+  },
+  laranja: {
+    coluna: "bg-coluna-laranja border-coluna-laranja-borda",
+    etiqueta: "bg-etiqueta-laranja text-etiqueta-laranja-texto",
+    amostra: "bg-etiqueta-laranja border-coluna-laranja-borda",
+  },
+  amarelo: {
+    coluna: "bg-coluna-amarelo border-coluna-amarelo-borda",
+    etiqueta: "bg-etiqueta-amarelo text-etiqueta-amarelo-texto",
+    amostra: "bg-etiqueta-amarelo border-coluna-amarelo-borda",
+  },
+  verde: {
+    coluna: "bg-coluna-verde border-coluna-verde-borda",
+    etiqueta: "bg-etiqueta-verde text-etiqueta-verde-texto",
+    amostra: "bg-etiqueta-verde border-coluna-verde-borda",
+  },
+  ciano: {
+    coluna: "bg-coluna-ciano border-coluna-ciano-borda",
+    etiqueta: "bg-etiqueta-ciano text-etiqueta-ciano-texto",
+    amostra: "bg-etiqueta-ciano border-coluna-ciano-borda",
+  },
+  azul: {
+    coluna: "bg-coluna-azul border-coluna-azul-borda",
+    etiqueta: "bg-etiqueta-azul text-etiqueta-azul-texto",
+    amostra: "bg-etiqueta-azul border-coluna-azul-borda",
+  },
+  roxo: {
+    coluna: "bg-coluna-roxo border-coluna-roxo-borda",
+    etiqueta: "bg-etiqueta-roxo text-etiqueta-roxo-texto",
+    amostra: "bg-etiqueta-roxo border-coluna-roxo-borda",
+  },
+  rosa: {
+    coluna: "bg-coluna-rosa border-coluna-rosa-borda",
+    etiqueta: "bg-etiqueta-rosa text-etiqueta-rosa-texto",
+    amostra: "bg-etiqueta-rosa border-coluna-rosa-borda",
+  },
+  vermelho: {
+    coluna: "bg-coluna-vermelho border-coluna-vermelho-borda",
+    etiqueta: "bg-etiqueta-vermelho text-etiqueta-vermelho-texto",
+    amostra: "bg-etiqueta-vermelho border-coluna-vermelho-borda",
+  },
 };
 
 // ===========================================================================

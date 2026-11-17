@@ -9,19 +9,24 @@ import { CORES_KANBAN, type CorKanban } from "@/lib/types";
 
 /**
  * Escolha da cor na paleta fixa (radiogroup: setas mudam a cor, Tab sai).
- * Cada opção mostra a amostra e tem o nome no rótulo acessível e no title.
+ * Cada opção é uma miniatura pastel da coluna (fundo + selo do título), com
+ * borda própria: aparece mesmo que a cor não carregue. Nome no rótulo
+ * acessível, no title e ao lado da pré-visualização.
  */
 export function SeletorCor({
   value,
   onChange,
   idRotulo,
   disabled,
+  previa,
 }: {
   value: CorKanban;
   onChange: (cor: CorKanban) => void;
   /** id do texto que rotula o grupo. */
   idRotulo: string;
   disabled?: boolean;
+  /** Com valor (mesmo vazio), mostra a coluna de exemplo com este nome no selo. */
+  previa?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -36,38 +41,62 @@ export function SeletorCor({
   }
 
   return (
-    <div role="radiogroup" aria-labelledby={idRotulo} className="flex flex-wrap gap-2">
-      {CORES_KANBAN.map((cor, i) => {
-        const marcada = cor === value;
-        return (
-          <button
-            key={cor}
-            ref={(el) => {
-              refs.current[i] = el;
-            }}
-            type="button"
-            role="radio"
-            aria-checked={marcada}
-            aria-label={COR_LABEL[cor]}
-            title={COR_LABEL[cor]}
-            tabIndex={marcada ? 0 : -1}
-            disabled={disabled}
-            onClick={() => onChange(cor)}
-            onKeyDown={(e) => onKeyDown(e, i)}
-            className={cn(
-              // Borda sempre visível: a opção aparece mesmo se a cor não carregar.
-              "flex size-8 cursor-pointer items-center justify-center rounded-full border border-black/15 ring-offset-2 ring-offset-background transition-shadow outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/25",
-              CLASSES_COR[cor].ponto,
-              marcada && "ring-2 ring-foreground",
-            )}
-          >
-            {marcada && <CheckIcon aria-hidden className="size-4 text-white drop-shadow" />}
-          </button>
-        );
-      })}
-      <span className="self-center text-sm text-muted-foreground" aria-hidden>
-        {COR_LABEL[value]}
-      </span>
+    <div className="grid gap-3">
+      <div role="radiogroup" aria-labelledby={idRotulo} className="grid grid-cols-5 gap-2">
+        {CORES_KANBAN.map((cor, i) => {
+          const marcada = cor === value;
+          return (
+            <button
+              key={cor}
+              ref={(el) => {
+                refs.current[i] = el;
+              }}
+              type="button"
+              role="radio"
+              aria-checked={marcada}
+              aria-label={COR_LABEL[cor]}
+              title={COR_LABEL[cor]}
+              tabIndex={marcada ? 0 : -1}
+              disabled={disabled}
+              onClick={() => onChange(cor)}
+              onKeyDown={(e) => onKeyDown(e, i)}
+              className={cn(
+                "relative flex h-10 cursor-pointer items-start rounded-md border p-1.5 outline-none transition-shadow focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+                CLASSES_COR[cor].coluna,
+                marcada && "ring-2 ring-foreground ring-offset-1 ring-offset-background",
+              )}
+            >
+              {/* Selo do título, no tom um pouco mais forte. */}
+              <span
+                aria-hidden
+                className={cn("flex h-3.5 w-full items-center justify-center rounded-sm", CLASSES_COR[cor].etiqueta)}
+              >
+                {marcada && <CheckIcon className="size-3" />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Pré-visualização da coluna na cor escolhida, com um cartão neutro. */}
+      {previa !== undefined && (
+        <div aria-hidden className={cn("grid gap-2 rounded-lg border p-2", CLASSES_COR[value].coluna)}>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className={cn(
+                "truncate rounded-md px-1.5 py-0.5 text-xs font-semibold",
+                CLASSES_COR[value].etiqueta,
+              )}
+            >
+              {previa.trim() || "Coluna"}
+            </span>
+            <span className="text-xs text-muted-foreground">{COR_LABEL[value]}</span>
+          </div>
+          <div className="rounded-md border bg-cartao-kanban px-2 py-1.5 text-xs text-card-foreground shadow-xs">
+            Atividade de exemplo
+          </div>
+        </div>
+      )}
     </div>
   );
 }

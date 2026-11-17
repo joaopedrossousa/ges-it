@@ -44,7 +44,7 @@ import { useSearchParams } from "next/navigation";
 import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 
-import { Etiqueta, PontoCor, SeloPrioridade } from "@/components/atividades/etiquetas";
+import { Etiqueta, SeloPrioridade } from "@/components/atividades/etiquetas";
 import { Carregando } from "@/components/carregando";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +63,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  CLASSES_COR,
   FILTROS_VAZIOS,
   iniciaisUsuario,
   nomeUsuario,
@@ -456,9 +457,20 @@ export function Quadro({ colunas, atividades, categorias, usuarios, hoje }: Prop
               />
             )}
             {colunaArrastada && (
-              <div className="flex w-72 cursor-grabbing items-center gap-2 rounded-xl bg-muted p-3 shadow-lg">
-                <PontoCor cor={colunaArrastada.cor} />
-                <span className="font-semibold">{colunaArrastada.nome}</span>
+              <div
+                className={cn(
+                  "flex w-72 cursor-grabbing items-center gap-2 rounded-xl border p-3 shadow-lg",
+                  CLASSES_COR[colunaArrastada.cor].coluna,
+                )}
+              >
+                <span
+                  className={cn(
+                    "truncate rounded-md px-1.5 py-0.5 text-sm font-semibold",
+                    CLASSES_COR[colunaArrastada.cor].etiqueta,
+                  )}
+                >
+                  {colunaArrastada.nome}
+                </span>
                 <span className="text-sm text-muted-foreground">
                   {itens[colunaArrastada.id]?.length ?? 0}
                 </span>
@@ -540,7 +552,12 @@ function ColunaKanban({
       ref={setNodeRef}
       aria-labelledby={tituloId}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={cn("flex w-72 shrink-0 flex-col rounded-xl bg-muted/70", isDragging && "opacity-40")}
+      className={cn(
+        // A cor pinta a coluna inteira, em tom pastel; os cartões ficam neutros.
+        "flex w-72 shrink-0 flex-col rounded-xl border",
+        CLASSES_COR[coluna.cor].coluna,
+        isDragging && "opacity-40",
+      )}
     >
       <header className="flex items-center gap-1.5 p-2 pb-1">
         <button
@@ -549,16 +566,22 @@ function ColunaKanban({
           {...attributes}
           {...listeners}
           aria-label={`Mover a coluna ${coluna.nome}`}
-          className="flex size-7 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-background hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
+          className="flex size-7 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-cartao-kanban hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 active:cursor-grabbing"
         >
           <GripVerticalIcon aria-hidden className="size-4" />
         </button>
-        <PontoCor cor={coluna.cor} />
-        <h2 id={tituloId} className="min-w-0 flex-1 truncate text-sm font-semibold" title={coluna.nome}>
-          {coluna.nome}
+        <h2 id={tituloId} className="flex min-w-0 flex-1" title={coluna.nome}>
+          <span
+            className={cn(
+              "truncate rounded-md px-1.5 py-0.5 text-sm font-semibold",
+              CLASSES_COR[coluna.cor].etiqueta,
+            )}
+          >
+            {coluna.nome}
+          </span>
         </h2>
         <span
-          className="rounded-md bg-background px-1.5 text-xs font-medium text-muted-foreground tabular-nums"
+          className="rounded-md bg-cartao-kanban px-1.5 text-xs font-medium text-muted-foreground tabular-nums"
           aria-label={
             filtrando
               ? `${ids.length} de ${total} atividades`
@@ -706,7 +729,7 @@ function CartaoConteudo({
   return (
     <div
       className={cn(
-        "grid gap-2 rounded-lg border bg-card p-3 text-card-foreground shadow-xs transition-colors hover:border-ring/50 in-focus-visible:ring-3 in-focus-visible:ring-ring/50",
+        "grid gap-2 rounded-lg border bg-cartao-kanban p-3 text-card-foreground shadow-xs transition-colors hover:border-ring/50 in-focus-visible:ring-3 in-focus-visible:ring-ring/50",
         className,
       )}
     >
