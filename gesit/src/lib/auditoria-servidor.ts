@@ -10,6 +10,7 @@ import {
 } from "@/lib/auditoria";
 import type { Json } from "@/lib/database.types";
 import { descricaoDispositivo } from "@/lib/dispositivos";
+import { formatarCompetenciaCurta } from "@/lib/financeiro";
 import { limitesPeriodo, type FiltrosAuditoria } from "@/lib/filtros-auditoria";
 import type { createClient } from "@/lib/supabase/server";
 import { TIPO_SERVICO_LABEL } from "@/lib/types";
@@ -108,16 +109,21 @@ export async function montarLinhasAuditoria(
   const porTabela = (t: string) => unicos(linhas.filter((l) => l.tabela === t).map((l) => l.registro_id));
 
   // Vínculos e serviços apontam para dispositivos/usuários: busca-os primeiro.
-  const [vinculosLista, servicosLista] = await Promise.all([
+  // Lançamentos aparecem pela descrição e competência.
+  const [vinculosLista, servicosLista, lancamentosLista] = await Promise.all([
     emLotes(porTabela("vinculos"), (lote) =>
       supabase.from("vinculos").select("id, dispositivo_id, colaborador_id").in("id", lote),
     ),
     emLotes(porTabela("servicos"), (lote) =>
       supabase.from("servicos").select("id, dispositivo_id, tipo").in("id", lote),
     ),
+    emLotes(porTabela("lancamentos"), (lote) =>
+      supabase.from("lancamentos").select("id, descricao, competencia").in("id", lote),
+    ),
   ]);
   const vinculos = new Map(vinculosLista.map((v) => [v.id, v]));
   const servicos = new Map(servicosLista.map((s) => [s.id, s]));
+  const lancamentos = new Map(lancamentosLista.map((l) => [l.id, l]));
 
   const idsLojas = unicos([...porTabela("lojas"), ...idsDoCampo(linhas, "loja_id"), ...idsDoCampo(linhas, "loja_estoque_id")]);
   const idsColaboradores = unicos([
@@ -131,9 +137,13 @@ export async function montarLinhasAuditoria(
     ...vinculosLista.map((v) => v.dispositivo_id),
     ...servicosLista.map((s) => s.dispositivo_id),
   ]);
+  const idsServicosFinanceiros = unicos([
+    ...porTabela("servicos_financeiros"),
+    ...idsDoCampo(linhas, "servico_id"),
+  ]);
   const idsUsuarios = unicos(linhas.map((l) => l.alterado_por));
 
-  const [lojas, colaboradores, dispositivos, usuarios] = await Promise.all([
+  const [lojas, colaboradores, dispositivos, servicosFinanceiros, usuarios] = await Promise.all([
     emLotes(idsLojas, (lote) => supabase.from("lojas").select("id, nome").in("id", lote)),
     emLotes(idsColaboradores, (lote) =>
       supabase.from("colaboradores").select("id, nome").in("id", lote),
@@ -144,6 +154,9 @@ export async function montarLinhasAuditoria(
         .select("id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio")
         .in("id", lote),
     ),
+    emLotes(idsServicosFinanceiros, (lote) =>
+      supabase.from("servicos_financeiros").select("id, descricao, identificador").in("id", lote),
+    ),
     // Corpo POST: sem limite de URL, mas mantém os lotes por simetria.
     emLotes(idsUsuarios, (lote) => supabase.rpc("emails_operadores", { p_ids: lote })),
   ]);
@@ -152,6 +165,12 @@ export async function montarLinhasAuditoria(
     lojas: new Map(lojas.map((l) => [l.id, l.nome])),
     colaboradores: new Map(colaboradores.map((c) => [c.id, c.nome])),
     dispositivos: new Map(dispositivos.map((d) => [d.id, descricaoDispositivo(d)])),
+    servicosFinanceiros: new Map(
+      servicosFinanceiros.map((s) => [
+        s.id,
+        s.identificador ? `${s.descricao} (${s.identificador})` : s.descricao,
+      ]),
+    ),
   };
   const emails = new Map(usuarios.map((u) => [u.id, u.email]));
 
@@ -181,6 +200,19 @@ export async function montarLinhasAuditoria(
         const s = servicos.get(l.registro_id);
         const d = dispositivo(s?.dispositivo_id);
         return { texto: s ? `${TIPO_SERVICO_LABEL[s.tipo]} · ${d.texto}` : d.texto, href: d.href };
+      }
+      case "servicos_financeiros":
+        return {
+          texto: nomes.servicosFinanceiros.get(l.registro_id) ?? "Serviço não encontrado",
+          href: "/financeiro/servicos",
+        };
+      case "lancamentos": {
+        const la = lancamentos.get(l.registro_id);
+        if (!la) return { texto: "Lançamento não encontrado", href: null };
+        return {
+          texto: `${la.descricao} · ${formatarCompetenciaCurta(la.competencia)}`,
+          href: `/financeiro/lancamentos?mes=${la.competencia.slice(0, 7)}`,
+        };
       }
       default:
         return { texto: l.registro_id, href: null };

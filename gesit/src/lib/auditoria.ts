@@ -1,4 +1,12 @@
 import type { Json } from "@/lib/database.types";
+import {
+  SITUACAO_PAGAMENTO_LABEL,
+  TIPO_DESPESA_LABEL,
+  ehSituacaoPagamento,
+  ehTipoDespesa,
+  formatarCompetenciaCurta,
+  rotuloAprovacao,
+} from "@/lib/financeiro";
 import { formatarDataHora, formatarDataISO, formatarMoeda } from "@/lib/format";
 import { rotulosPerifericos } from "@/lib/perifericos";
 import {
@@ -12,7 +20,7 @@ import {
 import { formatarIMEI, formatarLinha } from "@/lib/validators";
 
 // ===========================================================================
-// Tabelas e ações (checks da migration 012)
+// Tabelas e ações (checks das migrations 012 e 015)
 // ===========================================================================
 
 /** Na ordem dos filtros. */
@@ -22,6 +30,8 @@ export const TABELAS_AUDITORIA = [
   "lojas",
   "vinculos",
   "servicos",
+  "servicos_financeiros",
+  "lancamentos",
 ] as const;
 export type TabelaAuditoria = (typeof TABELAS_AUDITORIA)[number];
 
@@ -31,6 +41,8 @@ export const TIPO_REGISTRO_LABEL: Record<TabelaAuditoria, string> = {
   lojas: "Loja",
   vinculos: "Vínculo",
   servicos: "Serviço",
+  servicos_financeiros: "Serviço financeiro",
+  lancamentos: "Lançamento",
 };
 
 export const ACOES_AUDITORIA = ["insercao", "alteracao"] as const;
@@ -109,6 +121,31 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     descricao: "Descrição",
     anexo_path: "Anexo",
   },
+  servicos_financeiros: {
+    ...CAMPOS_COMUNS,
+    tipo: "Tipo",
+    descricao: "Descrição",
+    fornecedor: "Fornecedor",
+    identificador: "Identificador",
+    loja_id: "Filial",
+    dia_vencimento: "Dia de vencimento",
+    valor_referencia: "Valor de referência",
+  },
+  lancamentos: {
+    observacao: "Observação",
+    competencia: "Competência",
+    servico_id: "Serviço",
+    tipo: "Tipo",
+    descricao: "Descrição",
+    loja_id: "Filial",
+    vencimento: "Vencimento",
+    valor: "Valor",
+    situacao: "Situação",
+    id_aprovacao: "ID da aprovação",
+    aprovacao_ok: "Aprovação",
+    data_pagamento: "Data do pagamento",
+    anexo_path: "Anexo",
+  },
 };
 
 /**
@@ -120,7 +157,8 @@ const CAMPOS_OCULTOS = new Set(["criado_por", "encerrado_por", "created_at", "up
 /** Caminhos de arquivo: mostrados como "arquivo anexado/substituído". */
 const CAMPOS_ARQUIVO = new Set(["termo_path", "nota_fiscal_path", "anexo_path"]);
 
-const DATAS = new Set(["data_compra", "fim_vida_util", "data_servico"]);
+const DATAS = new Set(["data_compra", "fim_vida_util", "data_servico", "vencimento", "data_pagamento"]);
+const MOEDA = new Set(["custo", "valor", "valor_referencia"]);
 const DATAS_HORA = new Set(["data_inicio", "data_fim"]);
 
 export function rotuloCampo(tabela: TabelaAuditoria, campo: string): string {
@@ -136,6 +174,7 @@ export type NomesAuditoria = {
   lojas: Map<string, string>;
   colaboradores: Map<string, string>;
   dispositivos: Map<string, string>;
+  servicosFinanceiros: Map<string, string>;
 };
 
 const texto = (v: Json | undefined): string | null =>
@@ -149,6 +188,7 @@ export function formatarValorAuditoria(
   nomes: NomesAuditoria,
 ): string {
   if (valor === null || valor === undefined || valor === "") return "—";
+  if (campo === "aprovacao_ok" && typeof valor === "boolean") return rotuloAprovacao(valor);
   if (typeof valor === "boolean") return valor ? "Sim" : "Não";
   if (Array.isArray(valor)) {
     return rotulosPerifericos(valor.filter((x): x is string => typeof x === "string")) || "Nenhum";
@@ -160,14 +200,18 @@ export function formatarValorAuditoria(
   if (campo === "loja_id" || campo === "loja_estoque_id") return nomes.lojas.get(s) ?? "Loja não encontrada";
   if (campo === "colaborador_id") return nomes.colaboradores.get(s) ?? "Usuário não encontrado";
   if (campo === "dispositivo_id") return nomes.dispositivos.get(s) ?? "Dispositivo não encontrado";
+  if (campo === "servico_id") return nomes.servicosFinanceiros.get(s) ?? "Serviço não encontrado";
   if (campo === "status" && ehStatusDispositivo(s)) return STATUS_DISPOSITIVO_LABEL[s];
   if (campo === "tipo" && tabela === "dispositivos") {
     return TIPO_DISPOSITIVO_LABEL[s as TipoDispositivo] ?? s;
   }
   if (campo === "tipo" && tabela === "servicos") return TIPO_SERVICO_LABEL[s as TipoServico] ?? s;
+  if (campo === "tipo" && ehTipoDespesa(s)) return TIPO_DESPESA_LABEL[s];
+  if (campo === "situacao" && ehSituacaoPagamento(s)) return SITUACAO_PAGAMENTO_LABEL[s];
+  if (campo === "competencia") return formatarCompetenciaCurta(s);
   if (campo === "imei1" || campo === "imei2") return formatarIMEI(s);
   if (campo === "numero_linha") return formatarLinha(s);
-  if (campo === "custo") return formatarMoeda(Number(s));
+  if (MOEDA.has(campo)) return formatarMoeda(Number(s));
   if (DATAS.has(campo)) return formatarDataISO(s);
   if (DATAS_HORA.has(campo)) return formatarDataHora(s);
   return s;

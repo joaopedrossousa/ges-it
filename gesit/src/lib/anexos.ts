@@ -1,18 +1,20 @@
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Anexos de dispositivo (nota fiscal, serviços): PDF, JPG ou PNG até 10 MB,
- * em buckets privados, no caminho {dispositivo_id}/{timestamp}.{ext}.
- * Mesmas regras dos buckets e das checks das migrations 009 e 011.
+ * Anexos (nota fiscal e serviços do dispositivo; boleto/NF do lançamento
+ * financeiro): PDF, JPG ou PNG até 10 MB, em buckets privados, no caminho
+ * {pasta}/{timestamp}.{ext}. A pasta é o id do dispositivo ("notas-fiscais",
+ * "servicos") ou do lançamento ("financeiro").
+ * Mesmas regras dos buckets e das checks das migrations 009, 011 e 015.
  */
-export type BucketAnexo = "notas-fiscais" | "servicos";
+export type BucketAnexo = "notas-fiscais" | "servicos" | "financeiro";
 
 export const ANEXO_TAMANHO_MAXIMO = 10 * 1024 * 1024; // 10 MB
 
 /** Para o atributo accept do <input type="file">. */
 export const ANEXO_ACCEPT = "application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png";
 
-/** {dispositivo_id}/{timestamp}.{pdf|jpg|png} */
+/** {id do dispositivo ou do lançamento}/{timestamp}.{pdf|jpg|png} */
 export const REGEX_CAMINHO_ANEXO = /^[0-9a-f-]{36}\/\d+\.(pdf|jpg|png)$/;
 
 /** Tipos aceitos pelos buckets e a extensão gravada no caminho. */
@@ -42,18 +44,18 @@ export function validarArquivoAnexo(arquivo: File | null, nome: string): string 
 
 /**
  * Envia o arquivo direto do navegador para o bucket, em
- * {dispositivo_id}/{timestamp}.{ext}. O dispositivo já precisa existir
- * (a policy de insert confere a pasta). Uso apenas em Client Components.
+ * {pastaId}/{timestamp}.{ext}. O dispositivo (ou lançamento) já precisa
+ * existir: a policy de insert confere a pasta. Uso apenas em Client Components.
  */
 export async function enviarAnexo(
   bucket: BucketAnexo,
-  dispositivoId: string,
+  pastaId: string,
   arquivo: File,
 ): Promise<{ path: string } | { erro: string }> {
   const contentType = tipoDoArquivo(arquivo);
   if (!contentType) return { erro: "O arquivo deve ser PDF, JPG ou PNG." };
 
-  const path = `${dispositivoId}/${Date.now()}.${EXTENSOES[contentType]}`;
+  const path = `${pastaId}/${Date.now()}.${EXTENSOES[contentType]}`;
   const supabase = createClient();
   const { error } = await supabase.storage.from(bucket).upload(path, arquivo, {
     contentType,

@@ -165,6 +165,81 @@ export type Database = {
           },
         ]
       }
+      lancamentos: {
+        Row: {
+          anexo_path: string | null
+          aprovacao_ok: boolean | null
+          competencia: string
+          created_at: string
+          criado_por: string | null
+          data_pagamento: string | null
+          descricao: string
+          id: string
+          id_aprovacao: string | null
+          loja_id: string | null
+          observacao: string | null
+          servico_id: string | null
+          situacao: Database["public"]["Enums"]["situacao_pagamento"]
+          tipo: Database["public"]["Enums"]["tipo_despesa"]
+          updated_at: string
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          anexo_path?: string | null
+          aprovacao_ok?: boolean | null
+          competencia: string
+          created_at?: string
+          criado_por?: string | null
+          data_pagamento?: string | null
+          descricao: string
+          id?: string
+          id_aprovacao?: string | null
+          loja_id?: string | null
+          observacao?: string | null
+          servico_id?: string | null
+          situacao?: Database["public"]["Enums"]["situacao_pagamento"]
+          tipo: Database["public"]["Enums"]["tipo_despesa"]
+          updated_at?: string
+          valor: number
+          vencimento: string
+        }
+        Update: {
+          anexo_path?: string | null
+          aprovacao_ok?: boolean | null
+          competencia?: string
+          created_at?: string
+          criado_por?: string | null
+          data_pagamento?: string | null
+          descricao?: string
+          id?: string
+          id_aprovacao?: string | null
+          loja_id?: string | null
+          observacao?: string | null
+          servico_id?: string | null
+          situacao?: Database["public"]["Enums"]["situacao_pagamento"]
+          tipo?: Database["public"]["Enums"]["tipo_despesa"]
+          updated_at?: string
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lojas: {
         Row: {
           ativo: boolean
@@ -245,6 +320,59 @@ export type Database = {
             columns: ["dispositivo_id"]
             isOneToOne: false
             referencedRelation: "vw_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      servicos_financeiros: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string
+          dia_vencimento: number | null
+          fornecedor: string | null
+          id: string
+          identificador: string | null
+          loja_id: string | null
+          observacao: string | null
+          tipo: Database["public"]["Enums"]["tipo_despesa"]
+          updated_at: string
+          valor_referencia: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao: string
+          dia_vencimento?: number | null
+          fornecedor?: string | null
+          id?: string
+          identificador?: string | null
+          loja_id?: string | null
+          observacao?: string | null
+          tipo: Database["public"]["Enums"]["tipo_despesa"]
+          updated_at?: string
+          valor_referencia?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string
+          dia_vencimento?: number | null
+          fornecedor?: string | null
+          id?: string
+          identificador?: string | null
+          loja_id?: string | null
+          observacao?: string | null
+          tipo?: Database["public"]["Enums"]["tipo_despesa"]
+          updated_at?: string
+          valor_referencia?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_financeiros_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
             referencedColumns: ["id"]
           },
         ]
@@ -405,6 +533,49 @@ export type Database = {
           },
         ]
       }
+      vw_lancamentos: {
+        Row: {
+          anexo_path: string | null
+          aprovacao_ok: boolean | null
+          competencia: string | null
+          created_at: string | null
+          criado_por: string | null
+          data_pagamento: string | null
+          descricao: string | null
+          id: string | null
+          id_aprovacao: string | null
+          loja_cidade: string | null
+          loja_id: string | null
+          loja_nome: string | null
+          observacao: string | null
+          servico_descricao: string | null
+          servico_fornecedor: string | null
+          servico_id: string | null
+          servico_identificador: string | null
+          situacao: Database["public"]["Enums"]["situacao_pagamento"] | null
+          situacao_vencimento: string | null
+          tipo: Database["public"]["Enums"]["tipo_despesa"] | null
+          updated_at: string | null
+          valor: number | null
+          vencimento: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lancamentos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lancamentos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_financeiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_servicos: {
         Row: {
           anexo_path: string | null
@@ -524,7 +695,19 @@ export type Database = {
       }
     }
     Enums: {
+      situacao_pagamento:
+        | "solicitado_compras"
+        | "enviado_financeiro"
+        | "pago"
+        | "nao_pago"
+        | "cancelado"
       status_dispositivo: "disponivel" | "em_uso" | "manutencao" | "baixado"
+      tipo_despesa:
+        | "provedor_internet"
+        | "servico"
+        | "telefonia"
+        | "compras"
+        | "outro"
       tipo_dispositivo: "notebook" | "telefone" | "monitor"
       tipo_servico:
         | "formatacao"
@@ -662,7 +845,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      situacao_pagamento: [
+        "solicitado_compras",
+        "enviado_financeiro",
+        "pago",
+        "nao_pago",
+        "cancelado",
+      ],
       status_dispositivo: ["disponivel", "em_uso", "manutencao", "baixado"],
+      tipo_despesa: [
+        "provedor_internet",
+        "servico",
+        "telefonia",
+        "compras",
+        "outro",
+      ],
       tipo_dispositivo: ["notebook", "telefone", "monitor"],
       tipo_servico: [
         "formatacao",

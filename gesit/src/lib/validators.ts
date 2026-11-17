@@ -2,7 +2,13 @@ import { z } from "zod";
 
 import { hojeEmPalmas } from "./format";
 import { PERIFERICOS } from "./perifericos";
-import { OPERADORAS, STATUS_EDITAVEIS, TIPOS_SERVICO } from "./types";
+import {
+  OPERADORAS,
+  SITUACOES_PAGAMENTO,
+  STATUS_EDITAVEIS,
+  TIPOS_DESPESA,
+  TIPOS_SERVICO,
+} from "./types";
 
 // ===========================================================================
 // Utilitários
@@ -177,6 +183,19 @@ export function lerValorEmReais(valor: string): number | null {
 export function valorParaCampo(valor: number | null | undefined): string {
   return valor === null || valor === undefined ? "" : valor.toFixed(2).replace(".", ",");
 }
+
+/**
+ * Campo de moeda opcional: entra como texto em reais ("1.250,00"), sai como
+ * número ou null. Cabe em numeric(10,2) e numeric(12,2).
+ */
+const valorEmReais = (negativo: string) =>
+  z
+    .union([z.string(), z.number()])
+    .nullish()
+    .transform((v) => (typeof v === "number" ? v : lerValorEmReais(v ?? "")))
+    .refine((v) => v === null || Number.isFinite(v), "Valor inválido. Ex.: 1.250,00")
+    .refine((v) => v === null || v >= 0, negativo)
+    .refine((v) => v === null || v < 100_000_000, "Valor muito alto.");
 
 // ===========================================================================
 // Campos reutilizáveis
@@ -404,13 +423,7 @@ export const servicoSchema = z
       .refine((v) => v <= hojeEmPalmas(), "A data do serviço não pode ser futura."),
     fornecedor: textoOpcional(150),
     /** Entra como texto em reais; sai como número (ou null). */
-    custo: z
-      .union([z.string(), z.number()])
-      .nullish()
-      .transform((v) => (typeof v === "number" ? v : lerValorEmReais(v ?? "")))
-      .refine((v) => v === null || Number.isFinite(v), "Valor inválido. Ex.: 1.250,00")
-      .refine((v) => v === null || v >= 0, "O custo não pode ser negativo.")
-      .refine((v) => v === null || v < 100_000_000, "Valor muito alto."),
+    custo: valorEmReais("O custo não pode ser negativo."),
     na_garantia: z.boolean().default(false),
     descricao: textoOpcional(1000),
   })
@@ -440,7 +453,105 @@ export const devolucaoSchema = z.object({
   loja_estoque_id: idOpcional("Filial de estoque inválida."),
 });
 
+// ===========================================================================
+// Gestão Financeira (migration 015)
+// ===========================================================================
+
+const tipoDespesa = z.enum(TIPOS_DESPESA, { error: "Selecione o tipo." });
+
+/** Serviço do catálogo financeiro (preenche os lançamentos). */
+export const servicoFinanceiroSchema = z.object({
+  tipo: tipoDespesa,
+  descricao: textoObrigatorio("a descrição", 150),
+  fornecedor: textoOpcional(150),
+  /** Nº do contrato, da linha ou da conta. */
+  identificador: textoOpcional(100),
+  loja_id: idOpcional("Filial inválida."),
+  /** Texto do campo; vazio vira null. */
+  dia_vencimento: z
+    .union([z.string(), z.number()])
+    .nullish()
+    .transform((v) => {
+      const t = String(v ?? "").trim();
+      return t ? Number(t) : null;
+    })
+    .refine(
+      (v) => v === null || (Number.isInteger(v) && v >= 1 && v <= 31),
+      "Informe um dia entre 1 e 31.",
+    ),
+  valor_referencia: valorEmReais("O valor não pode ser negativo."),
+  ativo: z.boolean().default(true),
+  observacao: textoOpcional(1000),
+});
+
+/** Valores do select de aprovação; "" = não informado (null no banco). */
+export const APROVACAO_OPCOES = ["", "ok", "nao_ok"] as const;
+
+const dataObrigatoria = (mensagem: string) =>
+  z.string({ error: mensagem }).trim().min(1, mensagem).pipe(z.iso.date("Data inválida."));
+
+/** Data do pagamento: só (e sempre) quando pago; não pode ser futura. */
+const MENSAGEM_DATA_PAGAMENTO = "Informe a data do pagamento.";
+
+const dataPagamento = dataOpcional.refine(
+  (v) => v === null || v <= hojeEmPalmas(),
+  "A data do pagamento não pode ser futura.",
+);
+
+/**
+ * Lançamento de uma competência. `servico_id` vazio = avulso. O anexo é
+ * gravado à parte (anexarArquivoLancamento).
+ */
+export const lancamentoSchema = z
+  .object({
+    competencia: z
+      .string({ error: "Selecione a competência." })
+      .regex(/^\d{4}-(0[1-9]|1[0-2])-01$/, "Competência inválida."),
+    servico_id: idOpcional("Serviço inválido."),
+    tipo: tipoDespesa,
+    descricao: textoObrigatorio("a descrição", 150),
+    loja_id: idOpcional("Filial inválida."),
+    vencimento: dataObrigatoria("Informe o vencimento."),
+    valor: valorEmReais("O valor não pode ser negativo.").pipe(
+      z.number({ error: "Informe o valor." }),
+    ),
+    situacao: z.enum(SITUACOES_PAGAMENTO, { error: "Situação inválida." }).default("solicitado_compras"),
+    data_pagamento: dataPagamento,
+    id_aprovacao: textoOpcional(100),
+    /** Select do formulário ("ok", "nao_ok", "") ou já convertido (boolean). */
+    aprovacao_ok: z
+      .union([z.enum(APROVACAO_OPCOES), z.boolean()], { error: "Aprovação inválida." })
+      .nullish()
+      .transform((v) =>
+        v === true || v === "ok" ? true : v === false || v === "nao_ok" ? false : null,
+      ),
+    observacao: textoOpcional(1000),
+  })
+  .refine((d) => d.situacao !== "pago" || d.data_pagamento !== null, {
+    message: MENSAGEM_DATA_PAGAMENTO,
+    path: ["data_pagamento"],
+  })
+  // Fora de "pago" a data some (a check do banco exige).
+  .transform((d) => (d.situacao === "pago" ? d : { ...d, data_pagamento: null }));
+
+/** Mudança rápida de situação na linha do lançamento. */
+export const situacaoLancamentoSchema = z
+  .object({
+    situacao: z.enum(SITUACOES_PAGAMENTO, { error: "Situação inválida." }),
+    data_pagamento: dataPagamento,
+  })
+  .refine((d) => d.situacao !== "pago" || d.data_pagamento !== null, {
+    message: MENSAGEM_DATA_PAGAMENTO,
+    path: ["data_pagamento"],
+  })
+  .transform((d) => (d.situacao === "pago" ? d : { ...d, data_pagamento: null }));
+
 // Tipos de entrada (formulário) e saída (já normalizada para o banco).
+export type ServicoFinanceiroFormInput = z.input<typeof servicoFinanceiroSchema>;
+export type ServicoFinanceiroFormData = z.output<typeof servicoFinanceiroSchema>;
+export type LancamentoFormInput = z.input<typeof lancamentoSchema>;
+export type LancamentoFormData = z.output<typeof lancamentoSchema>;
+export type SituacaoLancamentoInput = z.input<typeof situacaoLancamentoSchema>;
 export type LojaFormInput = z.input<typeof lojaSchema>;
 export type LojaFormData = z.output<typeof lojaSchema>;
 export type ColaboradorFormInput = z.input<typeof colaboradorSchema>;

@@ -33,6 +33,12 @@ export const TIPOS_DISPOSITIVO = Constants.public.Enums.tipo_dispositivo;
 export const STATUS_DISPOSITIVO = Constants.public.Enums.status_dispositivo;
 export const TIPOS_SERVICO = Constants.public.Enums.tipo_servico;
 
+/** Gestão Financeira (migration 015). Rótulos em src/lib/financeiro.ts. */
+export type TipoDespesa = Enums<"tipo_despesa">;
+export type SituacaoPagamento = Enums<"situacao_pagamento">;
+export const TIPOS_DESPESA = Constants.public.Enums.tipo_despesa;
+export const SITUACOES_PAGAMENTO = Constants.public.Enums.situacao_pagamento;
+
 export const TIPO_SERVICO_LABEL: Record<TipoServico, string> = {
   formatacao: "Formatação",
   troca_tela: "Troca de tela",
@@ -145,6 +151,11 @@ export type VinculoInsert = TablesInsert<"vinculos">;
 export type VinculoUpdate = TablesUpdate<"vinculos">;
 
 export type ServicoRow = Tables<"servicos">;
+
+/** Gestão Financeira: sem delete (desativar o serviço; cancelar o lançamento). */
+export type ServicoFinanceiroRow = Tables<"servicos_financeiros">;
+export type LancamentoRow = Tables<"lancamentos">;
+export type VwLancamentoRow = Tables<"vw_lancamentos">;
 
 // ---------------------------------------------------------------------------
 // View
