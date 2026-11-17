@@ -36,7 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { descreverPendencias } from "@/lib/colaboradores";
-import { identificadorDispositivo } from "@/lib/dispositivos";
+import { identificadorDispositivo, nomeDispositivo } from "@/lib/dispositivos";
 import { formatarDataHora, formatarDuracao } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
@@ -88,7 +88,7 @@ async function DetalheColaborador({
     supabase
       .from("vinculos")
       .select(
-        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, perifericos_entrega, perifericos_devolucao, formatado_entrega, formatado_devolucao, loja:lojas(nome), dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio)",
+        "id, dispositivo_id, colaborador_id, data_inicio, data_fim, termo_path, observacao, observacao_devolucao, perifericos_entrega, perifericos_devolucao, formatado_entrega, formatado_devolucao, loja:lojas(nome), dispositivo:dispositivos(id, tipo, marca, modelo, equipamento, serial_number, imei1, numero_patrimonio)",
       )
       .eq("colaborador_id", id)
       .order("data_inicio", { ascending: false })
@@ -124,7 +124,7 @@ async function DetalheColaborador({
       dispositivo: dispositivo
         ? {
             id: dispositivo.id,
-            descricao: `${dispositivo.marca} ${dispositivo.modelo}`,
+            descricao: nomeDispositivo(dispositivo),
             identificador: identificadorDispositivo(dispositivo),
           }
         : null,
@@ -243,7 +243,7 @@ async function DetalheColaborador({
                       <TableCell>{TIPO_DISPOSITIVO_LABEL[d.tipo]}</TableCell>
                       <TableCell className="font-medium">
                         <Link href={`/dispositivos/${d.id}`} className="hover:underline">
-                          {d.marca} {d.modelo}
+                          {nomeDispositivo(d)}
                         </Link>
                       </TableCell>
                       <TableCell className="font-mono text-xs">

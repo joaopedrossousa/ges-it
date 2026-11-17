@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LaptopIcon, MonitorIcon, SmartphoneIcon } from "lucide-react";
+import { LaptopIcon, MonitorIcon, NetworkIcon, SmartphoneIcon } from "lucide-react";
 import { useState, useTransition, type ReactNode } from "react";
 import {
   Controller,
@@ -54,10 +54,13 @@ import {
   exigirDataCompra,
   formatarIMEIDigitando,
   formatarLinhaDigitando,
+  infraestruturaSchema,
   monitorSchema,
   notebookSchema,
   telefoneSchema,
   type DispositivoFormData,
+  type InfraestruturaFormData,
+  type InfraestruturaFormInput,
   type MonitorFormData,
   type MonitorFormInput,
   type NotebookFormData,
@@ -71,7 +74,10 @@ import { anexarNotaFiscal, atualizarDispositivo, criarDispositivo } from "./acti
 export type DispositivoEditavel = {
   id: string;
   tipo: TipoDispositivo;
-  marca: string;
+  /** Nula na infraestrutura. */
+  marca: string | null;
+  /** "Dispositivo" da infraestrutura (ex.: Access Point); nulo nos outros tipos. */
+  equipamento: string | null;
   modelo: string;
   serial_number: string | null;
   imei1: string | null;
@@ -98,9 +104,23 @@ const ICONE_TIPO = {
   notebook: LaptopIcon,
   telefone: SmartphoneIcon,
   monitor: MonitorIcon,
+  infraestrutura: NetworkIcon,
 } satisfies Record<TipoDispositivo, unknown>;
 
-const TIPOS_CADASTRO = ["notebook", "telefone", "monitor"] as const satisfies readonly TipoDispositivo[];
+const TIPOS_CADASTRO = [
+  "notebook",
+  "telefone",
+  "monitor",
+  "infraestrutura",
+] as const satisfies readonly TipoDispositivo[];
+
+/** Título da edição: "Editar Notebook", "Editar Item de Infraestrutura". */
+const TITULO_EDICAO: Record<TipoDispositivo, string> = {
+  notebook: "Editar Notebook",
+  telefone: "Editar Telefone",
+  monitor: "Editar Monitor",
+  infraestrutura: "Editar Item de Infraestrutura",
+};
 
 export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
   const [open, setOpen] = useState(false);
@@ -136,9 +156,7 @@ export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {editando
-              ? `Editar ${TIPO_DISPOSITIVO_LABEL[tipo]}`
-              : "Novo Dispositivo"}
+            {editando ? TITULO_EDICAO[tipo] : "Novo Dispositivo"}
           </DialogTitle>
           <DialogDescription>
             {editando
@@ -151,7 +169,7 @@ export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
           <div
             role="radiogroup"
             aria-label="Tipo de dispositivo"
-            className="grid grid-cols-3 gap-2"
+            className="grid grid-cols-2 gap-2"
           >
             {TIPOS_CADASTRO.map((t) => {
               const Icone = ICONE_TIPO[t];
@@ -176,6 +194,9 @@ export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
         {tipo === "notebook" && <NotebookForm key="notebook" {...propsForm} />}
         {tipo === "telefone" && <TelefoneForm key="telefone" {...propsForm} />}
         {tipo === "monitor" && <MonitorForm key="monitor" {...propsForm} />}
+        {tipo === "infraestrutura" && (
+          <InfraestruturaForm key="infraestrutura" {...propsForm} />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -189,10 +210,9 @@ type FormProps = {
   onCancelar: () => void;
 };
 
-/** Valores iniciais dos campos comuns aos três tipos. */
+/** Valores iniciais dos campos comuns a todos os tipos (a marca fica em cada um). */
 function valoresComuns(d?: DispositivoEditavel) {
   return {
-    marca: d?.marca ?? "",
     modelo: d?.modelo ?? "",
     numero_patrimonio: d?.numero_patrimonio ?? "",
     data_compra: d?.data_compra ?? "",
@@ -203,7 +223,6 @@ function valoresComuns(d?: DispositivoEditavel) {
 }
 
 const CAMPOS_COMUNS = [
-  "marca",
   "modelo",
   "numero_patrimonio",
   "data_compra",
@@ -226,13 +245,14 @@ function NotebookForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
     defaultValues: {
       tipo: "notebook",
       ...valoresComuns(dispositivo),
+      marca: dispositivo?.marca ?? "",
       serial_number: dispositivo?.serial_number ?? "",
     },
   });
 
   const onSubmit = handleSubmit((values) =>
     salvar(values, nota.arquivo, (r) =>
-      aplicarErros(r, setError, [...CAMPOS_COMUNS, "serial_number"]),
+      aplicarErros(r, setError, [...CAMPOS_COMUNS, "marca", "serial_number"]),
     ),
   );
 
@@ -284,6 +304,7 @@ function TelefoneForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
     defaultValues: {
       tipo: "telefone",
       ...valoresComuns(dispositivo),
+      marca: dispositivo?.marca ?? "",
       serial_number: dispositivo?.serial_number ?? "",
       imei1: formatarIMEIDigitando(dispositivo?.imei1 ?? ""),
       imei2: formatarIMEIDigitando(dispositivo?.imei2 ?? ""),
@@ -296,6 +317,7 @@ function TelefoneForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
     salvar(values, nota.arquivo, (r) =>
       aplicarErros(r, setError, [
         ...CAMPOS_COMUNS,
+        "marca",
         "imei1",
         "imei2",
         "serial_number",
@@ -369,11 +391,12 @@ function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
     defaultValues: {
       tipo: "monitor",
       ...valoresComuns(dispositivo),
+      marca: dispositivo?.marca ?? "",
     },
   });
 
   const onSubmit = handleSubmit((values) =>
-    salvar(values, nota.arquivo, (r) => aplicarErros(r, setError, CAMPOS_COMUNS)),
+    salvar(values, nota.arquivo, (r) => aplicarErros(r, setError, [...CAMPOS_COMUNS, "marca"])),
   );
 
   return (
@@ -399,6 +422,88 @@ function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
         atual={dispositivo?.loja_estoque_id ?? null}
         erro={errors.loja_estoque_id?.message}
         disabled={isPending}
+      />
+      <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
+      <CampoObservacao register={register} errors={errors} disabled={isPending} />
+      <Rodape erro={errors.root?.message} etapa={etapa} onCancelar={onCancelar} />
+    </form>
+  );
+}
+
+/**
+ * Infraestrutura (access point, switch, firewall, rack...): sem marca e sem
+ * usuário. O que é o item vai em "Dispositivo"; a filial é obrigatória.
+ */
+function InfraestruturaForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
+  const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
+  const nota = useNotaFiscal();
+  const {
+    register,
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors },
+  } = useForm<InfraestruturaFormInput, unknown, InfraestruturaFormData>({
+    resolver: zodResolver(
+      dispositivo ? infraestruturaSchema : exigirDataCompra(infraestruturaSchema),
+    ),
+    defaultValues: {
+      tipo: "infraestrutura",
+      ...valoresComuns(dispositivo),
+      equipamento: dispositivo?.equipamento ?? "",
+      serial_number: dispositivo?.serial_number ?? "",
+    },
+  });
+
+  const onSubmit = handleSubmit((values) =>
+    salvar(values, nota.arquivo, (r) =>
+      aplicarErros(r, setError, [...CAMPOS_COMUNS, "equipamento", "serial_number"]),
+    ),
+  );
+
+  return (
+    <form onSubmit={onSubmit} noValidate className="grid gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CampoTexto
+          id="disp-equipamento"
+          rotulo="Dispositivo"
+          obrigatorio
+          autoFocus
+          placeholder="Ex.: Access Point, Switch"
+          erro={errors.equipamento?.message}
+          disabled={isPending}
+          registro={register("equipamento")}
+        />
+        <CampoTexto
+          id="disp-modelo"
+          rotulo="Modelo"
+          obrigatorio
+          erro={errors.modelo?.message}
+          disabled={isPending}
+          registro={register("modelo")}
+        />
+        <CampoTexto
+          id="disp-serial"
+          rotulo="Serial Number (opcional)"
+          erro={errors.serial_number?.message}
+          disabled={isPending}
+          registro={register("serial_number")}
+        />
+        <CampoPatrimonio register={register} errors={errors} disabled={isPending} />
+      </div>
+      <CamposAquisicao
+        control={control}
+        errors={errors}
+        disabled={isPending}
+        novo={!dispositivo}
+      />
+      <CampoFilialEstoque
+        control={control}
+        lojas={lojas}
+        atual={dispositivo?.loja_estoque_id ?? null}
+        erro={errors.loja_estoque_id?.message}
+        disabled={isPending}
+        obrigatoria
       />
       <CampoNotaFiscal nota={nota} atual={dispositivo?.nota_fiscal_path ?? null} disabled={isPending} />
       <CampoObservacao register={register} errors={errors} disabled={isPending} />
@@ -669,6 +774,7 @@ function CampoTexto({
   registro,
   autoFocus,
   obrigatorio,
+  placeholder,
 }: {
   id: string;
   rotulo: string;
@@ -677,6 +783,7 @@ function CampoTexto({
   registro: UseFormRegisterReturn;
   autoFocus?: boolean;
   obrigatorio?: boolean;
+  placeholder?: string;
 }) {
   return (
     <div className="grid gap-2">
@@ -685,6 +792,7 @@ function CampoTexto({
         id={id}
         autoComplete="off"
         autoFocus={autoFocus}
+        placeholder={placeholder}
         aria-required={obrigatorio || undefined}
         aria-invalid={Boolean(erro)}
         aria-describedby={erro ? `${id}-erro` : undefined}
@@ -786,13 +894,17 @@ function CampoLinha({
 /** Valor da opção "sem filial" (o ComboboxLista não tem opção vazia). */
 const SEM_FILIAL = "nenhuma";
 
-/** Filial onde o aparelho fica guardado quando não está vinculado. */
+/**
+ * Filial onde o aparelho fica guardado quando não está vinculado. Na
+ * infraestrutura (`obrigatoria`), é a filial dona do item: sem "Não informada".
+ */
 function CampoFilialEstoque<T extends FieldValues, U extends FieldValues>({
   control,
   lojas,
   atual,
   erro,
   disabled,
+  obrigatoria,
 }: {
   control: Control<T, unknown, U>;
   lojas: LojaOpcao[];
@@ -800,15 +912,17 @@ function CampoFilialEstoque<T extends FieldValues, U extends FieldValues>({
   atual: string | null;
   erro?: string;
   disabled: boolean;
+  obrigatoria?: boolean;
 }) {
   const id = "disp-loja-estoque";
-  const opcoes = [
-    { value: SEM_FILIAL, label: "Não informada" },
-    ...opcoesLojas(lojas.filter((l) => l.ativo || l.id === atual)),
-  ];
+  const lojasAtivas = opcoesLojas(lojas.filter((l) => l.ativo || l.id === atual));
+  const opcoes = obrigatoria
+    ? lojasAtivas
+    : [{ value: SEM_FILIAL, label: "Não informada" }, ...lojasAtivas];
+  const semValor = obrigatoria ? "" : SEM_FILIAL;
   return (
     <div className="grid gap-2">
-      <Label htmlFor={id}>Filial de estoque (opcional)</Label>
+      <Label htmlFor={id}>{obrigatoria ? "Filial" : "Filial de estoque (opcional)"}</Label>
       <Controller
         control={control}
         name={"loja_estoque_id" as Path<T>}
@@ -817,19 +931,23 @@ function CampoFilialEstoque<T extends FieldValues, U extends FieldValues>({
             id={id}
             ref={field.ref}
             opcoes={opcoes}
-            value={typeof field.value === "string" && field.value ? field.value : SEM_FILIAL}
+            value={typeof field.value === "string" && field.value ? field.value : semValor}
             onChange={(v) => field.onChange(v === SEM_FILIAL ? "" : v)}
             onBlur={field.onBlur}
+            placeholder="Selecione a filial"
             placeholderBusca="Buscar loja ou cidade..."
             vazio="Nenhuma loja encontrada."
             disabled={disabled}
+            required={obrigatoria}
             invalid={Boolean(erro)}
             descritoPor={erro ? `${id}-erro ${id}-ajuda` : `${id}-ajuda`}
           />
         )}
       />
       <p id={`${id}-ajuda`} className="text-xs text-muted-foreground">
-        Onde o aparelho fica quando não está com um usuário.
+        {obrigatoria
+          ? "Onde o item está instalado. Itens de infraestrutura não são vinculados a usuários."
+          : "Onde o aparelho fica quando não está com um usuário."}
       </p>
       <MensagemErro id={`${id}-erro`} mensagem={erro} />
     </div>

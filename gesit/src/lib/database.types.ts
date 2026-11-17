@@ -98,12 +98,13 @@ export type Database = {
         Row: {
           created_at: string
           data_compra: string | null
+          equipamento: string | null
           fim_vida_util: string | null
           id: string
           imei1: string | null
           imei2: string | null
           loja_estoque_id: string | null
-          marca: string
+          marca: string | null
           modelo: string
           nota_fiscal_path: string | null
           numero_linha: string | null
@@ -118,12 +119,13 @@ export type Database = {
         Insert: {
           created_at?: string
           data_compra?: string | null
+          equipamento?: string | null
           fim_vida_util?: string | null
           id?: string
           imei1?: string | null
           imei2?: string | null
           loja_estoque_id?: string | null
-          marca: string
+          marca?: string | null
           modelo: string
           nota_fiscal_path?: string | null
           numero_linha?: string | null
@@ -138,12 +140,13 @@ export type Database = {
         Update: {
           created_at?: string
           data_compra?: string | null
+          equipamento?: string | null
           fim_vida_util?: string | null
           id?: string
           imei1?: string | null
           imei2?: string | null
           loja_estoque_id?: string | null
-          marca?: string
+          marca?: string | null
           modelo?: string
           nota_fiscal_path?: string | null
           numero_linha?: string | null
@@ -632,6 +635,7 @@ export type Database = {
           colaborador_nome: string | null
           created_at: string | null
           data_compra: string | null
+          equipamento: string | null
           fim_vida_util: string | null
           id: string | null
           idade_meses: number | null
@@ -735,6 +739,7 @@ export type Database = {
           dispositivo_tipo:
             | Database["public"]["Enums"]["tipo_dispositivo"]
             | null
+          equipamento: string | null
           fornecedor: string | null
           id: string | null
           imei1: string | null
@@ -941,7 +946,7 @@ export type Database = {
         | "telefonia"
         | "compras"
         | "outro"
-      tipo_dispositivo: "notebook" | "telefone" | "monitor"
+      tipo_dispositivo: "notebook" | "telefone" | "monitor" | "infraestrutura"
       tipo_servico:
         | "formatacao"
         | "troca_tela"
@@ -1106,7 +1111,7 @@ export const Constants = {
         "compras",
         "outro",
       ],
-      tipo_dispositivo: ["notebook", "telefone", "monitor"],
+      tipo_dispositivo: ["notebook", "telefone", "monitor", "infraestrutura"],
       tipo_servico: [
         "formatacao",
         "troca_tela",

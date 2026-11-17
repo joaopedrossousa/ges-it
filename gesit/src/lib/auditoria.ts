@@ -91,6 +91,8 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     ...CAMPOS_COMUNS,
     tipo: "Tipo",
     marca: "Marca",
+    // Infraestrutura (migration 018): o que é o item (Access Point, Switch...).
+    equipamento: "Dispositivo",
     modelo: "Modelo",
     serial_number: "Serial Number",
     imei1: "IMEI 1",

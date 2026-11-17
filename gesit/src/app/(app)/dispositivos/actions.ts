@@ -9,6 +9,7 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { REGEX_CAMINHO_ANEXO } from "@/lib/anexos";
+import { nomeDispositivo } from "@/lib/dispositivos";
 import { REGEX_CAMINHO_NOTA_FISCAL } from "@/lib/notas-fiscais";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -31,6 +32,7 @@ import {
 
 type CampoDispositivo =
   | "marca"
+  | "equipamento"
   | "modelo"
   | "serial_number"
   | "imei1"
@@ -39,7 +41,8 @@ type CampoDispositivo =
   | "numero_linha"
   | "operadora"
   | "data_compra"
-  | "fim_vida_util";
+  | "fim_vida_util"
+  | "loja_estoque_id";
 
 const DUPLICIDADES = [
   {
@@ -84,10 +87,11 @@ function revalidarVinculos() {
 /**
  * Campos gravados no banco. `status` e `tipo` nunca mudam pela edição;
  * a nota fiscal é gravada à parte (anexarNotaFiscal), depois do upload.
+ * Infraestrutura não tem marca (fica nula); os outros tipos não têm
+ * equipamento (migration 018).
  */
 function camposEditaveis(d: DispositivoFormData) {
   const comuns = {
-    marca: d.marca,
     modelo: d.modelo,
     numero_patrimonio: d.numero_patrimonio,
     data_compra: d.data_compra,
@@ -97,12 +101,15 @@ function camposEditaveis(d: DispositivoFormData) {
   };
   switch (d.tipo) {
     case "notebook":
-      return { ...comuns, serial_number: d.serial_number };
+      return { ...comuns, marca: d.marca, serial_number: d.serial_number };
     case "monitor":
-      return comuns;
+      return { ...comuns, marca: d.marca };
+    case "infraestrutura":
+      return { ...comuns, equipamento: d.equipamento, serial_number: d.serial_number };
     case "telefone":
       return {
         ...comuns,
+        marca: d.marca,
         serial_number: d.serial_number,
         imei1: d.imei1,
         imei2: d.imei2,
@@ -128,7 +135,7 @@ async function conferirImeis(
   const lista = imeis.join(",");
   let query = supabase
     .from("dispositivos")
-    .select("id, marca, modelo, imei1, imei2")
+    .select("id, tipo, marca, modelo, equipamento, imei1, imei2")
     .or(`imei1.in.(${lista}),imei2.in.(${lista})`)
     .limit(1);
   if (ignorarId) query = query.neq("id", ignorarId);
@@ -141,7 +148,7 @@ async function conferirImeis(
 
   const campo: CampoDispositivo =
     outro.imei1 === d.imei1 || outro.imei2 === d.imei1 ? "imei1" : "imei2";
-  const mensagem = `IMEI já cadastrado em outro dispositivo (${outro.marca} ${outro.modelo}).`;
+  const mensagem = `IMEI já cadastrado em outro dispositivo (${nomeDispositivo(outro)}).`;
   return { ok: false, error: mensagem, fieldErrors: { [campo]: mensagem } };
 }
 

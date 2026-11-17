@@ -48,13 +48,15 @@ export function lerFiltrosDispositivos(params: Params): FiltrosDispositivos {
 }
 
 /**
- * Expressão para .or() da busca: marca, modelo, serial, patrimônio e, com
+ * Expressão para .or() da busca: marca, dispositivo (o "equipamento" da
+ * infraestrutura), modelo, serial, patrimônio e, com
  * 3+ dígitos, IMEI 1 e 2 e número da linha. Null se não houver busca.
  */
 export function filtroBuscaDispositivos(busca: string): string | null {
   if (!busca) return null;
   const filtros = [
     `marca.ilike.%${busca}%`,
+    `equipamento.ilike.%${busca}%`,
     `modelo.ilike.%${busca}%`,
     `serial_number.ilike.%${busca}%`,
     `numero_patrimonio.ilike.%${busca}%`,

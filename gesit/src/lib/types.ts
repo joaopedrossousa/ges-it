@@ -79,6 +79,15 @@ export const TIPO_DISPOSITIVO_LABEL: Record<TipoDispositivo, string> = {
   notebook: "Notebook",
   telefone: "Telefone",
   monitor: "Monitor",
+  infraestrutura: "Infraestrutura",
+};
+
+/** Singular em minúsculas, para textos como "1 monitor". */
+export const TIPO_DISPOSITIVO_SINGULAR: Record<TipoDispositivo, string> = {
+  notebook: "notebook",
+  telefone: "telefone",
+  monitor: "monitor",
+  infraestrutura: "item de infraestrutura",
 };
 
 /** Plural em minúsculas, para textos como "3 monitores". */
@@ -86,7 +95,24 @@ export const TIPO_DISPOSITIVO_PLURAL: Record<TipoDispositivo, string> = {
   notebook: "notebooks",
   telefone: "telefones",
   monitor: "monitores",
+  infraestrutura: "itens de infraestrutura",
 };
+
+/** Plural para títulos de cards e gráficos (iniciais maiúsculas). */
+export const TIPO_DISPOSITIVO_TITULO: Record<TipoDispositivo, string> = {
+  notebook: "Notebooks",
+  telefone: "Telefones",
+  monitor: "Monitores",
+  infraestrutura: "Infraestrutura",
+};
+
+/**
+ * Infraestrutura (access point, switch, firewall, rack...) pertence à filial
+ * e nunca é vinculada a usuário (migration 018: vincular_dispositivo recusa).
+ */
+export function ehInfraestrutura(tipo: TipoDispositivo | null | undefined): boolean {
+  return tipo === "infraestrutura";
+}
 
 /** Operadoras aceitas pela check operadora_valida (migration 009). */
 export const OPERADORAS = ["Vivo", "Claro", "TIM", "Oi", "Algar", "Outra"] as const;

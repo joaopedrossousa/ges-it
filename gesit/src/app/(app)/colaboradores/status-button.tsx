@@ -100,7 +100,7 @@ export function StatusButton({ id, nome, ativo, size = "sm" }: Props) {
                     <Icone className="size-4 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">
-                        {TIPO_DISPOSITIVO_LABEL[d.tipo]} · {d.marca} {d.modelo}
+                        {TIPO_DISPOSITIVO_LABEL[d.tipo]} · {d.nome}
                       </span>
                       <span className="block truncate font-mono text-xs text-muted-foreground">
                         {d.identificacao}

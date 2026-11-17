@@ -29,7 +29,7 @@ import {
   paginaDoParametro,
   primeiro,
 } from "@/lib/busca";
-import { identificadorDispositivo } from "@/lib/dispositivos";
+import { identificadorDispositivo, nomeDispositivo } from "@/lib/dispositivos";
 import { filtroBuscaDispositivos, lerFiltrosDispositivos } from "@/lib/filtros-dispositivos";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
@@ -59,7 +59,7 @@ export default function DispositivosPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Dispositivos</h1>
-          <p className="text-muted-foreground">Notebooks, telefones e monitores.</p>
+          <p className="text-muted-foreground">Notebooks, telefones, monitores e infraestrutura.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {/* useSearchParams: precisa de Suspense no shell estático. */}
@@ -130,11 +130,12 @@ async function BarraDeFiltros() {
 
 /** Linhas da view vêm com colunas anuláveis; só edita se os dados básicos existirem. */
 function paraEdicao(d: VwDispositivoRow): DispositivoEditavel | null {
-  if (!d.id || !d.tipo || d.marca === null || d.modelo === null) return null;
+  if (!d.id || !d.tipo || d.modelo === null) return null;
   return {
     id: d.id,
     tipo: d.tipo,
     marca: d.marca,
+    equipamento: d.equipamento,
     modelo: d.modelo,
     serial_number: d.serial_number,
     imei1: d.imei1,
@@ -169,6 +170,7 @@ async function TabelaDispositivos({
     .select("*", { count: "exact" })
     .order("tipo")
     .order("marca")
+    .order("equipamento") // infraestrutura não tem marca
     .order("modelo")
     .order("id") // desempate estável entre páginas
     .range(de, ate);
@@ -206,7 +208,7 @@ async function TabelaDispositivos({
           <TableHeader>
             <TableRow>
               <TableHead>Tipo</TableHead>
-              <TableHead>Marca</TableHead>
+              <TableHead>Marca / Dispositivo</TableHead>
               <TableHead>Modelo</TableHead>
               <TableHead>Identificador</TableHead>
               <TableHead>Status</TableHead>
@@ -230,6 +232,9 @@ async function TabelaDispositivos({
             )}
             {data.map((d, i) => {
               const editavel = paraEdicao(d);
+              // Infraestrutura: o que é o item ocupa a coluna da marca.
+              const principal = (d.tipo === "infraestrutura" ? d.equipamento : d.marca) ?? "—";
+              const nome = nomeDispositivo(d);
               return (
                 <TableRow
                   key={d.id ?? i}
@@ -239,10 +244,10 @@ async function TabelaDispositivos({
                   <TableCell className="font-medium">
                     {d.id ? (
                       <Link href={`/dispositivos/${d.id}`} className="hover:underline">
-                        {d.marca ?? "—"}
+                        {principal}
                       </Link>
                     ) : (
-                      (d.marca ?? "—")
+                      principal
                     )}
                   </TableCell>
                   <TableCell>{d.modelo ?? "—"}</TableCell>
@@ -266,7 +271,11 @@ async function TabelaDispositivos({
                     ) : d.loja_atual_nome ? (
                       <div className="leading-tight">
                         <div className="text-muted-foreground">
-                          {d.status === "baixado" ? "Sem Usuário" : "Em Estoque"}
+                          {d.status === "baixado"
+                            ? "Sem Usuário"
+                            : d.tipo === "infraestrutura"
+                              ? "Na Filial"
+                              : "Em Estoque"}
                         </div>
                         <div className="text-xs text-muted-foreground">{d.loja_atual_nome}</div>
                       </div>
@@ -283,27 +292,27 @@ async function TabelaDispositivos({
                           trigger={
                             <Button variant="ghost" size="sm">
                               <PencilIcon />
-                              Editar<span className="sr-only"> {editavel.marca} {editavel.modelo}</span>
+                              Editar<span className="sr-only"> {nome}</span>
                             </Button>
                           }
                         />
                         <StatusDialog
                           dispositivo={{
                             id: editavel.id,
-                            descricao: `${editavel.marca} ${editavel.modelo} · ${identificadorDispositivo(d)}`,
+                            descricao: `${nome} · ${identificadorDispositivo(d)}`,
                             status: d.status,
                             colaboradorNome: d.colaborador_nome,
                           }}
                           trigger={
                             <Button variant="ghost" size="sm">
                               <ArrowRightLeftIcon />
-                              Status<span className="sr-only"> {editavel.marca} {editavel.modelo}</span>
+                              Status<span className="sr-only"> {nome}</span>
                             </Button>
                           }
                         />
                         <Button asChild variant="ghost" size="sm">
                           <Link href={`/dispositivos/${editavel.id}`}>
-                            Detalhes<span className="sr-only"> {editavel.marca} {editavel.modelo}</span>
+                            Detalhes<span className="sr-only"> {nome}</span>
                             <ChevronRightIcon />
                           </Link>
                         </Button>

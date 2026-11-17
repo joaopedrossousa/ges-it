@@ -2,6 +2,7 @@ import {
   ArrowLeftIcon,
   ArrowRightLeftIcon,
   LinkIcon,
+  NetworkIcon,
   PencilIcon,
   UndoIcon,
   UserRoundPlusIcon,
@@ -33,7 +34,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { descricaoDispositivo, identificadorDispositivo } from "@/lib/dispositivos";
+import {
+  descricaoDispositivo,
+  identificadorDispositivo,
+  nomeDispositivo,
+} from "@/lib/dispositivos";
 import type { DispositivoOpcao } from "@/lib/opcoes-vinculo";
 import {
   formatarDataHora,
@@ -43,7 +48,7 @@ import {
 } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
-import { TIPO_DISPOSITIVO_LABEL } from "@/lib/types";
+import { TIPO_DISPOSITIVO_LABEL, ehInfraestrutura } from "@/lib/types";
 import { formatarIMEI, formatarLinha } from "@/lib/validators";
 
 import { DevolverDialog } from "../devolver-dialog";
@@ -144,20 +149,25 @@ async function DetalheDispositivo({
   const lojaVinculo = aberto?.loja?.nome ?? null;
   const lojaAtualColaborador = aberto?.colaborador?.loja?.nome ?? null;
 
+  // Infraestrutura pertence à filial: sem vincular, transferir nem devolver.
+  const infraestrutura = ehInfraestrutura(d.tipo);
   const podeVincular = d.status === "disponivel" || d.status === "em_uso";
   const filialEstoque = lojas.find((l) => l.id === d.loja_estoque_id)?.nome ?? null;
 
-  // Pré-seleção do diálogo de vincular/transferir.
-  const opcaoDispositivo: DispositivoOpcao = {
-    id: d.id,
-    tipo: d.tipo,
-    marca: d.marca,
-    modelo: d.modelo,
-    identificador: identificadorDispositivo(d),
-    status: d.status,
-    colaborador_id: aberto?.colaborador_id ?? null,
-    colaborador_nome: aberto?.colaborador?.nome ?? null,
-  };
+  // Pré-seleção do diálogo de vincular/transferir (nunca para infraestrutura).
+  const opcaoDispositivo: DispositivoOpcao | null =
+    infraestrutura || d.marca === null
+      ? null
+      : {
+          id: d.id,
+          tipo: d.tipo,
+          marca: d.marca,
+          modelo: d.modelo,
+          identificador: identificadorDispositivo(d),
+          status: d.status,
+          colaborador_id: aberto?.colaborador_id ?? null,
+          colaborador_nome: aberto?.colaborador?.nome ?? null,
+        };
 
   return (
     <div className="space-y-6">
@@ -165,7 +175,7 @@ async function DetalheDispositivo({
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">
-              {d.marca} {d.modelo}
+              {nomeDispositivo(d)}
             </h1>
             <StatusDispositivoBadge status={d.status} />
           </div>
@@ -173,7 +183,10 @@ async function DetalheDispositivo({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <ExportarMenu relatorio="historico-dispositivo" params={{ id: d.id }} />
+          {/* O relatório é o histórico de uso, que a infraestrutura não tem. */}
+          {!infraestrutura && (
+            <ExportarMenu relatorio="historico-dispositivo" params={{ id: d.id }} />
+          )}
           <StatusDialog
             dispositivo={{
               id: d.id,
@@ -212,12 +225,16 @@ async function DetalheDispositivo({
               <CampoDetalhe rotulo="Status">
                 <StatusDispositivoBadge status={d.status} />
               </CampoDetalhe>
-              <CampoDetalhe rotulo="Marca">{d.marca}</CampoDetalhe>
+              {infraestrutura ? (
+                <CampoDetalhe rotulo="Dispositivo">{d.equipamento ?? "—"}</CampoDetalhe>
+              ) : (
+                <CampoDetalhe rotulo="Marca">{d.marca ?? "—"}</CampoDetalhe>
+              )}
               <CampoDetalhe rotulo="Modelo">{d.modelo}</CampoDetalhe>
               <CampoDetalhe rotulo="Nº de patrimônio" mono>
                 {d.numero_patrimonio ?? "—"}
               </CampoDetalhe>
-              {(d.tipo === "notebook" || d.serial_number) && (
+              {(d.tipo === "notebook" || infraestrutura || d.serial_number) && (
                 <CampoDetalhe rotulo="Serial Number" mono>
                   {d.serial_number ?? "—"}
                 </CampoDetalhe>
@@ -254,7 +271,9 @@ async function DetalheDispositivo({
               <CampoDetalhe rotulo="Nota fiscal">
                 <LinkNotaFiscal path={d.nota_fiscal_path} />
               </CampoDetalhe>
-              <CampoDetalhe rotulo="Filial de estoque">{filialEstoque ?? "—"}</CampoDetalhe>
+              <CampoDetalhe rotulo={infraestrutura ? "Filial" : "Filial de estoque"}>
+                {filialEstoque ?? "—"}
+              </CampoDetalhe>
               <CampoDetalhe rotulo="Cadastrado em">
                 {formatarDataHora(d.created_at)}
               </CampoDetalhe>
@@ -267,10 +286,32 @@ async function DetalheDispositivo({
           </CardContent>
         </Card>
 
+        {infraestrutura ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Filial</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-start gap-3">
+                <StatusDispositivoBadge status={d.status} />
+                <p className="flex items-center gap-2 text-sm">
+                  <NetworkIcon className="size-4 text-brand-green" aria-hidden />
+                  {filialEstoque ?? (
+                    <span className="text-muted-foreground">Sem filial cadastrada.</span>
+                  )}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Itens de infraestrutura pertencem à filial e não são vinculados a usuários.
+                  Para mudar de filial, edite o item.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
         <Card>
           <CardHeader>
             <CardTitle>Usuário Atual</CardTitle>
-            {aberto?.colaborador && (
+            {aberto?.colaborador && opcaoDispositivo && (
               <CardAction className="flex gap-2">
                 <VincularDialog
                   dispositivoInicial={opcaoDispositivo}
@@ -364,7 +405,7 @@ async function DetalheDispositivo({
                     ? "Nenhum usuário vinculado a este dispositivo."
                     : "Altere o status para Disponível para poder vincular."}
                 </p>
-                {podeVincular ? (
+                {podeVincular && opcaoDispositivo ? (
                   <VincularDialog
                     dispositivoInicial={opcaoDispositivo}
                     trigger={
@@ -384,16 +425,20 @@ async function DetalheDispositivo({
             )}
           </CardContent>
         </Card>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Uso</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <HistoricoVinculos contexto="dispositivo" linhas={historico} agora={agora} />
-        </CardContent>
-      </Card>
+      {/* Infraestrutura nunca tem vínculos: sem histórico de uso. */}
+      {!infraestrutura && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Histórico de Uso</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HistoricoVinculos contexto="dispositivo" linhas={historico} agora={agora} />
+          </CardContent>
+        </Card>
+      )}
 
       <HistoricoServicos dispositivoId={d.id} servicos={servicosRes.data} />
 

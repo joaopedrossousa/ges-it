@@ -3,6 +3,7 @@
 import {
   CalendarRangeIcon,
   FileWarningIcon,
+  NetworkIcon,
   StoreIcon,
   WrenchIcon,
 } from "lucide-react";
@@ -44,6 +45,7 @@ export function PainelRelatorios({ lojas, periodoPadrao }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <PorLoja lojas={lojas} />
+      <Infraestrutura lojas={lojas} />
       <Movimentacoes periodoPadrao={periodoPadrao} />
       <SemTermo lojas={lojas} />
       <Servicos lojas={lojas} periodoPadrao={periodoPadrao} />
@@ -98,7 +100,7 @@ function PorLoja({ lojas }: { lojas: LojaOpcao[] }) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={TODOS}>Todos os tipos</SelectItem>
-            {TIPOS_DISPOSITIVO.map((t) => (
+            {TIPOS_VINCULAVEIS.map((t) => (
               <SelectItem key={t} value={t}>
                 {TIPO_DISPOSITIVO_LABEL[t]}
               </SelectItem>
@@ -106,6 +108,27 @@ function PorLoja({ lojas }: { lojas: LojaOpcao[] }) {
           </SelectContent>
         </Select>
       </div>
+    </CartaoRelatorio>
+  );
+}
+
+/** Itens de infraestrutura não têm vínculo: fora do filtro de "Dispositivos por Loja". */
+const TIPOS_VINCULAVEIS = TIPOS_DISPOSITIVO.filter((t) => t !== "infraestrutura");
+
+function Infraestrutura({ lojas }: { lojas: LojaOpcao[] }) {
+  const id = useId();
+  const [loja, setLoja] = useState(TODOS);
+
+  return (
+    <CartaoRelatorio
+      icone={NetworkIcon}
+      titulo="Infraestrutura por Filial"
+      descricao="Access points, switches, firewalls e demais itens de cada filial, com subtotal por filial. Sem os baixados."
+      rodape={
+        <ExportarBotoes relatorio="infraestrutura-por-filial" params={{ loja: filtro(loja) }} />
+      }
+    >
+      <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
     </CartaoRelatorio>
   );
 }

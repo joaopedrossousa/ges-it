@@ -12,11 +12,15 @@ export const PERIFERICO_LABEL: Record<Periferico, string> = {
   chip: "Chip Telefônico",
 };
 
-/** Mesma regra de normalizar_perifericos no banco. Monitor não tem periféricos nem "formatado". */
+/**
+ * Mesma regra de normalizar_perifericos no banco. Monitor e infraestrutura
+ * não têm periféricos nem "formatado".
+ */
 export const PERIFERICOS_POR_TIPO: Record<TipoDispositivo, readonly Periferico[]> = {
   notebook: ["carregador", "headset", "mouse", "suporte_notebook"],
   telefone: ["carregador", "chip"],
   monitor: [],
+  infraestrutura: [],
 };
 
 /** Notebook e telefone têm conferência de periféricos e "formatado"; monitor não. */

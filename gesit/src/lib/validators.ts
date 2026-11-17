@@ -269,7 +269,7 @@ const dataOpcional = z
   .transform((v) => v || null)
   .refine((v) => v === null || z.iso.date().safeParse(v).success, "Data inválida.");
 
-/** Campos de aquisição comuns aos três tipos. */
+/** Campos de aquisição comuns a todos os tipos. */
 const camposAquisicao = {
   numero_patrimonio: textoOpcional(50),
   data_compra: dataOpcional.refine(
@@ -379,11 +379,30 @@ export const monitorSchema = z
   })
   .refine(fimDepoisDaCompra.check, fimDepoisDaCompra.erro);
 
-/** Notebook, telefone ou monitor, escolhido pelo campo `tipo`. */
+/**
+ * Infraestrutura (access point, switch, firewall, rack...): sem marca; o que
+ * é o item vai em `equipamento`. Pertence à filial (obrigatória) e nunca é
+ * vinculada a usuário. Serial e patrimônio opcionais (migration 018).
+ */
+export const infraestruturaSchema = z
+  .object({
+    tipo: z.literal("infraestrutura"),
+    equipamento: textoObrigatorio("o dispositivo", 60),
+    modelo: textoObrigatorio("o modelo", 100),
+    serial_number: textoOpcional(100),
+    ...camposAquisicao,
+    loja_estoque_id: idObrigatorio("Selecione a filial."),
+    status: statusEditavel,
+    observacao: textoOpcional(1000),
+  })
+  .refine(fimDepoisDaCompra.check, fimDepoisDaCompra.erro);
+
+/** Notebook, telefone, monitor ou infraestrutura, escolhido pelo campo `tipo`. */
 export const dispositivoSchema = z.discriminatedUnion("tipo", [
   notebookSchema,
   telefoneSchema,
   monitorSchema,
+  infraestruturaSchema,
 ]);
 
 export const MENSAGEM_DATA_COMPRA = "Informe a data de compra.";
@@ -410,7 +429,7 @@ const perifericos = z
   .max(PERIFERICOS.length)
   .default([]);
 
-/** "Formatado": null para monitor (o banco recusa outro valor). */
+/** "Formatado": null para monitor e infraestrutura (o banco recusa outro valor). */
 const formatado = z.boolean().nullish().transform((v) => v ?? null);
 
 /** Serviço (manutenção) de um dispositivo. O anexo é gravado à parte. */
@@ -608,6 +627,8 @@ export type TelefoneFormInput = z.input<typeof telefoneSchema>;
 export type TelefoneFormData = z.output<typeof telefoneSchema>;
 export type MonitorFormInput = z.input<typeof monitorSchema>;
 export type MonitorFormData = z.output<typeof monitorSchema>;
+export type InfraestruturaFormInput = z.input<typeof infraestruturaSchema>;
+export type InfraestruturaFormData = z.output<typeof infraestruturaSchema>;
 export type DispositivoFormInput = z.input<typeof dispositivoSchema>;
 export type DispositivoFormData = z.output<typeof dispositivoSchema>;
 export type VinculoFormInput = z.input<typeof vinculoSchema>;

@@ -12,6 +12,7 @@ import { somenteDigitos } from "@/lib/validators";
 /**
  * GET /api/busca/dispositivos?q=<texto>
  * Combobox do diálogo de vincular: dispositivos disponíveis ou em uso.
+ * Infraestrutura fica de fora: pertence à filial e não é vinculada.
  * Cada palavra precisa casar com marca, modelo, serial, patrimônio, IMEI,
  * número da linha ou usuário atual.
  */
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest) {
     .select(
       "id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio, status, colaborador_id, colaborador_nome",
     )
-    .in("status", [...STATUS_VINCULAVEIS]);
+    .in("status", [...STATUS_VINCULAVEIS])
+    .neq("tipo", "infraestrutura");
 
   for (const p of palavras) {
     const filtros = [

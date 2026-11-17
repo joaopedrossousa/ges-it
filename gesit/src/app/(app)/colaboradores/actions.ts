@@ -8,6 +8,7 @@ import {
   errosDoZod,
   type ActionResult,
 } from "@/lib/action-result";
+import { nomeDispositivo } from "@/lib/dispositivos";
 import { createClient } from "@/lib/supabase/server";
 import type { TipoDispositivo } from "@/lib/types";
 import {
@@ -81,8 +82,8 @@ export async function atualizarColaborador(
 export type DispositivoPendente = {
   id: string;
   tipo: TipoDispositivo;
-  marca: string;
-  modelo: string;
+  /** Ex.: "Dell Latitude 5440" (nomeDispositivo). */
+  nome: string;
   /** Ex.: "IMEI 35-209900-176148-1" ou "Serial ABC123". */
   identificacao: string;
 };
@@ -108,7 +109,7 @@ async function dispositivosEmAberto(
 ): Promise<{ lista: DispositivoPendente[]; erro: ActionResult | null }> {
   const { data, error } = await supabase
     .from("vinculos")
-    .select("dispositivo:dispositivos(id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio)")
+    .select("dispositivo:dispositivos(id, tipo, marca, modelo, equipamento, serial_number, imei1, numero_patrimonio)")
     .eq("colaborador_id", colaboradorId)
     .is("data_fim", null);
 
@@ -122,7 +123,7 @@ async function dispositivosEmAberto(
         : d.serial_number
           ? `Serial ${d.serial_number}`
           : "Sem identificador";
-    return [{ id: d.id, tipo: d.tipo, marca: d.marca, modelo: d.modelo, identificacao }];
+    return [{ id: d.id, tipo: d.tipo, nome: nomeDispositivo(d), identificacao }];
   });
   return { lista, erro: null };
 }

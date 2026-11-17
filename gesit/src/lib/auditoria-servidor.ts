@@ -188,7 +188,7 @@ export async function montarLinhasAuditoria(
     emLotes(idsDispositivos, (lote) =>
       supabase
         .from("dispositivos")
-        .select("id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio")
+        .select("id, tipo, marca, modelo, equipamento, serial_number, imei1, numero_patrimonio")
         .in("id", lote),
     ),
     emLotes(idsServicosFinanceiros, (lote) =>

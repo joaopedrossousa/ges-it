@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 
 import { ChartContainer, ChartTooltip, type ChartConfig } from "@/components/ui/chart";
-import { TIPO_DISPOSITIVO_PLURAL, type TipoDispositivo } from "@/lib/types";
+import {
+  TIPO_DISPOSITIVO_PLURAL,
+  TIPO_DISPOSITIVO_SINGULAR,
+  TIPO_DISPOSITIVO_TITULO,
+  type TipoDispositivo,
+} from "@/lib/types";
 
 export type BarraFilial = {
   lojaId: string;
@@ -23,6 +28,15 @@ const CONFIG = {
   em_uso: { label: "Em Uso", color: "var(--chart-1)" },
   em_estoque: { label: "Em Estoque", color: "var(--chart-2)" },
 } satisfies ChartConfig;
+
+type Chave = keyof typeof CONFIG;
+
+/**
+ * Infraestrutura não é vinculada a usuário (migration 018): tudo fica na
+ * filial, então o gráfico dela mostra só uma série, "Na Filial" (no verde
+ * do estoque), sem a divisão em uso/estoque.
+ */
+const ROTULO_NA_FILIAL = "Na Filial";
 
 const formatador = new Intl.NumberFormat("pt-BR");
 
@@ -63,9 +77,14 @@ type Props = {
 export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
   const router = useRouter();
   const total = barras.reduce((soma, b) => soma + b.total, 0);
+  const singular = TIPO_DISPOSITIVO_SINGULAR[tipo];
   const plural = TIPO_DISPOSITIVO_PLURAL[tipo];
-  const titulo = plural.charAt(0).toUpperCase() + plural.slice(1);
+  const titulo = TIPO_DISPOSITIVO_TITULO[tipo];
   const vazio = total === 0;
+  const soFilial = tipo === "infraestrutura";
+  const chaves: Chave[] = soFilial ? ["em_estoque"] : ["em_uso", "em_estoque"];
+  const rotulo = (chave: Chave) => (soFilial ? ROTULO_NA_FILIAL : CONFIG[chave].label);
+  const unidade = soFilial ? ["item", "itens"] : ["aparelho", "aparelhos"];
   const href = (lojaId: string) => `/dispositivos?tipo=${tipo}&loja=${lojaId}`;
 
   function abrir(dados: unknown) {
@@ -78,9 +97,20 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="font-medium">{titulo}</h3>
         <span className="text-sm text-muted-foreground">
-          {formatador.format(total)} {total === 1 ? "aparelho" : "aparelhos"}
+          {formatador.format(total)} {total === 1 ? unidade[0] : unidade[1]}
         </span>
       </div>
+
+      {soFilial && (
+        <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span
+            aria-hidden
+            className="size-2.5 rounded-[3px]"
+            style={{ background: CONFIG.em_estoque.color }}
+          />
+          {ROTULO_NA_FILIAL}: não são vinculados a usuários
+        </p>
+      )}
 
       <div className="relative">
         <ChartContainer
@@ -89,7 +119,11 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
           role="img"
           aria-label={`${titulo} por filial: ${barras
             .filter((b) => b.total > 0)
-            .map((b) => `${b.loja}, ${b.em_uso} em uso e ${b.em_estoque} em estoque`)
+            .map((b) =>
+              soFilial
+                ? `${b.loja}, ${b.total} na filial`
+                : `${b.loja}, ${b.em_uso} em uso e ${b.em_estoque} em estoque`,
+            )
             .join("; ") || "nenhum"}`}
         >
           <BarChart data={barras} margin={{ top: 20, right: 4, left: 20, bottom: 0 }}>
@@ -121,7 +155,7 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
                   return (
                     <div className="grid min-w-36 gap-1 rounded-lg border bg-background px-2.5 py-1.5 text-xs shadow-xl">
                       <p className="font-medium">{b.loja}</p>
-                      {(["em_uso", "em_estoque"] as const).map((chave) => (
+                      {chaves.map((chave) => (
                         <p key={chave} className="flex items-center justify-between gap-3">
                           <span className="flex items-center gap-1.5 text-muted-foreground">
                             <span
@@ -129,7 +163,7 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
                               className="size-2.5 rounded-[2px]"
                               style={{ background: CONFIG[chave].color }}
                             />
-                            {CONFIG[chave].label}
+                            {rotulo(chave)}
                           </span>
                           <span className="font-mono font-medium tabular-nums">
                             {formatador.format(b[chave])}
@@ -148,17 +182,19 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
               />
             )}
             {/* Gap de 2px na cor do card entre os segmentos; topo arredondado. */}
-            <Bar
-              dataKey="em_uso"
-              stackId="a"
-              fill="var(--color-em_uso)"
-              stroke="var(--card)"
-              strokeWidth={2}
-              maxBarSize={24}
-              cursor="pointer"
-              onClick={abrir}
-              shape={(p: unknown) => <Segmento {...(p as SegmentoProps)} topo="em_uso" />}
-            />
+            {!soFilial && (
+              <Bar
+                dataKey="em_uso"
+                stackId="a"
+                fill="var(--color-em_uso)"
+                stroke="var(--card)"
+                strokeWidth={2}
+                maxBarSize={24}
+                cursor="pointer"
+                onClick={abrir}
+                shape={(p: unknown) => <Segmento {...(p as SegmentoProps)} topo="em_uso" />}
+              />
+            )}
             <Bar
               dataKey="em_estoque"
               stackId="a"
@@ -183,14 +219,14 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
         </ChartContainer>
         {vazio && (
           <p className="pointer-events-none absolute inset-x-0 top-1/3 text-center text-sm text-muted-foreground">
-            Nenhum {tipo} cadastrado
+            Nenhum {singular} cadastrado
           </p>
         )}
       </div>
 
       {semFilial > 0 && (
         <p className="text-xs text-muted-foreground">
-          {semFilial} {semFilial === 1 ? tipo : plural} sem filial de estoque (fora do gráfico).
+          {semFilial} {semFilial === 1 ? singular : plural} sem filial de estoque (fora do gráfico).
         </p>
       )}
 
@@ -203,9 +239,12 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
             <thead className="text-muted-foreground">
               <tr>
                 <th className="py-1 text-left font-normal">Filial</th>
-                <th className="py-1 text-right font-normal">Em Uso</th>
-                <th className="py-1 text-right font-normal">Em Estoque</th>
-                <th className="py-1 text-right font-normal">Total</th>
+                {chaves.map((chave) => (
+                  <th key={chave} className="py-1 text-right font-normal">
+                    {rotulo(chave)}
+                  </th>
+                ))}
+                {!soFilial && <th className="py-1 text-right font-normal">Total</th>}
               </tr>
             </thead>
             <tbody className="tabular-nums">
@@ -216,9 +255,12 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
                       {b.loja}
                     </Link>
                   </td>
-                  <td className="py-1 text-right">{b.em_uso}</td>
-                  <td className="py-1 text-right">{b.em_estoque}</td>
-                  <td className="py-1 text-right font-medium">{b.total}</td>
+                  {chaves.map((chave) => (
+                    <td key={chave} className="py-1 text-right">
+                      {b[chave]}
+                    </td>
+                  ))}
+                  {!soFilial && <td className="py-1 text-right font-medium">{b.total}</td>}
                 </tr>
               ))}
             </tbody>

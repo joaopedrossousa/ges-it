@@ -30,7 +30,7 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
     <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
       <CampoBusca
         valorInicial={valor("q", "")}
-        placeholder="Buscar por marca, modelo, serial, IMEI, patrimônio ou linha"
+        placeholder="Buscar por marca, dispositivo, modelo, serial, IMEI, patrimônio ou linha"
         onBuscar={(q) => atualizar("q", q)}
       />
 

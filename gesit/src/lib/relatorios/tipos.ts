@@ -23,6 +23,7 @@ export type Formato = (typeof FORMATOS)[number];
 export const TIPOS_RELATORIO = [
   "inventario",
   "dispositivos-por-loja",
+  "infraestrutura-por-filial",
   "historico-dispositivo",
   "historico-usuario",
   "movimentacoes",

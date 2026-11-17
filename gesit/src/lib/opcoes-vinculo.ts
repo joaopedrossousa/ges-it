@@ -40,9 +40,13 @@ type LinhaVwDispositivo = {
   colaborador_nome: string | null;
 };
 
-/** Converte uma linha da vw_dispositivos (colunas anuláveis); null se incompleta. */
+/**
+ * Converte uma linha da vw_dispositivos (colunas anuláveis); null se
+ * incompleta ou se for infraestrutura (não é vinculada; migration 018).
+ */
 export function paraDispositivoOpcao(d: LinhaVwDispositivo): DispositivoOpcao | null {
   if (!d.id || !d.tipo || !d.status || d.marca === null || d.modelo === null) return null;
+  if (d.tipo === "infraestrutura") return null;
   return {
     id: d.id,
     tipo: d.tipo,

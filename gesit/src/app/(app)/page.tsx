@@ -8,6 +8,7 @@ import {
   HourglassIcon,
   LaptopIcon,
   MonitorIcon,
+  NetworkIcon,
   SmartphoneIcon,
   UndoIcon,
   UserRoundCheckIcon,
@@ -36,7 +37,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { descreverPendencias, FILTRO_DADOS_PENDENTES } from "@/lib/colaboradores";
-import { identificadorDispositivo } from "@/lib/dispositivos";
+import { identificadorDispositivo, nomeDispositivo } from "@/lib/dispositivos";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import {
   formatarDataHora,
@@ -48,6 +49,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import {
   TIPO_DISPOSITIVO_PLURAL,
+  TIPO_DISPOSITIVO_SINGULAR,
   type SituacaoVidaUtil,
   type StatusDispositivo,
   type TipoDispositivo,
@@ -66,7 +68,7 @@ export default function DashboardPage() {
       <Suspense
         fallback={
           <div className={GRADE_INDICADORES}>
-            {Array.from({ length: 6 }, (_, i) => (
+            {Array.from({ length: 7 }, (_, i) => (
               <StatTileCarregando key={i} />
             ))}
           </div>
@@ -101,8 +103,8 @@ export default function DashboardPage() {
               Ativos por Filial
             </h2>
             <p className="text-sm text-muted-foreground">
-              Sem os baixados. Em estoque inclui os em manutenção, na filial de estoque. Clique numa
-              barra para ver os aparelhos.
+              Sem os baixados. Em estoque inclui os em manutenção, na filial de estoque.
+              Infraestrutura conta os itens de cada filial. Clique numa barra para ver os itens.
             </p>
           </div>
           <LegendaAtivosFilial />
@@ -142,9 +144,10 @@ export default function DashboardPage() {
 // Indicadores
 // ===========================================================================
 
-const GRADE_INDICADORES = "grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6";
+/** 7 cards: os 4 tipos na primeira linha e os 3 status na segunda (lg). */
+const GRADE_INDICADORES = "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4";
 
-const TIPOS: TipoDispositivo[] = ["notebook", "telefone", "monitor"];
+const TIPOS: TipoDispositivo[] = ["notebook", "telefone", "monitor", "infraestrutura"];
 const STATUS: StatusDispositivo[] = ["disponivel", "em_uso", "manutencao", "baixado"];
 
 type Contagem = Record<TipoDispositivo, Record<StatusDispositivo, number>>;
@@ -177,6 +180,7 @@ async function contarDispositivos(): Promise<Contagem | null> {
     notebook: { disponivel: 0, em_uso: 0, manutencao: 0, baixado: 0 },
     telefone: { disponivel: 0, em_uso: 0, manutencao: 0, baixado: 0 },
     monitor: { disponivel: 0, em_uso: 0, manutencao: 0, baixado: 0 },
+    infraestrutura: { disponivel: 0, em_uso: 0, manutencao: 0, baixado: 0 },
   } satisfies Contagem;
   pares.forEach(({ tipo, status }, i) => {
     contagem[tipo][status] = resultados[i].count ?? 0;
@@ -188,7 +192,7 @@ async function contarDispositivos(): Promise<Contagem | null> {
 function porTipo(c: Contagem, status: StatusDispositivo) {
   const partes = TIPOS.filter((tipo) => c[tipo][status] > 0).map((tipo) => {
     const n = c[tipo][status];
-    return `${n} ${n === 1 ? tipo : TIPO_DISPOSITIVO_PLURAL[tipo]}`;
+    return `${n} ${n === 1 ? TIPO_DISPOSITIVO_SINGULAR[tipo] : TIPO_DISPOSITIVO_PLURAL[tipo]}`;
   });
   return partes.join(" · ") || "Nenhum";
 }
@@ -231,6 +235,13 @@ async function Indicadores() {
         icone={MonitorIcon}
         detalhe={baixados("monitor")}
         href="/dispositivos?tipo=monitor"
+      />
+      <StatTile
+        rotulo="Infraestrutura"
+        valor={total("infraestrutura")}
+        icone={NetworkIcon}
+        detalhe={baixados("infraestrutura")}
+        href="/dispositivos?tipo=infraestrutura"
       />
       <StatTile
         rotulo="Em Uso"
@@ -333,7 +344,7 @@ async function ProximosDaTroca() {
   const { data, error } = await supabase
     .from("vw_dispositivos")
     .select(
-      "id, tipo, marca, modelo, serial_number, imei1, numero_patrimonio, fim_vida_util, situacao_vida_util, colaborador_nome",
+      "id, tipo, marca, modelo, equipamento, serial_number, imei1, numero_patrimonio, fim_vida_util, situacao_vida_util, colaborador_nome, loja_atual_nome",
     )
     .in("situacao_vida_util", ["proximo", "ok"])
     .order("fim_vida_util")
@@ -374,12 +385,16 @@ async function ProximosDaTroca() {
               >
                 <div className="min-w-0">
                   <Link href={`/dispositivos/${d.id}`} className="font-medium hover:underline">
-                    {d.marca} {d.modelo}
+                    {nomeDispositivo(d)}
                   </Link>
                   <span className="ml-2 font-mono text-xs text-muted-foreground">
                     {identificadorDispositivo(d)}
                   </span>
-                  <p className="text-muted-foreground">{d.colaborador_nome ?? "Sem usuário"}</p>
+                  <p className="text-muted-foreground">
+                    {d.tipo === "infraestrutura"
+                      ? (d.loja_atual_nome ?? "Sem filial")
+                      : (d.colaborador_nome ?? "Sem usuário")}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   {d.fim_vida_util && (
@@ -405,7 +420,7 @@ async function ProximosDaTroca() {
 // Ativos por filial
 // ===========================================================================
 
-const GRADE_GRAFICOS = "grid gap-4 xl:grid-cols-3";
+const GRADE_GRAFICOS = "grid gap-4 lg:grid-cols-2";
 
 /**
  * Rótulo do eixo X: só a cidade ("Palmas", "Gurupi"). Sem cidade cadastrada,
@@ -475,7 +490,7 @@ async function VinculosSemTermo() {
   const { data, count, error } = await supabase
     .from("vinculos")
     .select(
-      "id, dispositivo_id, colaborador_id, data_inicio, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, serial_number, imei1, numero_patrimonio)",
+      "id, dispositivo_id, colaborador_id, data_inicio, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, equipamento, serial_number, imei1, numero_patrimonio)",
       { count: "exact" },
     )
     .is("termo_path", null)
@@ -524,7 +539,7 @@ async function VinculosSemTermo() {
                     href={`/dispositivos/${v.dispositivo_id}`}
                     className="font-medium hover:underline"
                   >
-                    {v.dispositivo ? `${v.dispositivo.marca} ${v.dispositivo.modelo}` : "Dispositivo"}
+                    {v.dispositivo ? nomeDispositivo(v.dispositivo) : "Dispositivo"}
                   </Link>
                   {v.dispositivo && (
                     <span className="ml-2 font-mono text-xs text-muted-foreground">
@@ -643,7 +658,7 @@ async function UsuariosComDadosPendentes() {
 const LIMITE_MOVIMENTACOES = 10;
 
 const SELECT_MOVIMENTACAO =
-  "id, dispositivo_id, colaborador_id, data_inicio, data_fim, observacao_devolucao, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(marca, modelo)";
+  "id, dispositivo_id, colaborador_id, data_inicio, data_fim, observacao_devolucao, loja:lojas(nome), colaborador:colaboradores(nome), dispositivo:dispositivos(tipo, marca, modelo, equipamento)";
 
 /** Texto gravado por vincular_dispositivo ao encerrar o vínculo anterior. */
 const ENCERRADO_POR_TRANSFERENCIA = "Encerrado por transferência";
@@ -739,7 +754,7 @@ async function UltimasMovimentacoes() {
                     <p>
                       <span className="font-medium">{rotulo}</span>{" "}
                       <Link href={`/dispositivos/${v.dispositivo_id}`} className="hover:underline">
-                        {v.dispositivo ? `${v.dispositivo.marca} ${v.dispositivo.modelo}` : "dispositivo"}
+                        {v.dispositivo ? nomeDispositivo(v.dispositivo) : "dispositivo"}
                       </Link>{" "}
                       {preposicao}{" "}
                       <Link href={`/colaboradores/${v.colaborador_id}`} className="hover:underline">
