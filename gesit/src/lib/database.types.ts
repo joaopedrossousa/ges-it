@@ -165,6 +165,146 @@ export type Database = {
           },
         ]
       }
+      kanban_atividade_categorias: {
+        Row: {
+          atividade_id: string
+          categoria_id: string
+        }
+        Insert: {
+          atividade_id: string
+          categoria_id: string
+        }
+        Update: {
+          atividade_id?: string
+          categoria_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_atividade_categorias_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_atividade_categorias_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kanban_atividades: {
+        Row: {
+          arquivada: boolean
+          coluna_id: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          posicao: number
+          prazo: string | null
+          prioridade: Database["public"]["Enums"]["prioridade_atividade"]
+          responsavel_id: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          arquivada?: boolean
+          coluna_id: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          posicao?: number
+          prazo?: string | null
+          prioridade?: Database["public"]["Enums"]["prioridade_atividade"]
+          responsavel_id?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          arquivada?: boolean
+          coluna_id?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          posicao?: number
+          prazo?: string | null
+          prioridade?: Database["public"]["Enums"]["prioridade_atividade"]
+          responsavel_id?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_atividades_coluna_id_fkey"
+            columns: ["coluna_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_colunas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kanban_categorias: {
+        Row: {
+          ativa: boolean
+          cor: Database["public"]["Enums"]["cor_kanban"]
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          cor?: Database["public"]["Enums"]["cor_kanban"]
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          cor?: Database["public"]["Enums"]["cor_kanban"]
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      kanban_colunas: {
+        Row: {
+          arquivada: boolean
+          cor: Database["public"]["Enums"]["cor_kanban"]
+          created_at: string
+          id: string
+          nome: string
+          posicao: number
+          updated_at: string
+        }
+        Insert: {
+          arquivada?: boolean
+          cor?: Database["public"]["Enums"]["cor_kanban"]
+          created_at?: string
+          id?: string
+          nome: string
+          posicao?: number
+          updated_at?: string
+        }
+        Update: {
+          arquivada?: boolean
+          cor?: Database["public"]["Enums"]["cor_kanban"]
+          created_at?: string
+          id?: string
+          nome?: string
+          posicao?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lancamentos: {
         Row: {
           anexo_path: string | null
@@ -652,6 +792,48 @@ export type Database = {
         Args: { p_termo_path: string; p_vinculo_id: string }
         Returns: undefined
       }
+      arquivar_atividade: { Args: { p_atividade: string }; Returns: undefined }
+      arquivar_coluna: { Args: { p_coluna: string }; Returns: undefined }
+      atualizar_atividade: {
+        Args: {
+          p_atividade: string
+          p_categorias?: string[]
+          p_coluna: string
+          p_descricao?: string
+          p_prazo?: string
+          p_prioridade: Database["public"]["Enums"]["prioridade_atividade"]
+          p_responsavel?: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
+      atualizar_coluna: {
+        Args: {
+          p_coluna: string
+          p_cor: Database["public"]["Enums"]["cor_kanban"]
+          p_nome: string
+        }
+        Returns: undefined
+      }
+      criar_atividade: {
+        Args: {
+          p_categorias?: string[]
+          p_coluna: string
+          p_descricao?: string
+          p_prazo?: string
+          p_prioridade?: Database["public"]["Enums"]["prioridade_atividade"]
+          p_responsavel?: string
+          p_titulo: string
+        }
+        Returns: string
+      }
+      criar_coluna: {
+        Args: {
+          p_cor?: Database["public"]["Enums"]["cor_kanban"]
+          p_nome: string
+        }
+        Returns: string
+      }
       devolver_dispositivo: {
         Args: {
           p_dispositivo_id: string
@@ -670,7 +852,28 @@ export type Database = {
           id: string
         }[]
       }
+      kanban_definir_categorias: {
+        Args: { p_atividade: string; p_categorias: string[] }
+        Returns: undefined
+      }
+      kanban_reindexar_atividades: {
+        Args: { p_coluna: string }
+        Returns: undefined
+      }
+      kanban_reindexar_colunas: { Args: never; Returns: undefined }
       mascarar_cpf_auditoria: { Args: { p_cpf: string }; Returns: Json }
+      mover_atividade: {
+        Args: {
+          p_atividade: string
+          p_coluna_destino: string
+          p_posicao?: number
+        }
+        Returns: undefined
+      }
+      mover_coluna: {
+        Args: { p_coluna: string; p_posicao: number }
+        Returns: undefined
+      }
       normalizar_perifericos: {
         Args: {
           p_formatado: boolean
@@ -680,11 +883,24 @@ export type Database = {
         Returns: string[]
       }
       ping: { Args: never; Returns: number }
+      restaurar_atividade: {
+        Args: { p_atividade: string; p_coluna?: string }
+        Returns: undefined
+      }
+      restaurar_coluna: { Args: { p_coluna: string }; Returns: undefined }
       usuarios_auditoria: {
         Args: never
         Returns: {
           email: string
           id: string
+        }[]
+      }
+      usuarios_sistema: {
+        Args: never
+        Returns: {
+          email: string
+          id: string
+          nome: string
         }[]
       }
       vincular_dispositivo: {
@@ -700,6 +916,18 @@ export type Database = {
       }
     }
     Enums: {
+      cor_kanban:
+        | "cinza"
+        | "marrom"
+        | "laranja"
+        | "amarelo"
+        | "verde"
+        | "ciano"
+        | "azul"
+        | "roxo"
+        | "rosa"
+        | "vermelho"
+      prioridade_atividade: "alta" | "media" | "baixa"
       situacao_pagamento:
         | "solicitado_compras"
         | "enviado_financeiro"
@@ -850,6 +1078,19 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      cor_kanban: [
+        "cinza",
+        "marrom",
+        "laranja",
+        "amarelo",
+        "verde",
+        "ciano",
+        "azul",
+        "roxo",
+        "rosa",
+        "vermelho",
+      ],
+      prioridade_atividade: ["alta", "media", "baixa"],
       situacao_pagamento: [
         "solicitado_compras",
         "enviado_financeiro",

@@ -8,6 +8,7 @@ import {
   type Alteracao,
   type NomesAuditoria,
 } from "@/lib/auditoria";
+import { nomeUsuario } from "@/lib/atividades";
 import type { Json } from "@/lib/database.types";
 import { descricaoDispositivo } from "@/lib/dispositivos";
 import { formatarCompetenciaCurta, nomeFinanceiro } from "@/lib/financeiro";
@@ -71,6 +72,22 @@ function idsDoCampo(linhas: LinhaAuditoriaBruta[], campo: string) {
       if (j && typeof j === "object" && !Array.isArray(j)) {
         const v = j[campo];
         if (typeof v === "string" && UUID.test(v)) ids.push(v);
+      }
+    }
+  }
+  return ids;
+}
+
+/** Ids dentro de listas em antes/depois (ex.: categorias das atividades). */
+function idsDaLista(linhas: LinhaAuditoriaBruta[], campo: string) {
+  const ids: string[] = [];
+  for (const l of linhas) {
+    for (const j of [l.antes, l.depois]) {
+      if (j && typeof j === "object" && !Array.isArray(j)) {
+        const v = j[campo];
+        if (Array.isArray(v)) {
+          for (const x of v) if (typeof x === "string" && UUID.test(x)) ids.push(x);
+        }
       }
     }
   }
@@ -145,8 +162,25 @@ export async function montarLinhasAuditoria(
     ...idsDoCampo(linhas, "servico_id"),
   ]);
   const idsUsuarios = unicos(linhas.map((l) => l.alterado_por));
+  const idsAtividades = porTabela("kanban_atividades");
+  const idsColunasKanban = unicos([...porTabela("kanban_colunas"), ...idsDoCampo(linhas, "coluna_id")]);
+  const idsCategoriasKanban = unicos([
+    ...porTabela("kanban_categorias"),
+    ...idsDaLista(linhas, "categorias"),
+  ]);
+  const temResponsavel = idsDoCampo(linhas, "responsavel_id").length > 0;
 
-  const [lojas, colaboradores, dispositivos, servicosFinanceiros, usuarios] = await Promise.all([
+  const [
+    lojas,
+    colaboradores,
+    dispositivos,
+    servicosFinanceiros,
+    usuarios,
+    atividadesLista,
+    colunasKanban,
+    categoriasKanban,
+    usuariosSistema,
+  ] = await Promise.all([
     emLotes(idsLojas, (lote) => supabase.from("lojas").select("id, nome").in("id", lote)),
     emLotes(idsColaboradores, (lote) =>
       supabase.from("colaboradores").select("id, nome").in("id", lote),
@@ -165,7 +199,24 @@ export async function montarLinhasAuditoria(
     ),
     // Corpo POST: sem limite de URL, mas mantém os lotes por simetria.
     emLotes(idsUsuarios, (lote) => supabase.rpc("emails_operadores", { p_ids: lote })),
+    emLotes(idsAtividades, (lote) =>
+      supabase.from("kanban_atividades").select("id, titulo, arquivada").in("id", lote),
+    ),
+    emLotes(idsColunasKanban, (lote) =>
+      supabase.from("kanban_colunas").select("id, nome").in("id", lote),
+    ),
+    emLotes(idsCategoriasKanban, (lote) =>
+      supabase.from("kanban_categorias").select("id, nome").in("id", lote),
+    ),
+    // Responsável: qualquer usuário do sistema (não só quem aparece no log).
+    temResponsavel
+      ? supabase.rpc("usuarios_sistema").then(({ data, error }) => {
+          if (error) throw new Error(error.message);
+          return data;
+        })
+      : Promise.resolve([]),
   ]);
+  const atividades = new Map(atividadesLista.map((a) => [a.id, a]));
 
   const nomes: NomesAuditoria = {
     lojas: new Map(lojas.map((l) => [l.id, l.nome])),
@@ -173,6 +224,11 @@ export async function montarLinhasAuditoria(
     dispositivos: new Map(dispositivos.map((d) => [d.id, descricaoDispositivo(d)])),
     servicosFinanceiros: new Map(
       servicosFinanceiros.map((s) => [s.id, nomeFinanceiro(s)]),
+    ),
+    colunasKanban: new Map(colunasKanban.map((c) => [c.id, c.nome])),
+    categoriasKanban: new Map(categoriasKanban.map((c) => [c.id, c.nome])),
+    usuarios: new Map(
+      usuariosSistema.map((u) => [u.id, nomeUsuario({ ...u, nome: u.nome || null })]),
     ),
   };
   const emails = new Map(usuarios.map((u) => [u.id, u.email]));
@@ -217,6 +273,23 @@ export async function montarLinhasAuditoria(
           href: `/financeiro/lancamentos?mes=${la.competencia.slice(0, 7)}`,
         };
       }
+      case "kanban_atividades": {
+        const a = atividades.get(l.registro_id);
+        if (!a) return { texto: "Atividade não encontrada", href: null };
+        return a.arquivada
+          ? { texto: `${a.titulo} (arquivada)`, href: "/atividades/arquivadas" }
+          : { texto: a.titulo, href: `/atividades?atividade=${a.id}` };
+      }
+      case "kanban_colunas":
+        return {
+          texto: nomes.colunasKanban.get(l.registro_id) ?? "Coluna não encontrada",
+          href: "/atividades",
+        };
+      case "kanban_categorias":
+        return {
+          texto: nomes.categoriasKanban.get(l.registro_id) ?? "Categoria não encontrada",
+          href: "/atividades/categorias",
+        };
       default:
         return { texto: l.registro_id, href: null };
     }

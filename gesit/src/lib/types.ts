@@ -39,6 +39,12 @@ export type SituacaoPagamento = Enums<"situacao_pagamento">;
 export const TIPOS_DESPESA = Constants.public.Enums.tipo_despesa;
 export const SITUACOES_PAGAMENTO = Constants.public.Enums.situacao_pagamento;
 
+/** Atividades / Kanban (migration 017). Rótulos em src/lib/atividades.ts. */
+export type PrioridadeAtividade = Enums<"prioridade_atividade">;
+export type CorKanban = Enums<"cor_kanban">;
+export const PRIORIDADES_ATIVIDADE = Constants.public.Enums.prioridade_atividade;
+export const CORES_KANBAN = Constants.public.Enums.cor_kanban;
+
 export const TIPO_SERVICO_LABEL: Record<TipoServico, string> = {
   formatacao: "Formatação",
   troca_tela: "Troca de Tela",

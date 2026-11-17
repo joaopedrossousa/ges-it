@@ -3,7 +3,9 @@ import { z } from "zod";
 import { hojeEmPalmas } from "./format";
 import { PERIFERICOS } from "./perifericos";
 import {
+  CORES_KANBAN,
   OPERADORAS,
+  PRIORIDADES_ATIVIDADE,
   SITUACOES_PAGAMENTO,
   STATUS_EDITAVEIS,
   TIPOS_DESPESA,
@@ -550,7 +552,47 @@ export const situacaoLancamentoSchema = z
   })
   .transform((d) => (d.situacao === "pago" ? d : { ...d, data_pagamento: null }));
 
+// ===========================================================================
+// Atividades / Kanban (migration 017)
+// ===========================================================================
+
+const corKanban = z.enum(CORES_KANBAN, { error: "Escolha uma cor." });
+
+/** Coluna do quadro (criar, renomear, trocar a cor). */
+export const colunaKanbanSchema = z.object({
+  nome: textoObrigatorio("o nome da coluna", 60),
+  cor: corKanban,
+});
+
+/** Categoria (etiqueta) das atividades. */
+export const categoriaKanbanSchema = z.object({
+  nome: textoObrigatorio("o nome da categoria", 40),
+  cor: corKanban,
+  ativa: z.boolean().default(true),
+});
+
+/** Atividade (cartão). A posição é definida pelas funções do banco. */
+export const atividadeSchema = z.object({
+  titulo: textoObrigatorio("o título", 200),
+  descricao: textoOpcional(5000),
+  prioridade: z
+    .enum(PRIORIDADES_ATIVIDADE, { error: "Prioridade inválida." })
+    .default("media"),
+  coluna_id: idObrigatorio("Selecione a coluna."),
+  categorias: z
+    .array(z.uuid("Categoria inválida."))
+    .max(20, "Use no máximo 20 categorias.")
+    .default([]),
+  responsavel_id: idOpcional("Responsável inválido."),
+  prazo: dataOpcional,
+});
+
 // Tipos de entrada (formulário) e saída (já normalizada para o banco).
+export type ColunaKanbanFormInput = z.input<typeof colunaKanbanSchema>;
+export type CategoriaKanbanFormInput = z.input<typeof categoriaKanbanSchema>;
+export type CategoriaKanbanFormData = z.output<typeof categoriaKanbanSchema>;
+export type AtividadeFormInput = z.input<typeof atividadeSchema>;
+export type AtividadeFormData = z.output<typeof atividadeSchema>;
 export type ServicoFinanceiroFormInput = z.input<typeof servicoFinanceiroSchema>;
 export type ServicoFinanceiroFormData = z.output<typeof servicoFinanceiroSchema>;
 export type LancamentoFormInput = z.input<typeof lancamentoSchema>;
