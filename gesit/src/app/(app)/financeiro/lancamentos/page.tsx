@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import { PencilIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { connection } from "next/server";
@@ -217,7 +218,12 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
                   return (
                     <TableRow
                       key={l.id ?? i}
-                      className={l.situacao === "cancelado" ? "opacity-60" : undefined}
+                      // Alvo dos links do Painel (/financeiro/lancamentos?mes=...#lanc-<id>).
+                      id={l.id ? `lanc-${l.id}` : undefined}
+                      className={cn(
+                        "scroll-mt-24 target:bg-amber-500/15 target:outline-2 target:-outline-offset-2 target:outline-amber-500",
+                        l.situacao === "cancelado" && "opacity-60",
+                      )}
                     >
                       {/* Tipo só na primeira linha do grupo, como célula mesclada da planilha. */}
                       {i === 0 && (

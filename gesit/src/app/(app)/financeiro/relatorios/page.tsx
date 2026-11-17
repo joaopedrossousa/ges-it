@@ -1,34 +1,44 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
+
+import { mesAtualEmPalmas } from "@/lib/financeiro";
+import { listarLojasOpcoes } from "@/lib/lojas";
+
+import { PainelRelatoriosFinanceiros } from "./painel";
 
 export const metadata: Metadata = { title: "Relatórios Financeiros" };
 
-/** Espaço reservado: os relatórios do módulo ainda serão definidos. */
 export default function RelatoriosFinanceirosPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Relatórios Financeiros</h1>
-        <p className="text-muted-foreground">Exportação em PDF e Excel da Gestão Financeira.</p>
-      </div>
-
-      <div className="rounded-xl border bg-card p-6 text-sm text-card-foreground">
-        <p className="font-medium">Em breve.</p>
-        <p className="mt-1 text-muted-foreground">
-          Por enquanto, os totais do mês ficam no{" "}
-          <Link href="/financeiro" className="text-primary underline-offset-4 hover:underline">
-            Painel
-          </Link>{" "}
-          e o detalhe, com filtros, em{" "}
-          <Link
-            href="/financeiro/lancamentos"
-            className="text-primary underline-offset-4 hover:underline"
-          >
-            Lançamentos
-          </Link>
-          .
+        <p className="text-muted-foreground">
+          Exporte em PDF ou Excel. Valores em reais; cancelados ficam fora dos totais.
         </p>
       </div>
+
+      <Suspense fallback={<PainelCarregando />}>
+        <Painel />
+      </Suspense>
+    </div>
+  );
+}
+
+async function Painel() {
+  await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
+  const lojas = await listarLojasOpcoes();
+  // Mês atual em Palmas; calculado aqui para não depender do fuso do navegador.
+  return <PainelRelatoriosFinanceiros lojas={lojas} mesAtual={mesAtualEmPalmas()} />;
+}
+
+function PainelCarregando() {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2" role="status" aria-label="Carregando...">
+      {Array.from({ length: 4 }, (_, i) => (
+        <div key={i} className="h-72 animate-pulse rounded-xl bg-muted" />
+      ))}
     </div>
   );
 }

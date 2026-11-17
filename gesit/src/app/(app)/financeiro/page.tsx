@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { SituacaoVencimentoBadge } from "@/components/financeiro/badges";
+import {
+  GraficoEvolucaoMensal,
+  GraficoGastosPorFilial,
+  GraficoGastosPorTipo,
+  type GastoFilial,
+  type MesGasto,
+} from "@/components/financeiro/graficos";
 import { NomeFinanceiro } from "@/components/financeiro/nome-financeiro";
 import { ResumoMes, ResumoMesCarregando } from "@/components/financeiro/resumo-mes";
 import { SeletorMes } from "@/components/financeiro/seletor-mes";
@@ -17,26 +23,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { primeiro } from "@/lib/busca";
 import {
-  TIPO_DESPESA_LABEL,
+  comparacaoMesAnterior,
   formatarCompetenciaCurta,
   formatarMes,
+  gastosPorFilial,
+  gastosPorMes,
+  gastosPorTipo,
   lerMes,
   mesAtualEmPalmas,
+  mesCurto,
+  mesesEntre,
   resumirLancamentos,
+  somarMeses,
 } from "@/lib/financeiro";
-import { buscarLancamentosDoMes } from "@/lib/financeiro-servidor";
-import { primeiro } from "@/lib/busca";
+import { buscarGastosPeriodo, buscarVencimentos } from "@/lib/financeiro-servidor";
 import { formatarDataISO, formatarMoeda } from "@/lib/format";
-import { createClient } from "@/lib/supabase/server";
-import { TIPOS_DESPESA } from "@/lib/types";
+import { listarLojasOpcoes } from "@/lib/lojas";
 
 export const metadata: Metadata = { title: "Painel Financeiro" };
 
 type SearchParams = PageProps<"/financeiro">["searchParams"];
 
-/** Quantos vencidos/próximos aparecem na lista de atenção. */
-const LIMITE_ATENCAO = 15;
+/** Itens por lista de vencimentos. */
+const LIMITE_LISTA = 15;
 
 export default function PainelFinanceiroPage({ searchParams }: PageProps<"/financeiro">) {
   return (
@@ -46,7 +57,7 @@ export default function PainelFinanceiroPage({ searchParams }: PageProps<"/finan
           <h1 className="text-2xl font-semibold tracking-tight">Painel Financeiro</h1>
           <p className="text-muted-foreground">Despesas de T.I. do mês e o que precisa de atenção.</p>
         </div>
-        <Suspense fallback={<div className="h-9 w-72" />}>
+        <Suspense fallback={<div className="h-9 w-96" />}>
           <Seletor />
         </Suspense>
       </div>
@@ -54,17 +65,36 @@ export default function PainelFinanceiroPage({ searchParams }: PageProps<"/finan
       <Suspense
         fallback={
           <div className="space-y-6">
-            <ResumoMesCarregando />
-            <TabelaCarregando colunas={5} />
+            <ResumoMesCarregando cartoes={5} />
+            <div className="h-96 animate-pulse rounded-xl bg-muted" />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="h-80 animate-pulse rounded-xl bg-muted" />
+              <div className="h-80 animate-pulse rounded-xl bg-muted" />
+            </div>
           </div>
         }
       >
-        <ResumoDoMes searchParams={searchParams} />
+        <ResumoEGraficos searchParams={searchParams} />
       </Suspense>
 
-      <Suspense fallback={<TabelaCarregando colunas={6} />}>
-        <Atencao />
-      </Suspense>
+      <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+        <Suspense fallback={<TabelaCarregando colunas={5} />}>
+          <ListaVencimentos
+            titulo="Vence Hoje e Próximos 5 Dias"
+            descricao="Em aberto, de qualquer mês. Os que vencem hoje vêm primeiro."
+            situacoes={["hoje", "proximo"]}
+            vazio="Nada vence hoje nem nos próximos 5 dias."
+          />
+        </Suspense>
+        <Suspense fallback={<TabelaCarregando colunas={5} />}>
+          <ListaVencimentos
+            titulo="Vencidos em Aberto"
+            descricao="De qualquer mês, do vencimento mais antigo para o mais novo."
+            situacoes={["vencido"]}
+            vazio="Nenhum lançamento vencido em aberto."
+          />
+        </Suspense>
+      </div>
     </div>
   );
 }
@@ -74,161 +104,112 @@ async function Seletor() {
   return <SeletorMes mesAtual={mesAtualEmPalmas()} />;
 }
 
-function hrefLancamentos(mes: string, extra: Record<string, string> = {}) {
-  return `/financeiro/lancamentos?${new URLSearchParams({ mes, ...extra }).toString()}`;
-}
-
-async function ResumoDoMes({ searchParams }: { searchParams: SearchParams }) {
+/** Cards, evolução dos últimos 12 meses e gastos do mês por tipo e por filial. */
+async function ResumoEGraficos({ searchParams }: { searchParams: SearchParams }) {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const mes = lerMes(primeiro((await searchParams).mes));
-  const { data, error } = await buscarLancamentosDoMes({ mes, busca: "" });
+  const inicio = somarMeses(mes, -11);
 
-  if (error) {
-    console.error("Erro ao carregar o painel financeiro:", error);
-    return <p className="text-destructive">Não foi possível carregar os lançamentos do mês.</p>;
+  let linhas: Awaited<ReturnType<typeof buscarGastosPeriodo>>;
+  try {
+    linhas = await buscarGastosPeriodo(inicio, mes);
+  } catch (e) {
+    console.error("Erro ao carregar o painel financeiro:", e);
+    return <p className="text-destructive">Não foi possível carregar os lançamentos.</p>;
   }
+  const lojas = await listarLojasOpcoes();
 
-  const porTipo = TIPOS_DESPESA.map((tipo) => {
-    const linhas = data.filter((l) => l.tipo === tipo);
-    return { tipo, quantidade: linhas.length, resumo: resumirLancamentos(linhas) };
-  }).filter((t) => t.quantidade > 0);
-  const geral = resumirLancamentos(data);
+  const doMes = linhas.filter((l) => l.competencia?.slice(0, 7) === mes);
+  const resumo = resumirLancamentos(doMes);
+  const meses = gastosPorMes(linhas, mesesEntre(inicio, mes));
+  const anterior = meses.at(-2)?.total ?? 0;
+
+  const evolucao: MesGasto[] = meses.map((m) => ({
+    mes: m.mes,
+    rotulo: mesCurto(m.mes),
+    nome: formatarMes(m.mes),
+    total: m.total,
+    ...m.porTipo,
+  }));
+
+  // Todas as filiais ativas (zeradas se não houver gasto), as inativas só
+  // com gasto, e "Geral" para os lançamentos sem filial.
+  const porFilial = gastosPorFilial(doMes);
+  const filiais: GastoFilial[] = lojas
+    .filter((l) => l.ativo || (porFilial.get(l.id) ?? 0) > 0)
+    .map((l) => ({ lojaId: l.id, loja: l.nome, valor: porFilial.get(l.id) ?? 0 }));
+  filiais.push({ lojaId: null, loja: "Geral", valor: porFilial.get(null) ?? 0 });
+  filiais.sort((a, b) => b.valor - a.valor || a.loja.localeCompare(b.loja, "pt-BR"));
 
   return (
     <div className="space-y-6">
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">{formatarMes(mes)}</h2>
-        <ResumoMes resumo={geral} />
+        <ResumoMes
+          resumo={resumo}
+          comAprovacao
+          comparacao={comparacaoMesAnterior(resumo.total.valor, anterior, mes)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Cancelados ficam fora dos valores. Aguardando aprovação: aprovação Não OK ou, sem
+          aprovação informada, na situação Solicitado Compras.
+        </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Por Tipo</CardTitle>
-          <CardDescription>Cancelados ficam fora dos valores.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {porTipo.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhum lançamento neste mês.{" "}
-              <Link
-                href={hrefLancamentos(mes)}
-                className="text-primary underline-offset-4 hover:underline"
-              >
-                Ir para Lançamentos
-              </Link>
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Lançamentos</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Pago</TableHead>
-                  <TableHead className="text-right">Em Aberto</TableHead>
-                  <TableHead className="text-right">Vencido</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {porTipo.map(({ tipo, quantidade, resumo }) => (
-                  <TableRow key={tipo}>
-                    <TableCell className="font-medium">
-                      <Link
-                        href={hrefLancamentos(mes, { tipo })}
-                        className="hover:underline"
-                      >
-                        {TIPO_DESPESA_LABEL[tipo]}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{quantidade}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatarMoeda(resumo.total.valor)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatarMoeda(resumo.pago.valor)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatarMoeda(resumo.aberto.valor)}
-                    </TableCell>
-                    <TableCell
-                      className={
-                        resumo.vencido.valor > 0
-                          ? "text-right font-medium text-destructive tabular-nums"
-                          : "text-right tabular-nums"
-                      }
-                    >
-                      {formatarMoeda(resumo.vencido.valor)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+      <GraficoEvolucaoMensal meses={evolucao} />
+
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <GraficoGastosPorTipo valores={gastosPorTipo(doMes)} mes={mes} />
+        <GraficoGastosPorFilial filiais={filiais} mes={mes} />
+      </div>
     </div>
   );
 }
 
-const SELECT_ATENCAO =
-  "id, competencia, fornecedor, descricao, servico_identificador, loja_nome, vencimento, valor, situacao_vencimento, dias_para_vencer";
+/** Link para a linha do lançamento na tela do mês (destacada pelo #id). */
+const hrefLancamento = (id: string, competencia: string) =>
+  `/financeiro/lancamentos?mes=${competencia.slice(0, 7)}#lanc-${id}`;
 
-/**
- * Em aberto, de qualquer mês: primeiro os que vencem hoje, depois os
- * vencidos e os que vencem em 1 a 5 dias (por data de vencimento).
- */
-async function Atencao() {
+async function ListaVencimentos({
+  titulo,
+  descricao,
+  situacoes,
+  vazio,
+}: {
+  titulo: string;
+  descricao: string;
+  situacoes: string[];
+  vazio: string;
+}) {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
-  const supabase = await createClient();
-  const [hoje, resto] = await Promise.all([
-    supabase
-      .from("vw_lancamentos")
-      .select(SELECT_ATENCAO, { count: "exact" })
-      .eq("situacao_vencimento", "hoje")
-      .order("fornecedor")
-      .order("id")
-      .limit(LIMITE_ATENCAO),
-    supabase
-      .from("vw_lancamentos")
-      .select(SELECT_ATENCAO, { count: "exact" })
-      .in("situacao_vencimento", ["vencido", "proximo"])
-      .order("vencimento")
-      .order("fornecedor")
-      .order("id")
-      .limit(LIMITE_ATENCAO),
-  ]);
+  const { data, error, count } = await buscarVencimentos(situacoes, LIMITE_LISTA);
 
-  const error = hoje.error ?? resto.error;
   if (error) {
-    console.error("Erro ao carregar vencimentos:", error);
+    console.error(`Erro ao carregar "${titulo}":`, error);
     return <p className="text-destructive">Não foi possível carregar os vencimentos.</p>;
   }
 
-  const deHoje = hoje.data ?? [];
-  const demais = resto.data ?? [];
-  const data = [...deHoje, ...demais].slice(0, LIMITE_ATENCAO);
-  const count = (hoje.count ?? deHoje.length) + (resto.count ?? demais.length);
+  const total = data.reduce((s, l) => s + (l.valor ?? 0), 0);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Próximos Vencimentos</CardTitle>
+        <CardTitle>{titulo}</CardTitle>
         <CardDescription>
-          Lançamentos em aberto de qualquer mês: os que vencem hoje, depois os vencidos e os que
-          vencem nos próximos 5 dias.
-          {count > data.length && ` Mostrando ${data.length} de ${count}.`}
+          {descricao}
+          {data.length > 0 && ` ${formatarMoeda(total)} nos itens listados.`}
+          {count !== null && count > data.length && ` Mostrando ${data.length} de ${count}.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nada vencido ou para vencer nos próximos dias.</p>
+          <p className="text-sm text-muted-foreground">{vazio}</p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Fornecedor / Descrição</TableHead>
                 <TableHead>Filial</TableHead>
-                <TableHead>Competência</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Situação do Vencimento</TableHead>
@@ -243,22 +224,23 @@ async function Atencao() {
                       descricao={l.descricao}
                       identificador={l.servico_identificador}
                     >
-                      {l.competencia && (
-                        <Link
-                          href={hrefLancamentos(l.competencia.slice(0, 7))}
-                          className="hover:underline"
-                        >
+                      {l.id && l.competencia && (
+                        // <a> e não <Link>: a navegação completa leva ao #id da
+                        // linha (que chega depois, em streaming) e ativa o :target.
+                        <a href={hrefLancamento(l.id, l.competencia)} className="hover:underline">
                           {l.fornecedor ?? "—"}
-                        </Link>
+                        </a>
                       )}
                     </NomeFinanceiro>
                   </TableCell>
-                  <TableCell>{l.loja_nome ?? "—"}</TableCell>
-                  <TableCell className="tabular-nums">
-                    {l.competencia ? formatarCompetenciaCurta(l.competencia) : "—"}
-                  </TableCell>
+                  <TableCell>{l.loja_nome ?? "Geral"}</TableCell>
                   <TableCell className="tabular-nums">
                     {l.vencimento ? formatarDataISO(l.vencimento) : "—"}
+                    {l.competencia && (
+                      <div className="text-xs text-muted-foreground">
+                        Competência {formatarCompetenciaCurta(l.competencia)}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {l.valor === null ? "—" : formatarMoeda(l.valor)}

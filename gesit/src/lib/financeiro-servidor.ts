@@ -78,3 +78,54 @@ export async function buscarLancamentosDoMes(f: FiltrosLancamentos) {
   }
   return q;
 }
+
+/** Máximo de linhas por resposta do PostgREST (max-rows padrão do Supabase). */
+const LOTE = 1000;
+/** Teto de segurança do Painel (12 meses têm poucas centenas de lançamentos). */
+const LIMITE_PAINEL = 20_000;
+
+export const SELECT_GASTOS =
+  "id, competencia, tipo, loja_id, valor, situacao, situacao_vencimento, aprovacao_ok";
+
+/**
+ * Lançamentos de `deMes` a `ateMes` ("AAAA-MM"), com os campos dos totais e
+ * gráficos, em lotes (ordenação estável terminando em id).
+ */
+export const buscarGastosPeriodo = cache(async (deMes: string, ateMes: string) => {
+  const supabase = await createClient();
+  const linhas = [];
+  for (let de = 0; de < LIMITE_PAINEL; de += LOTE) {
+    const { data, error } = await supabase
+      .from("vw_lancamentos")
+      .select(SELECT_GASTOS)
+      .gte("competencia", competenciaDoMes(deMes))
+      .lte("competencia", competenciaDoMes(ateMes))
+      .order("competencia")
+      .order("id")
+      .range(de, de + LOTE - 1);
+    if (error) throw new Error(error.message);
+    linhas.push(...data);
+    if (data.length < LOTE) break;
+  }
+  return linhas;
+});
+
+/** Campos das listas do Painel (vencimentos). */
+export const SELECT_LISTA =
+  "id, competencia, fornecedor, descricao, servico_identificador, loja_nome, vencimento, valor, situacao_vencimento, dias_para_vencer";
+
+/**
+ * Em aberto, de qualquer mês, por situação do vencimento, do vencimento
+ * mais antigo para o mais novo (em "hoje" + "proximo", hoje vem primeiro).
+ */
+export async function buscarVencimentos(situacoes: string[], limite: number) {
+  const supabase = await createClient();
+  return supabase
+    .from("vw_lancamentos")
+    .select(SELECT_LISTA, { count: "exact" })
+    .in("situacao_vencimento", situacoes)
+    .order("vencimento")
+    .order("fornecedor")
+    .order("id")
+    .limit(limite);
+}

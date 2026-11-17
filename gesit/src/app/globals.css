@@ -85,6 +85,17 @@
   --chart-3: var(--brand-navy);
   --chart-4: oklch(0.772 0.019 237.85); /* #AAB7C0 */
   --chart-5: oklch(0.763 0.094 258.13); /* #8DB4EE */
+  /*
+   * Tipos de despesa (gráficos do financeiro), em ordem fixa. Validado com o
+   * validate_palette.js da skill dataviz (faixa de luminosidade, croma,
+   * daltonismo, ΔE normal ≥ 15) sobre o card claro e o escuro.
+   * Amarelo e magenta ficam abaixo de 3:1 no claro: os gráficos têm tabela.
+   */
+  --despesa-provedor-internet: oklch(0.575 0.163 255.53); /* #2A78D6 */
+  --despesa-servico: oklch(0.671 0.175 40.64); /* #EB6834 */
+  --despesa-telefonia: oklch(0.669 0.141 162.11); /* #1BAF7A */
+  --despesa-compras: oklch(0.764 0.161 75.12); /* #EDA100 */
+  --despesa-outro: oklch(0.716 0.141 357.39); /* #E87BA4 */
   --radius: 0.625rem;
   --sidebar: oklch(0.978 0.005 258.32); /* #F6F8FB */
   --sidebar-foreground: oklch(0.259 0.031 260.43);
@@ -123,6 +134,12 @@
   --chart-3: oklch(0.6 0.12 258);
   --chart-4: oklch(0.722 0.023 245.96);
   --chart-5: oklch(0.85 0.06 258);
+  /* Tipos de despesa no escuro: passos próprios, validados sobre o card escuro (≥ 3:1). */
+  --despesa-provedor-internet: oklch(0.622 0.161 255.05); /* #3987E5 */
+  --despesa-servico: oklch(0.622 0.173 40.11); /* #D95926 */
+  --despesa-telefonia: oklch(0.621 0.128 163.11); /* #199E70 */
+  --despesa-compras: oklch(0.67 0.143 73.23); /* #C98500 */
+  --despesa-outro: oklch(0.622 0.171 0.84); /* #D55181 */
   --sidebar: oklch(0.255 0.031 260.42);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.763 0.094 258.13);

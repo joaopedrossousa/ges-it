@@ -23,7 +23,6 @@ import {
   textoEntregues,
   textoFormatado,
 } from "@/lib/perifericos";
-import type { createClient } from "@/lib/supabase/server";
 import {
   SITUACAO_VIDA_UTIL_LABEL,
   STATUS_DISPOSITIVO_LABEL,
@@ -37,49 +36,25 @@ import {
 import { mascararCPF } from "@/lib/validators";
 
 import {
+  buscarTodas,
+  dataBR,
+  dataSemHora,
+  lojaDoParametro,
+  nomeDaLoja,
+  type Gerador,
+} from "./comum";
+import { GERADORES_FINANCEIRO } from "./dados-financeiro";
+import {
   ErroRelatorio,
   LIMITE_LINHAS,
   MSG_LIMITE,
   type Linha,
-  type Relatorio,
   type TipoRelatorio,
 } from "./tipos";
-
-type Supabase = Awaited<ReturnType<typeof createClient>>;
-type Gerador = (supabase: Supabase, params: URLSearchParams, agora: Date) => Promise<Relatorio>;
 
 // ===========================================================================
 // Auxiliares
 // ===========================================================================
-
-/** Máximo de linhas por resposta do PostgREST no Supabase (max-rows padrão). */
-const LOTE = 1000;
-
-type Resposta<T> = { data: T[] | null; error: { message: string } | null };
-
-/**
- * Busca em lotes até LIMITE_LINHAS (+1 para saber se passou do limite).
- * `consulta` precisa de ordenação estável (ex.: terminar em .order("id")).
- */
-async function buscarTodas<T>(
-  consulta: (de: number, ate: number) => PromiseLike<Resposta<T>>,
-): Promise<T[]> {
-  const linhas: T[] = [];
-  for (let de = 0; de <= LIMITE_LINHAS; de += LOTE) {
-    const { data, error } = await consulta(de, de + LOTE - 1);
-    if (error) throw new Error(error.message);
-    linhas.push(...(data ?? []));
-    if (!data || data.length < LOTE) break;
-  }
-  if (linhas.length > LIMITE_LINHAS) throw new ErroRelatorio(422, MSG_LIMITE);
-  return linhas;
-}
-
-async function nomeDaLoja(supabase: Supabase, id: string | undefined) {
-  if (!id) return null;
-  const { data } = await supabase.from("lojas").select("nome").eq("id", id).maybeSingle();
-  return data?.nome ?? "Loja não encontrada";
-}
 
 function idObrigatorio(params: URLSearchParams, mensagem: string) {
   const id = params.get("id");
@@ -87,18 +62,7 @@ function idObrigatorio(params: URLSearchParams, mensagem: string) {
   return id;
 }
 
-function lojaDoParametro(params: URLSearchParams) {
-  const loja = params.get("loja");
-  return z.uuid().safeParse(loja).success && loja ? loja : undefined;
-}
-
 const sim = (v: unknown) => (v ? "Sim" : "Não");
-
-/**
- * Data sem hora do banco ("AAAA-MM-DD") como instante ao meio-dia de Palmas:
- * o PDF e o Excel exibem no fuso de Palmas, e meia-noite UTC viraria o dia anterior.
- */
-const dataSemHora = (iso: string | null) => (iso ? new Date(`${iso}T12:00:00-03:00`) : null);
 
 // ===========================================================================
 // 1. Inventário de dispositivos (mesmos filtros de /dispositivos)
@@ -478,7 +442,6 @@ const SELECT_MOVIMENTACAO =
 const dataSchema = z.iso.date();
 
 /** "2026-11-10" → "10/11/2026". */
-const dataBR = (iso: string) => iso.split("-").reverse().join("/");
 
 /** Dia seguinte, também como "AAAA-MM-DD". */
 function diaSeguinte(iso: string) {
@@ -856,4 +819,5 @@ export const GERADORES: Record<TipoRelatorio, Gerador> = {
   "vinculos-sem-termo": vinculosSemTermo,
   servicos,
   auditoria,
+  ...GERADORES_FINANCEIRO,
 };

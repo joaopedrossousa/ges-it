@@ -1,3 +1,5 @@
+import { formatarMoeda } from "@/lib/format";
+
 /** Máximo de linhas por relatório; acima disso, pedimos para refinar os filtros. */
 export const LIMITE_LINHAS = 5000;
 
@@ -27,6 +29,11 @@ export const TIPOS_RELATORIO = [
   "vinculos-sem-termo",
   "servicos",
   "auditoria",
+  // Gestão Financeira (dados-financeiro.ts)
+  "financeiro-controle-mensal",
+  "financeiro-despesas-periodo",
+  "financeiro-despesas-fornecedor",
+  "financeiro-pendencias",
 ] as const;
 export type TipoRelatorio = (typeof TIPOS_RELATORIO)[number];
 
@@ -66,9 +73,34 @@ export type Relatorio = {
   linhas: Linha[];
   /** Agrupa linhas consecutivas por esta coluna, com subtotal por grupo. */
   agruparPor?: string;
+  /** Somas em reais no subtotal de cada grupo e no total (em vez de só contar). */
+  resumo?: ResumoValores;
   /** Texto quando não há linhas. */
   vazio: string;
 };
+
+/**
+ * Valores das linhas de subtotal e total. As somas leem as linhas do grupo
+ * (podem usar chaves que não são colunas, ex.: a situação sem rótulo).
+ */
+export type ResumoValores = {
+  /** Coluna (moeda) que recebe a primeira soma; no Excel, como número. */
+  coluna: string;
+  /** Contagem: ["lançamento", "lançamentos"]. */
+  unidade: [string, string];
+  somas: (linhas: Linha[]) => { rotulo: string; valor: number }[];
+};
+
+/** ["Subtotal Telefonia: 4 lançamentos", "Total R$ 1.200,00", "Pago R$ 800,00"]. */
+export function partesResumo(prefixo: string, linhas: Linha[], resumo: ResumoValores) {
+  const somas = resumo.somas(linhas).map((s) => `${s.rotulo} ${formatarMoeda(s.valor)}`);
+  return [`${prefixo}: ${contar(linhas.length, ...resumo.unidade)}`, ...somas];
+}
+
+/** "Subtotal Telefonia: 4 lançamentos · Total R$ 1.200,00 · Pago R$ 800,00". */
+export function textoResumo(prefixo: string, linhas: Linha[], resumo: ResumoValores) {
+  return partesResumo(prefixo, linhas, resumo).join(" · ");
+}
 
 export type MetaRelatorio = {
   geradoEm: Date;

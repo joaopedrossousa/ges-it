@@ -31,6 +31,7 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
   - Arquivos: CampoArquivo (src/components/campo-arquivo.tsx); o pai valida e guarda o File.
   - Listas longas já carregadas (lojas, operadora, tipo de serviço, usuários da auditoria): ComboboxLista (src/components/combobox-lista.tsx), busca sem acento por qualquer parte do texto. Lojas via opcoesLojas (nome + cidade). Busca no servidor (dispositivos, usuários no vínculo): ComboboxBusca.
 - Textos curtos da interface (subtítulos, detalhes, valores avulsos) começam com maiúscula.
+- Painel /financeiro: cards do mês (Aguardando Aprovação = aguardandoAprovacao em src/lib/financeiro.ts), Evolução Mensal (12 meses, barras empilhadas por tipo) e Gastos por Tipo/Filial em src/components/financeiro/graficos.tsx. Cor fixa por tipo de despesa nos tokens --despesa-* (globals.css), validados com o validate_palette.js da skill dataviz no claro e no escuro: não trocar sem validar de novo. Links do Painel para um lançamento usam <a href="...?mes=AAAA-MM#lanc-<id>"> (a linha tem o id e destaque em :target).
 - Iniciais maiúsculas (partículas em minúsculo: de, da, do, das, dos, e, em, para, por, com, sem, na, no, a, o, como) em menus, títulos de página, seções, cards e diálogos, cabeçalhos de tabela, rótulos de categoria e status (mapas *_LABEL) e títulos/colunas dos relatórios PDF/Excel: "Provedor de Internet", "Situação do Vencimento", "Em Uso". Subtítulos, descrições, botões, rótulos de campo de formulário, opções de filtro e mensagens continuam como frase.
 - Antes de concluir uma tarefa: npm run lint e npm run build sem erros.
 
@@ -48,7 +49,8 @@ Plataforma interna de gestão de T.I. Módulo atual: Gestão de Ativos.
 
 ## Relatórios (PDF e Excel)
 - Rota única: GET /api/relatorios/[tipo]?formato=pdf|xlsx + filtros. Gerados no servidor com a sessão do usuário (RLS); nada de service_role.
-- Dados em src/lib/relatorios/dados.ts (um gerador por relatório); excel.ts (exceljs) e pdf.tsx (@react-pdf/renderer) só formatam o modelo de tipos.ts.
+- Dados em src/lib/relatorios/dados.ts (ativos) e dados-financeiro.ts (financeiro, tipos "financeiro-*"), um gerador por relatório, com os auxiliares de comum.ts; excel.ts (exceljs) e pdf.tsx (@react-pdf/renderer) só formatam o modelo de tipos.ts.
+- Relatorio.resumo: somas em reais no subtotal e no total (a primeira vai como número na coluna do resumo no Excel). No PDF o texto do resumo quebra nos "·" (estimativa de largura em quebrar) e alturaDe conta as linhas a mais. Chaves com "_" nas linhas (ex.: _valor, _situacao) servem só às somas.
 - Limite: 5.000 linhas por relatório; o PDF aceita até 1.000 (react-pdf ~4 ms/linha; a função da Netlify cai em 10 s). Acima disso, erro 422 pedindo para refinar os filtros.
 - O PostgREST devolve no máximo 1.000 linhas por resposta: buscar com buscarTodas (lotes, ordenação estável terminando em id).
 - PDF com paginação manual (um <Page> por bloco, wrap={false}) e células de uma linha (reticências): não trocar por quebra automática, que é quadrática. Ao mudar fontes, margens ou alturas, conferir que nenhuma página transborda.

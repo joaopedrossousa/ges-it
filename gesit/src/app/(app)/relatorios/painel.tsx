@@ -5,22 +5,14 @@ import {
   FileWarningIcon,
   StoreIcon,
   WrenchIcon,
-  type LucideIcon,
 } from "lucide-react";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 
 import { CampoData } from "@/components/campo-data";
+import { CartaoRelatorio } from "@/components/cartao-relatorio";
 import { ComboboxLista } from "@/components/combobox-lista";
 import { ExportarBotoes } from "@/components/exportar";
 import { MensagemErro } from "@/components/mensagem-erro";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -56,34 +48,6 @@ export function PainelRelatorios({ lojas, periodoPadrao }: Props) {
       <SemTermo lojas={lojas} />
       <Servicos lojas={lojas} periodoPadrao={periodoPadrao} />
     </div>
-  );
-}
-
-function CartaoRelatorio({
-  icone: Icone,
-  titulo,
-  descricao,
-  children,
-  rodape,
-}: {
-  icone: LucideIcon;
-  titulo: string;
-  descricao: string;
-  children: ReactNode;
-  rodape: ReactNode;
-}) {
-  return (
-    <Card className="border-t-2 border-t-brand-green">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Icone className="size-4 text-brand-green" aria-hidden />
-          {titulo}
-        </CardTitle>
-        <CardDescription>{descricao}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid flex-1 content-start gap-4">{children}</CardContent>
-      <CardFooter>{rodape}</CardFooter>
-    </Card>
   );
 }
 

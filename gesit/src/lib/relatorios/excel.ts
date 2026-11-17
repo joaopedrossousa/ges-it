@@ -2,7 +2,16 @@ import ExcelJS from "exceljs";
 
 import { formatarDataHora, formatarMoeda, paraRelogioDePalmas } from "@/lib/format";
 
-import { agrupar, contar, type Coluna, type MetaRelatorio, type Relatorio, type Valor } from "./tipos";
+import {
+  agrupar,
+  contar,
+  textoResumo,
+  type Coluna,
+  type Linha,
+  type MetaRelatorio,
+  type Relatorio,
+  type Valor,
+} from "./tipos";
 
 const AZUL = "FF084897";
 const AZUL_ESCURO = "FF00225C";
@@ -66,6 +75,9 @@ export async function gerarExcel(relatorio: Relatorio, meta: MetaRelatorio): Pro
   const adicionar = (valores: Valor[], destaque?: boolean) => {
     const linha = aba.addRow(valores.map(valorDaCelula));
     valores.forEach((v, i) => {
+      // O texto do subtotal/total transborda para as células vazias ao lado:
+      // não alarga a coluna (só os números contam).
+      if (destaque && typeof v !== "number") return;
       larguras[i] = Math.max(larguras[i], larguraDoValor(v, colunas[i]));
     });
     if (destaque) {
@@ -77,6 +89,21 @@ export async function gerarExcel(relatorio: Relatorio, meta: MetaRelatorio): Pro
   };
   const valoresDa = (linha: Relatorio["linhas"][number]) => colunas.map((c) => linha[c.chave] ?? null);
 
+  // Com `resumo`, a primeira soma vai como número na coluna dele e o texto
+  // traz a contagem e as demais somas.
+  const { resumo } = relatorio;
+  const iResumo = resumo ? colunas.findIndex((c) => c.chave === resumo.coluna) : -1;
+  const linhaResumo = (iTexto: number, prefixo: string, linhas: Linha[], contagem: string) => {
+    const valores: Valor[] = colunas.map(() => null);
+    if (resumo) {
+      valores[iTexto] = textoResumo(prefixo, linhas, resumo);
+      if (iResumo >= 0) valores[iResumo] = resumo.somas(linhas)[0]?.valor ?? null;
+    } else {
+      valores[iTexto] = `${prefixo}: ${contagem}`;
+    }
+    return valores;
+  };
+
   if (relatorio.agruparPor) {
     // Subtotal com o nome do grupo na coluna agrupada: o filtro por loja mantém o subtotal.
     const iGrupo = colunas.findIndex((c) => c.chave === relatorio.agruparPor);
@@ -84,18 +111,31 @@ export async function gerarExcel(relatorio: Relatorio, meta: MetaRelatorio): Pro
     const grupos = agrupar(relatorio.linhas, relatorio.agruparPor);
     for (const grupo of grupos) {
       for (const linha of grupo.linhas) adicionar(valoresDa(linha));
-      const subtotal: Valor[] = colunas.map(() => null);
+      const subtotal = linhaResumo(
+        iTexto,
+        "Subtotal",
+        grupo.linhas,
+        contar(grupo.linhas.length, "item", "itens"),
+      );
       subtotal[iGrupo] = grupo.titulo;
-      subtotal[iTexto] = `Subtotal: ${contar(grupo.linhas.length, "item", "itens")}`;
       adicionar(subtotal, true);
     }
     if (grupos.length) {
-      const total: Valor[] = colunas.map(() => null);
-      total[iTexto] = `Total geral: ${contar(relatorio.linhas.length, "item", "itens")}`;
-      adicionar(total, true);
+      adicionar(
+        linhaResumo(
+          iTexto,
+          "Total geral",
+          relatorio.linhas,
+          contar(relatorio.linhas.length, "item", "itens"),
+        ),
+        true,
+      );
     }
   } else {
     for (const linha of relatorio.linhas) adicionar(valoresDa(linha));
+    if (resumo && relatorio.linhas.length) {
+      adicionar(linhaResumo(0, "Total", relatorio.linhas, ""), true);
+    }
   }
 
   if (relatorio.linhas.length === 0) {

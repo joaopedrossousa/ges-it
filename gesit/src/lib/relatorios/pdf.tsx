@@ -14,7 +14,16 @@ import {
 
 import { formatarData, formatarDataHora, formatarMoeda } from "@/lib/format";
 
-import { agrupar, contar, type Coluna, type Linha, type MetaRelatorio, type Relatorio, type Valor } from "./tipos";
+import {
+  agrupar,
+  contar,
+  partesResumo,
+  type Coluna,
+  type Linha,
+  type MetaRelatorio,
+  type Relatorio,
+  type Valor,
+} from "./tipos";
 
 // Arquivos lidos do disco: incluídos no deploy por outputFileTracingIncludes (next.config.ts).
 const RAIZ = process.cwd();
@@ -65,6 +74,13 @@ const ALTURA = {
   subtotal: FONTE * ENTRELINHA + 2 * PAD_CELULA + 0.75,
   total: 8 + 9 * ENTRELINHA,
 };
+/** Linha a mais do subtotal (8pt) e do total (9pt) quando o resumo quebra. */
+const LINHA_EXTRA = { subtotal: FONTE * ENTRELINHA, total: 9 * ENTRELINHA };
+/**
+ * Largura média de um caractere em Roboto, em "em" (conservadora: o total
+ * é em negrito e quase só dígitos, ~0,56 em). Quebra o resumo antes de transbordar.
+ */
+const EM_POR_CARACTERE = 0.6;
 /** Cabeçalho da página (logo e título) e cabeçalho da tabela, com folga. */
 const ALTURA_TOPO = 50 + ALTURA.linha;
 /** Quadro de filtros da primeira página (até duas linhas). */
@@ -137,7 +153,7 @@ const s = StyleSheet.create({
     borderTopColor: COR.azul,
     maxLines: 1,
   },
-  total: { marginTop: 8, textAlign: "right", fontWeight: 700, color: COR.azulEscuro, fontSize: 9 },
+  total: { marginTop: 8, textAlign: "right", fontWeight: 700, color: COR.azulEscuro, fontSize: 9, maxLines: 1 },
   vazio: { paddingVertical: 12, textAlign: "center", color: COR.suave },
   rodape: {
     position: "absolute",
@@ -172,26 +188,72 @@ function Celulas({ colunas, linha }: { colunas: Coluna[]; linha?: Linha }) {
 type Item =
   | { tipo: "linha"; linha: Linha; zebra: boolean }
   | { tipo: "grupo"; titulo: string }
-  | { tipo: "subtotal"; texto: string }
-  | { tipo: "total"; texto: string };
+  /** Subtotal e total: uma ou mais linhas de texto (o resumo quebra nos "·"). */
+  | { tipo: "subtotal"; linhas: string[] }
+  | { tipo: "total"; linhas: string[] };
+
+/** Largura útil da página, em pt. */
+const larguraUtil = (orientacao: Relatorio["orientacao"]) =>
+  (orientacao === "paisagem" ? A4.longo : A4.curto) - 2 * MARGEM.lados - 8;
+
+/**
+ * Junta as partes com " · " numa linha enquanto couber (estimativa pela
+ * largura média do caractere); o que não couber desce para a próxima.
+ */
+function quebrar(partes: string[], fonte: number, largura: number): string[] {
+  const cabe = (texto: string) => texto.length * fonte * EM_POR_CARACTERE <= largura;
+  const linhas: string[] = [];
+  for (const parte of partes) {
+    const atual = linhas.at(-1);
+    if (atual !== undefined && cabe(`${atual} · ${parte}`)) linhas[linhas.length - 1] = `${atual} · ${parte}`;
+    else linhas.push(parte);
+  }
+  return linhas;
+}
 
 function itensDoRelatorio(relatorio: Relatorio): Item[] {
-  const { linhas, agruparPor } = relatorio;
+  const { linhas, agruparPor, resumo } = relatorio;
+  const largura = larguraUtil(relatorio.orientacao);
   const linhaItem = (linha: Linha, i: number): Item => ({ tipo: "linha", linha, zebra: i % 2 === 1 });
+  const resumido = (prefixo: string, ls: Linha[], fonte: number, semResumo: string) =>
+    resumo ? quebrar(partesResumo(prefixo, ls, resumo), fonte, largura) : [semResumo];
+
   if (!agruparPor) {
     return [
       ...linhas.map(linhaItem),
-      { tipo: "total", texto: contar(linhas.length, "registro", "registros") },
+      {
+        tipo: "total",
+        linhas: resumido("Total", linhas, 9, contar(linhas.length, "registro", "registros")),
+      },
     ];
   }
   return [
     ...agrupar(linhas, agruparPor).flatMap((g): Item[] => [
       { tipo: "grupo", titulo: g.titulo },
       ...g.linhas.map(linhaItem),
-      { tipo: "subtotal", texto: `Subtotal ${g.titulo}: ${contar(g.linhas.length, "item", "itens")}` },
+      {
+        tipo: "subtotal",
+        linhas: resumido(
+          `Subtotal ${g.titulo}`,
+          g.linhas,
+          FONTE,
+          `Subtotal ${g.titulo}: ${contar(g.linhas.length, "item", "itens")}`,
+        ),
+      },
     ]),
-    { tipo: "total", texto: `Total geral: ${contar(linhas.length, "item", "itens")}` },
+    {
+      tipo: "total",
+      linhas: resumido("Total geral", linhas, 9, `Total geral: ${contar(linhas.length, "item", "itens")}`),
+    },
   ];
+}
+
+/** Altura do item, contando as linhas a mais do subtotal/total que quebrou. */
+function alturaDe(item: Item) {
+  if (item.tipo === "subtotal" || item.tipo === "total") {
+    return ALTURA[item.tipo] + (item.linhas.length - 1) * LINHA_EXTRA[item.tipo];
+  }
+  return ALTURA[item.tipo];
 }
 
 /**
@@ -207,7 +269,8 @@ function paginar(itens: Item[], orientacao: Relatorio["orientacao"]): Item[][] {
   let atual: Item[] = [];
   let livre = util - ALTURA_FILTROS;
   for (const item of itens) {
-    if (ALTURA[item.tipo] > livre && atual.length) {
+    const altura = alturaDe(item);
+    if (altura > livre && atual.length) {
       // Título de grupo não fica sozinho no fim da página.
       const orfao = atual.at(-1)?.tipo === "grupo" ? atual.pop() : undefined;
       paginas.push(atual);
@@ -215,7 +278,7 @@ function paginar(itens: Item[], orientacao: Relatorio["orientacao"]): Item[][] {
       livre = util - (orfao ? ALTURA.grupo : 0);
     }
     atual.push(item);
-    livre -= ALTURA[item.tipo];
+    livre -= altura;
   }
   paginas.push(atual);
   return paginas;
@@ -231,10 +294,13 @@ function ItemTabela({ item, colunas }: { item: Item; colunas: Coluna[] }) {
       );
     case "grupo":
       return <Text style={s.grupo}>{item.titulo}</Text>;
+    // Uma linha por parte do resumo: altura previsível (alturaDe).
     case "subtotal":
-      return <Text style={s.subtotal}>{item.texto}</Text>;
+      return (
+        <Text style={[s.subtotal, { maxLines: item.linhas.length }]}>{item.linhas.join("\n")}</Text>
+      );
     case "total":
-      return <Text style={s.total}>{item.texto}</Text>;
+      return <Text style={[s.total, { maxLines: item.linhas.length }]}>{item.linhas.join("\n")}</Text>;
   }
 }
 
