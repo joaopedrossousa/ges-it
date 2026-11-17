@@ -5,7 +5,7 @@ import { FileTextIcon } from "lucide-react";
  * assinada de 60 s no momento do clique (o link da página nunca expira).
  */
 export function LinkTermo({ path }: { path: string | null }) {
-  if (!path) return <span className="text-muted-foreground">Sem termo</span>;
+  if (!path) return <span className="text-muted-foreground">Sem Termo</span>;
   return (
     <a
       href={`/api/termos?path=${encodeURIComponent(path)}`}

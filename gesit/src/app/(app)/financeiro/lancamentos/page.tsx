@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Fragment, Suspense } from "react";
 
 import { SituacaoPagamentoBadge, SituacaoVencimentoBadge } from "@/components/financeiro/badges";
+import { NomeFinanceiro } from "@/components/financeiro/nome-financeiro";
 import { ResumoMes, ResumoMesCarregando } from "@/components/financeiro/resumo-mes";
 import { LinkAnexoLancamento } from "@/components/link-anexo-lancamento";
 import { TabelaCarregando } from "@/components/tabela-carregando";
@@ -22,6 +23,7 @@ import {
   competenciaDoMes,
   formatarMes,
   mesAtualEmPalmas,
+  nomeFinanceiro,
   resumirLancamentos,
   rotuloAprovacao,
   somarValores,
@@ -120,7 +122,7 @@ function paraEdicao(l: LancamentoLinha): LancamentoEditavel | null {
     !l.id ||
     !l.competencia ||
     !l.tipo ||
-    l.descricao === null ||
+    !l.fornecedor ||
     !l.vencimento ||
     l.valor === null ||
     !l.situacao
@@ -132,6 +134,7 @@ function paraEdicao(l: LancamentoLinha): LancamentoEditavel | null {
     competencia: l.competencia,
     servico_id: l.servico_id,
     tipo: l.tipo,
+    fornecedor: l.fornecedor,
     descricao: l.descricao,
     loja_id: l.loja_id,
     vencimento: l.vencimento,
@@ -184,13 +187,13 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
           <TableHeader>
             <TableRow>
               <TableHead>Tipo</TableHead>
-              <TableHead>Descrição / identificador</TableHead>
+              <TableHead>Fornecedor / Descrição</TableHead>
               <TableHead>Filial</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Situação</TableHead>
-              <TableHead>Situação do venc.</TableHead>
-              <TableHead>ID aprovação</TableHead>
+              <TableHead>Situação do Vencimento</TableHead>
+              <TableHead>ID da Aprovação</TableHead>
               <TableHead>Aprovação</TableHead>
               <TableHead>Observação</TableHead>
               <TableHead>Anexo</TableHead>
@@ -223,14 +226,11 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
                         </TableCell>
                       )}
                       <TableCell>
-                        <div className="leading-tight">
-                          <div className="font-medium">{l.descricao ?? "—"}</div>
-                          {l.servico_identificador && (
-                            <div className="text-xs text-muted-foreground">
-                              {l.servico_identificador}
-                            </div>
-                          )}
-                        </div>
+                        <NomeFinanceiro
+                          fornecedor={l.fornecedor}
+                          descricao={l.descricao}
+                          identificador={l.servico_identificador}
+                        />
                       </TableCell>
                       <TableCell>{l.loja_nome ?? "—"}</TableCell>
                       <TableCell className="tabular-nums">
@@ -250,7 +250,10 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <SituacaoVencimentoBadge situacao={l.situacao_vencimento} />
+                        <SituacaoVencimentoBadge
+                          situacao={l.situacao_vencimento}
+                          dias={l.dias_para_vencer}
+                        />
                       </TableCell>
                       <TableCell className="font-mono text-xs">{l.id_aprovacao ?? "—"}</TableCell>
                       <TableCell>
@@ -281,7 +284,16 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
                       <TableCell>
                         {editavel && (
                           <div className="flex justify-end gap-1">
-                            <SituacaoMenu lancamento={editavel} />
+                            <SituacaoMenu
+                              lancamento={{
+                                id: editavel.id,
+                                situacao: editavel.situacao,
+                                nome: nomeFinanceiro({
+                                  ...editavel,
+                                  identificador: l.servico_identificador,
+                                }),
+                              }}
+                            />
                             <LancamentoFormDialog
                               lojas={lojas}
                               servicos={servicos}
@@ -290,7 +302,7 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
                               trigger={
                                 <Button variant="ghost" size="sm">
                                   <PencilIcon />
-                                  Editar<span className="sr-only"> {editavel.descricao}</span>
+                                  Editar<span className="sr-only"> {editavel.fornecedor}</span>
                                 </Button>
                               }
                             />
@@ -302,7 +314,7 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
                 })}
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableCell colSpan={4} className="text-right text-sm font-medium">
-                    Subtotal {TIPO_DESPESA_LABEL[tipo].toLowerCase()}
+                    Subtotal {TIPO_DESPESA_LABEL[tipo]}
                   </TableCell>
                   <TableCell className="text-right font-semibold tabular-nums">
                     {formatarMoeda(somarValores(linhas))}

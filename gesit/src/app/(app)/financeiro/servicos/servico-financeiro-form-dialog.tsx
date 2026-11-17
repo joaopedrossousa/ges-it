@@ -45,8 +45,8 @@ import { atualizarServicoFinanceiro, criarServicoFinanceiro } from "../actions";
 export type ServicoFinanceiroEditavel = {
   id: string;
   tipo: TipoDespesa;
-  descricao: string;
-  fornecedor: string | null;
+  fornecedor: string;
+  descricao: string | null;
   identificador: string | null;
   loja_id: string | null;
   dia_vencimento: number | null;
@@ -66,8 +66,8 @@ type Campo = keyof ServicoFinanceiroFormInput;
 
 const CAMPOS: Campo[] = [
   "tipo",
-  "descricao",
   "fornecedor",
+  "descricao",
   "identificador",
   "loja_id",
   "dia_vencimento",
@@ -85,7 +85,7 @@ export function ServicoFinanceiroFormDialog({ lojas, servico, trigger }: Props) 
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editando ? "Editar serviço" : "Novo serviço"}</DialogTitle>
+          <DialogTitle>{editando ? "Editar Serviço" : "Novo Serviço"}</DialogTitle>
           <DialogDescription>
             Despesa recorrente do catálogo. Ela não gera lançamentos sozinha: serve para
             preencher o lançamento do mês.
@@ -205,33 +205,34 @@ function FormServico({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="sf-descricao">Descrição</Label>
-          <Input
-            id="sf-descricao"
-            autoComplete="off"
-            maxLength={150}
-            placeholder="Ex.: IBL NET"
-            aria-required
-            aria-invalid={Boolean(erro("descricao"))}
-            aria-describedby={descrito("descricao", erro("descricao"))}
-            disabled={isPending}
-            {...register("descricao")}
-          />
-          <MensagemErro id="sf-descricao-erro" mensagem={erro("descricao")} />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="sf-fornecedor">Fornecedor (opcional)</Label>
+          <Label htmlFor="sf-fornecedor">Fornecedor</Label>
           <Input
             id="sf-fornecedor"
             autoComplete="off"
             maxLength={150}
+            placeholder="Ex.: IBL NET"
+            aria-required
             aria-invalid={Boolean(erro("fornecedor"))}
             aria-describedby={descrito("fornecedor", erro("fornecedor"))}
             disabled={isPending}
             {...register("fornecedor")}
           />
           <MensagemErro id="sf-fornecedor-erro" mensagem={erro("fornecedor")} />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="sf-descricao">Descrição (opcional)</Label>
+          <Input
+            id="sf-descricao"
+            autoComplete="off"
+            maxLength={150}
+            placeholder="Ex.: Link principal"
+            aria-invalid={Boolean(erro("descricao"))}
+            aria-describedby={descrito("descricao", erro("descricao"))}
+            disabled={isPending}
+            {...register("descricao")}
+          />
+          <MensagemErro id="sf-descricao-erro" mensagem={erro("descricao")} />
         </div>
 
         <div className="grid gap-2">

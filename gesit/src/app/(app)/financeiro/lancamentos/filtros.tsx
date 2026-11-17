@@ -32,7 +32,7 @@ export function FiltrosLancamentos({ lojas, mesAtual }: { lojas: LojaOpcao[]; me
       <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center">
         <CampoBusca
           valorInicial={valor("q", "")}
-          placeholder="Buscar por descrição, identificador ou ID de aprovação"
+          placeholder="Buscar por fornecedor, descrição, identificador ou ID de aprovação"
           onBuscar={(q) => atualizar("q", q)}
         />
 

@@ -462,8 +462,10 @@ const tipoDespesa = z.enum(TIPOS_DESPESA, { error: "Selecione o tipo." });
 /** Serviço do catálogo financeiro (preenche os lançamentos). */
 export const servicoFinanceiroSchema = z.object({
   tipo: tipoDespesa,
-  descricao: textoObrigatorio("a descrição", 150),
-  fornecedor: textoOpcional(150),
+  /** Nome principal (ex.: IBL NET). */
+  fornecedor: textoObrigatorio("o fornecedor", 150),
+  /** Complemento opcional (ex.: Link principal). */
+  descricao: textoOpcional(150),
   /** Nº do contrato, da linha ou da conta. */
   identificador: textoOpcional(100),
   loja_id: idOpcional("Filial inválida."),
@@ -509,7 +511,9 @@ export const lancamentoSchema = z
       .regex(/^\d{4}-(0[1-9]|1[0-2])-01$/, "Competência inválida."),
     servico_id: idOpcional("Serviço inválido."),
     tipo: tipoDespesa,
-    descricao: textoObrigatorio("a descrição", 150),
+    /** Nome principal; vem do serviço ou, no avulso, é digitado. */
+    fornecedor: textoObrigatorio("o fornecedor", 150),
+    descricao: textoOpcional(150),
     loja_id: idOpcional("Filial inválida."),
     vencimento: dataObrigatoria("Informe o vencimento."),
     valor: valorEmReais("O valor não pode ser negativo.").pipe(

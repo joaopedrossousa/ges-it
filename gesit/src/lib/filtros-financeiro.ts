@@ -28,7 +28,7 @@ export type FiltrosLancamentos = {
   situacao?: SituacaoPagamento;
   vencimento?: SituacaoVencimento;
   lojaId?: string;
-  /** Descrição, identificador do serviço ou ID de aprovação. */
+  /** Fornecedor, descrição, identificador do serviço ou ID de aprovação. */
   busca: string;
 };
 

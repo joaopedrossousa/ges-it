@@ -67,8 +67,8 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
           <TableHead>Fim</TableHead>
           <TableHead>Duração</TableHead>
           <TableHead>Termo</TableHead>
-          <TableHead>Periféricos entregues</TableHead>
-          <TableHead>Periféricos devolvidos</TableHead>
+          <TableHead>Periféricos Entregues</TableHead>
+          <TableHead>Periféricos Devolvidos</TableHead>
           <TableHead>Formatado</TableHead>
           <TableHead>Observações</TableHead>
         </TableRow>
@@ -122,7 +122,7 @@ export function HistoricoVinculos({ contexto, linhas, agora }: Props) {
                 formatarDataHora(v.data_fim)
               ) : (
                 <Badge className="border-transparent bg-brand-blue/10 text-brand-blue dark:bg-primary/20 dark:text-primary">
-                  Em uso
+                  Em Uso
                 </Badge>
               )}
             </TableCell>

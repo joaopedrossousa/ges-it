@@ -52,7 +52,7 @@ import { DispositivoFormDialog } from "../dispositivo-form-dialog";
 import { StatusDialog } from "../status-dialog";
 import { VincularDialog } from "../vincular-dialog";
 
-export const metadata: Metadata = { title: "Detalhes do dispositivo" };
+export const metadata: Metadata = { title: "Detalhes do Dispositivo" };
 
 export default function DispositivoPage({
   params,
@@ -204,7 +204,7 @@ async function DetalheDispositivo({
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Dados do dispositivo</CardTitle>
+            <CardTitle>Dados do Dispositivo</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-4 sm:grid-cols-2">
@@ -269,7 +269,7 @@ async function DetalheDispositivo({
 
         <Card>
           <CardHeader>
-            <CardTitle>Usuário atual</CardTitle>
+            <CardTitle>Usuário Atual</CardTitle>
             {aberto?.colaborador && (
               <CardAction className="flex gap-2">
                 <VincularDialog
@@ -328,7 +328,7 @@ async function DetalheDispositivo({
                     <LinkTermo path={aberto.termo_path} />
                   ) : (
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className="text-muted-foreground">Sem termo</span>
+                      <span className="text-muted-foreground">Sem Termo</span>
                       <AnexarTermoButton
                         vinculoId={aberto.id}
                         dispositivoId={d.id}
@@ -388,7 +388,7 @@ async function DetalheDispositivo({
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de uso</CardTitle>
+          <CardTitle>Histórico de Uso</CardTitle>
         </CardHeader>
         <CardContent>
           <HistoricoVinculos contexto="dispositivo" linhas={historico} agora={agora} />

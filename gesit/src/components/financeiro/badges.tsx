@@ -3,8 +3,8 @@ import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import {
   SITUACAO_PAGAMENTO_LABEL,
-  SITUACAO_VENCIMENTO_LABEL,
   paraSituacaoVencimento,
+  rotuloVencimento,
   type SituacaoVencimento,
 } from "@/lib/financeiro";
 import type { SituacaoPagamento } from "@/lib/types";
@@ -32,21 +32,33 @@ export function SituacaoPagamentoBadge({ situacao }: { situacao: SituacaoPagamen
   );
 }
 
+const LARANJA = "bg-orange-500/15 text-orange-800 dark:bg-orange-500/20 dark:text-orange-400";
+
 const CORES_VENCIMENTO: Record<SituacaoVencimento, string> = {
   vencido: VERMELHO,
+  hoje: LARANJA,
   proximo: AMBAR,
   a_vencer: VERDE,
   pago: CINZA,
   cancelado: CINZA,
 };
 
-/** situacao_vencimento da vw_lancamentos (data de Palmas). */
-export function SituacaoVencimentoBadge({ situacao }: { situacao: string | null }) {
+/**
+ * situacao_vencimento da vw_lancamentos (data de Palmas). Com `dias`
+ * (dias_para_vencer), "proximo" vira "Vence Amanhã" / "Vence em 3 Dias".
+ */
+export function SituacaoVencimentoBadge({
+  situacao,
+  dias = null,
+}: {
+  situacao: string | null;
+  dias?: number | null;
+}) {
   const s = paraSituacaoVencimento(situacao);
   if (!s) return <span className="text-muted-foreground">—</span>;
   return (
     <Badge className={cn("border-transparent", CORES_VENCIMENTO[s])}>
-      {SITUACAO_VENCIMENTO_LABEL[s]}
+      {rotuloVencimento(s, dias)}
     </Badge>
   );
 }

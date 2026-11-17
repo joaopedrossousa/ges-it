@@ -132,12 +132,12 @@ const inventario: Gerador = async (supabase, params) => {
     f.tipo && { rotulo: "Tipo", valor: TIPO_DISPOSITIVO_LABEL[f.tipo] },
     f.status && { rotulo: "Status", valor: STATUS_DISPOSITIVO_LABEL[f.status] },
     f.lojaId && { rotulo: "Loja", valor: (await nomeDaLoja(supabase, f.lojaId)) ?? "" },
-    f.vidaUtil && { rotulo: "Vida útil", valor: SITUACAO_VIDA_UTIL_LABEL[f.vidaUtil] },
+    f.vidaUtil && { rotulo: "Vida Útil", valor: SITUACAO_VIDA_UTIL_LABEL[f.vidaUtil] },
   ].filter((x) => !!x);
 
   return {
     slug: "inventario",
-    titulo: "Inventário de dispositivos",
+    titulo: "Inventário de Dispositivos",
     aba: "Inventário",
     orientacao: "paisagem",
     filtros: filtros.length ? filtros : [{ rotulo: "Filtros", valor: "nenhum (todos os dispositivos)" }],
@@ -148,13 +148,13 @@ const inventario: Gerador = async (supabase, params) => {
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.8 },
       { chave: "status", titulo: "Status", peso: 0.8 },
-      { chave: "usuario", titulo: "Usuário atual", peso: 1.3 },
+      { chave: "usuario", titulo: "Usuário Atual", peso: 1.3 },
       { chave: "loja", titulo: "Loja", peso: 1 },
       { chave: "desde", titulo: "Desde", tipo: "data", peso: 0.75 },
       { chave: "compra", titulo: "Compra", tipo: "data", peso: 0.75 },
       { chave: "idade", titulo: "Idade", peso: 1.05 },
-      { chave: "fim_vida_util", titulo: "Fim vida útil", tipo: "data", peso: 0.8 },
-      { chave: "vida_util", titulo: "Vida útil", peso: 0.95 },
+      { chave: "fim_vida_util", titulo: "Fim Vida Útil", tipo: "data", peso: 0.8 },
+      { chave: "vida_util", titulo: "Vida Útil", peso: 0.95 },
     ],
     // PDF mais enxuto; as datas e a idade ficam só no Excel.
     colunasPdf: [
@@ -163,9 +163,9 @@ const inventario: Gerador = async (supabase, params) => {
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
       { chave: "status", titulo: "Status", peso: 0.8 },
-      { chave: "usuario", titulo: "Usuário atual", peso: 1.5 },
+      { chave: "usuario", titulo: "Usuário Atual", peso: 1.5 },
       { chave: "loja", titulo: "Loja", peso: 1.1 },
-      { chave: "vida_util", titulo: "Vida útil", peso: 0.95 },
+      { chave: "vida_util", titulo: "Vida Útil", peso: 0.95 },
     ],
     linhas: dados.map((d) => {
       const situacao = paraSituacaoVidaUtil(d.situacao_vida_util);
@@ -240,8 +240,8 @@ const dispositivosPorLoja: Gerador = async (supabase, params) => {
 
   return {
     slug: "dispositivos-por-loja",
-    titulo: "Dispositivos por loja",
-    aba: "Por loja",
+    titulo: "Dispositivos por Loja",
+    aba: "Por Loja",
     orientacao: "paisagem",
     filtros: [
       { rotulo: "Vínculos", valor: "em aberto" },
@@ -270,16 +270,16 @@ const dispositivosPorLoja: Gerador = async (supabase, params) => {
 // ===========================================================================
 
 const COLUNAS_PERIODO = [
-  { chave: "loja", titulo: "Loja do vínculo", peso: 1.1 },
+  { chave: "loja", titulo: "Loja do Vínculo", peso: 1.1 },
   { chave: "inicio", titulo: "Início", tipo: "dataHora", peso: 1 },
   { chave: "fim", titulo: "Fim", tipo: "dataHora", peso: 1 },
   { chave: "duracao", titulo: "Duração", peso: 1.1 },
   { chave: "termo", titulo: "Termo", peso: 0.5 },
-  { chave: "perifericos_entrega", titulo: "Periféricos entregues", peso: 1.3 },
-  { chave: "perifericos_devolucao", titulo: "Periféricos devolvidos", peso: 1.4 },
+  { chave: "perifericos_entrega", titulo: "Periféricos Entregues", peso: 1.3 },
+  { chave: "perifericos_devolucao", titulo: "Periféricos Devolvidos", peso: 1.4 },
   { chave: "formatado", titulo: "Formatado", peso: 1.1 },
   { chave: "observacao", titulo: "Observação", peso: 1.2 },
-  { chave: "observacao_devolucao", titulo: "Obs. devolução", peso: 1.2 },
+  { chave: "observacao_devolucao", titulo: "Obs. Devolução", peso: 1.2 },
 ] as const;
 
 /** No PDF: periféricos e observações resumidos numa coluna cada (9 no total com a 1ª). */
@@ -390,14 +390,14 @@ const historicoDispositivo: Gerador = async (supabase, params, agora) => {
 
   return {
     slug: "historico-dispositivo",
-    titulo: "Histórico do dispositivo",
+    titulo: "Histórico do Dispositivo",
     aba: "Histórico",
     orientacao: "paisagem",
     filtros: [
       { rotulo: "Dispositivo", valor: descricaoDispositivo(d) },
       { rotulo: "Tipo", valor: TIPO_DISPOSITIVO_LABEL[d.tipo] },
       ...(d.numero_patrimonio ? [{ rotulo: "Patrimônio", valor: d.numero_patrimonio }] : []),
-      { rotulo: "Status atual", valor: STATUS_DISPOSITIVO_LABEL[d.status] },
+      { rotulo: "Status Atual", valor: STATUS_DISPOSITIVO_LABEL[d.status] },
     ],
     colunas: [{ chave: "usuario", titulo: "Usuário", peso: 1.5 }, ...COLUNAS_PERIODO],
     colunasPdf: [{ chave: "usuario", titulo: "Colaborador", peso: 1.4 }, ...COLUNAS_PERIODO_PDF],
@@ -434,7 +434,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
 
   return {
     slug: "historico-usuario",
-    titulo: "Histórico do usuário",
+    titulo: "Histórico do Usuário",
     aba: "Histórico",
     orientacao: "paisagem",
     filtros: [
@@ -603,7 +603,7 @@ const movimentacoes: Gerador = async (supabase, params, agora) => {
 
   return {
     slug: "movimentacoes",
-    titulo: "Movimentações por período",
+    titulo: "Movimentações por Período",
     aba: "Movimentações",
     orientacao: "paisagem",
     filtros: [
@@ -614,7 +614,7 @@ const movimentacoes: Gerador = async (supabase, params, agora) => {
       },
     ],
     colunas: [
-      { chave: "quando", titulo: "Data/hora", tipo: "dataHora", peso: 1 },
+      { chave: "quando", titulo: "Data/Hora", tipo: "dataHora", peso: 1 },
       { chave: "operacao", titulo: "Operação", peso: 0.9 },
       { chave: "dispositivo", titulo: "Dispositivo", peso: 1.3 },
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
@@ -663,8 +663,8 @@ const vinculosSemTermo: Gerador = async (supabase, params, agora) => {
 
   return {
     slug: "vinculos-sem-termo",
-    titulo: "Vínculos sem termo",
-    aba: "Sem termo",
+    titulo: "Vínculos sem Termo",
+    aba: "Sem Termo",
     orientacao: "retrato",
     filtros: [
       { rotulo: "Vínculos", valor: "em aberto, sem termo de responsabilidade" },
@@ -730,7 +730,7 @@ const servicos: Gerador = async (supabase, params, agora) => {
 
   const filtros = [
     { rotulo: "Período", valor: `${dataBR(de)} a ${dataBR(ate)}` },
-    tipo && { rotulo: "Tipo de serviço", valor: TIPO_SERVICO_LABEL[tipo] },
+    tipo && { rotulo: "Tipo de Serviço", valor: TIPO_SERVICO_LABEL[tipo] },
     lojaId
       ? { rotulo: "Loja", valor: (await nomeDaLoja(supabase, lojaId)) ?? "" }
       : { rotulo: "Lojas", valor: "todas" },
@@ -742,20 +742,20 @@ const servicos: Gerador = async (supabase, params, agora) => {
 
   return {
     slug: "servicos",
-    titulo: "Serviços por período",
+    titulo: "Serviços por Período",
     aba: "Serviços",
     orientacao: "paisagem",
     filtros,
     colunas: [
       { chave: "data", titulo: "Data", tipo: "data", peso: 0.8 },
-      { chave: "tipo", titulo: "Tipo de serviço", peso: 1.2 },
+      { chave: "tipo", titulo: "Tipo de Serviço", peso: 1.2 },
       { chave: "dispositivo", titulo: "Dispositivo", peso: 1.4 },
-      { chave: "tipo_dispositivo", titulo: "Tipo de dispositivo", peso: 0.9 },
+      { chave: "tipo_dispositivo", titulo: "Tipo de Dispositivo", peso: 0.9 },
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
-      { chave: "usuario", titulo: "Usuário na data", peso: 1.3 },
-      { chave: "loja", titulo: "Loja na data", peso: 1.1 },
-      { chave: "fornecedor", titulo: "Prestador de serviço", peso: 1.4 },
+      { chave: "usuario", titulo: "Usuário na Data", peso: 1.3 },
+      { chave: "loja", titulo: "Loja na Data", peso: 1.1 },
+      { chave: "fornecedor", titulo: "Prestador de Serviço", peso: 1.4 },
       { chave: "custo", titulo: "Custo", tipo: "moeda", peso: 0.9 },
       { chave: "garantia", titulo: "Garantia", peso: 0.6 },
       { chave: "descricao", titulo: "Descrição", peso: 1.8 },
@@ -763,10 +763,10 @@ const servicos: Gerador = async (supabase, params, agora) => {
     ],
     colunasPdf: [
       { chave: "data", titulo: "Data", tipo: "data", peso: 0.75 },
-      { chave: "tipo", titulo: "Tipo de serviço", peso: 1.2 },
+      { chave: "tipo", titulo: "Tipo de Serviço", peso: 1.2 },
       { chave: "dispositivo_pdf", titulo: "Dispositivo", peso: 2 },
       { chave: "loja", titulo: "Loja", peso: 1.1 },
-      { chave: "fornecedor", titulo: "Prestador de serviço", peso: 1.5 },
+      { chave: "fornecedor", titulo: "Prestador de Serviço", peso: 1.5 },
       { chave: "custo", titulo: "Custo", tipo: "moeda", peso: 0.9 },
       { chave: "garantia", titulo: "Garantia", peso: 0.6 },
       { chave: "descricao", titulo: "Descrição", peso: 1.9 },
@@ -816,22 +816,22 @@ const auditoria: Gerador = async (supabase, params) => {
       valor: `${f.de ? dataBR(f.de) : "início"} a ${f.ate ? dataBR(f.ate) : "hoje"}`,
     },
     emailUsuario && { rotulo: "Usuário", valor: emailUsuario },
-    f.tabela && { rotulo: "Tipo de registro", valor: TIPO_REGISTRO_LABEL[f.tabela] },
+    f.tabela && { rotulo: "Tipo de Registro", valor: TIPO_REGISTRO_LABEL[f.tabela] },
     f.acao && { rotulo: "Ação", valor: ACAO_LABEL[f.acao] },
     f.registro && { rotulo: "Registro", valor: linhas[0]?.registro.texto ?? "registro específico" },
   ].filter((x) => !!x);
 
   return {
     slug: "auditoria",
-    titulo: "Log de auditoria",
+    titulo: "Log de Auditoria",
     aba: "Auditoria",
     orientacao: "paisagem",
     filtros: filtros.length ? filtros : [{ rotulo: "Filtros", valor: "nenhum (log completo)" }],
     colunas: [
-      { chave: "quando", titulo: "Data/hora", tipo: "dataHora" },
+      { chave: "quando", titulo: "Data/Hora", tipo: "dataHora" },
       { chave: "usuario", titulo: "Usuário" },
       { chave: "acao", titulo: "Ação" },
-      { chave: "tipo", titulo: "Tipo de registro" },
+      { chave: "tipo", titulo: "Tipo de Registro" },
       { chave: "registro", titulo: "Registro" },
       { chave: "alteracoes", titulo: "Alterações" },
     ],

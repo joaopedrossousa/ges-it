@@ -16,7 +16,7 @@ import {
 // ===========================================================================
 
 export const TIPO_DESPESA_LABEL: Record<TipoDespesa, string> = {
-  provedor_internet: "Provedor de internet",
+  provedor_internet: "Provedor de Internet",
   servico: "Serviço",
   telefonia: "Telefonia",
   compras: "Compras",
@@ -24,24 +24,59 @@ export const TIPO_DESPESA_LABEL: Record<TipoDespesa, string> = {
 };
 
 export const SITUACAO_PAGAMENTO_LABEL: Record<SituacaoPagamento, string> = {
-  solicitado_compras: "Solicitado ao Compras",
-  enviado_financeiro: "Enviado ao Financeiro",
+  solicitado_compras: "Solicitado Compras",
+  enviado_financeiro: "Enviado Financeiro",
   pago: "Pago",
-  nao_pago: "Não pago",
+  nao_pago: "Não Pago",
   cancelado: "Cancelado",
 };
 
-/** situacao_vencimento da vw_lancamentos. */
-export const SITUACOES_VENCIMENTO = ["vencido", "proximo", "a_vencer", "pago", "cancelado"] as const;
+/** situacao_vencimento da vw_lancamentos (migration 016). */
+export const SITUACOES_VENCIMENTO = [
+  "vencido",
+  "hoje",
+  "proximo",
+  "a_vencer",
+  "pago",
+  "cancelado",
+] as const;
 export type SituacaoVencimento = (typeof SITUACOES_VENCIMENTO)[number];
 
+/** Rótulo fixo (filtros). Na linha, use rotuloVencimento, com os dias. */
 export const SITUACAO_VENCIMENTO_LABEL: Record<SituacaoVencimento, string> = {
   vencido: "Vencido",
-  proximo: "Vence em até 5 dias",
-  a_vencer: "A vencer",
+  hoje: "Vence Hoje",
+  proximo: "Vence em 1 a 5 Dias",
+  a_vencer: "A Vencer",
   pago: "Pago",
   cancelado: "Cancelado",
 };
+
+/** "Vence Amanhã", "Vence em 3 Dias"; nas outras situações, o rótulo fixo. */
+export function rotuloVencimento(situacao: SituacaoVencimento, dias: number | null): string {
+  if (situacao !== "proximo" || dias === null) return SITUACAO_VENCIMENTO_LABEL[situacao];
+  return dias === 1 ? "Vence Amanhã" : `Vence em ${dias} Dias`;
+}
+
+// ===========================================================================
+// Nome do serviço / lançamento: "Fornecedor · descrição · identificador"
+// ===========================================================================
+
+type Nomeavel = {
+  fornecedor: string | null;
+  descricao?: string | null;
+  identificador?: string | null;
+};
+
+/** Linha secundária: descrição e identificador, quando houver. */
+export function detalheFinanceiro({ descricao, identificador }: Nomeavel): string {
+  return [descricao, identificador].filter(Boolean).join(" · ");
+}
+
+/** Nome completo em uma linha (comboboxes, avisos, auditoria, relatórios). */
+export function nomeFinanceiro(item: Nomeavel): string {
+  return [item.fornecedor || "—", detalheFinanceiro(item)].filter(Boolean).join(" · ");
+}
 
 export function paraSituacaoVencimento(valor: unknown): SituacaoVencimento | null {
   return (SITUACOES_VENCIMENTO as readonly unknown[]).includes(valor)

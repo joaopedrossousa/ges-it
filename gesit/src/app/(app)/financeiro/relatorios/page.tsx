@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Relatórios financeiros" };
+export const metadata: Metadata = { title: "Relatórios Financeiros" };
 
 /** Espaço reservado: os relatórios do módulo ainda serão definidos. */
 export default function RelatoriosFinanceirosPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Relatórios financeiros</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Relatórios Financeiros</h1>
         <p className="text-muted-foreground">Exportação em PDF e Excel da Gestão Financeira.</p>
       </div>
 

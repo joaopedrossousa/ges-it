@@ -88,7 +88,7 @@ export default function DashboardPage() {
           <IndicadoresVidaUtil />
         </Suspense>
         <div className="lg:col-span-2">
-          <Suspense fallback={<CardCarregando titulo="Próximos da troca" />}>
+          <Suspense fallback={<CardCarregando titulo="Próximos da Troca" />}>
             <ProximosDaTroca />
           </Suspense>
         </div>
@@ -98,7 +98,7 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="space-y-1">
             <h2 id="ativos-por-filial" className="text-lg font-semibold tracking-tight">
-              Ativos por filial
+              Ativos por Filial
             </h2>
             <p className="text-sm text-muted-foreground">
               Sem os baixados. Em estoque inclui os em manutenção, na filial de estoque. Clique numa
@@ -123,14 +123,14 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         {/* Esquerda: o que pede ação; direita: o histórico recente. */}
         <div className="grid gap-6">
-          <Suspense fallback={<CardCarregando titulo="Vínculos sem termo" />}>
+          <Suspense fallback={<CardCarregando titulo="Vínculos sem Termo" />}>
             <VinculosSemTermo />
           </Suspense>
-          <Suspense fallback={<CardCarregando titulo="Usuários com dados pendentes" />}>
+          <Suspense fallback={<CardCarregando titulo="Usuários com Dados Pendentes" />}>
             <UsuariosComDadosPendentes />
           </Suspense>
         </div>
-        <Suspense fallback={<CardCarregando titulo="Últimas movimentações" />}>
+        <Suspense fallback={<CardCarregando titulo="Últimas Movimentações" />}>
           <UltimasMovimentacoes />
         </Suspense>
       </div>
@@ -233,7 +233,7 @@ async function Indicadores() {
         href="/dispositivos?tipo=monitor"
       />
       <StatTile
-        rotulo="Em uso"
+        rotulo="Em Uso"
         valor={somaStatus(c, "em_uso")}
         icone={UserRoundCheckIcon}
         corIcone="text-brand-blue dark:text-primary"
@@ -249,7 +249,7 @@ async function Indicadores() {
         href="/dispositivos?status=disponivel"
       />
       <StatTile
-        rotulo="Em manutenção"
+        rotulo="Em Manutenção"
         valor={somaStatus(c, "manutencao")}
         icone={WrenchIcon}
         corIcone="text-amber-600 dark:text-amber-400"
@@ -295,7 +295,7 @@ async function IndicadoresVidaUtil() {
   return (
     <div className={GRADE_VIDA_UTIL}>
       <StatTile
-        rotulo="Vida útil vencida"
+        rotulo="Vida Útil Vencida"
         valor={vencidos}
         icone={CalendarX2Icon}
         corIcone={vencidos > 0 ? "text-destructive" : undefined}
@@ -303,7 +303,7 @@ async function IndicadoresVidaUtil() {
         href="/dispositivos?vida=vencido"
       />
       <StatTile
-        rotulo="Próximos da troca"
+        rotulo="Próximos da Troca"
         valor={proximos}
         icone={CalendarClockIcon}
         corIcone={proximos > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
@@ -311,7 +311,7 @@ async function IndicadoresVidaUtil() {
         href="/dispositivos?vida=proximo"
       />
       <StatTile
-        rotulo="Sem data"
+        rotulo="Sem Data"
         valor={semData}
         icone={CalendarOffIcon}
         detalhe="Sem fim da vida útil cadastrado"
@@ -343,7 +343,7 @@ async function ProximosDaTroca() {
   if (error) {
     console.error("Erro ao listar a vida útil:", error);
     return (
-      <CardSimples titulo="Próximos da troca">
+      <CardSimples titulo="Próximos da Troca">
         <p className="text-destructive">Não foi possível carregar os dispositivos.</p>
       </CardSimples>
     );
@@ -356,7 +356,7 @@ async function ProximosDaTroca() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <HourglassIcon className="size-4 text-muted-foreground" aria-hidden />
-          Próximos da troca
+          Próximos da Troca
         </CardTitle>
         <CardDescription>
           {data.length === 0
@@ -486,7 +486,7 @@ async function VinculosSemTermo() {
   if (error) {
     console.error("Erro ao listar vínculos sem termo:", error);
     return (
-      <CardSimples titulo="Vínculos sem termo">
+      <CardSimples titulo="Vínculos sem Termo">
         <p className="text-destructive">Não foi possível carregar os vínculos.</p>
       </CardSimples>
     );
@@ -503,7 +503,7 @@ async function VinculosSemTermo() {
             className={total > 0 ? "size-4 text-amber-600 dark:text-amber-400" : "size-4 text-muted-foreground"}
             aria-hidden
           />
-          Vínculos sem termo
+          Vínculos sem Termo
         </CardTitle>
         <CardDescription>
           {total === 0
@@ -580,7 +580,7 @@ async function UsuariosComDadosPendentes() {
   if (error) {
     console.error("Erro ao listar usuários com dados pendentes:", error);
     return (
-      <CardSimples titulo="Usuários com dados pendentes">
+      <CardSimples titulo="Usuários com Dados Pendentes">
         <p className="text-destructive">Não foi possível carregar os usuários.</p>
       </CardSimples>
     );
@@ -596,7 +596,7 @@ async function UsuariosComDadosPendentes() {
             className={total > 0 ? "size-4 text-amber-600 dark:text-amber-400" : "size-4 text-muted-foreground"}
             aria-hidden
           />
-          Usuários com dados pendentes
+          Usuários com Dados Pendentes
         </CardTitle>
         <CardDescription>
           {total === 0
@@ -653,7 +653,7 @@ type TipoEvento = "entrega" | "devolucao" | "transferencia";
 const EVENTO: Record<TipoEvento, { rotulo: string; icone: typeof UndoIcon; preposicao: string }> = {
   entrega: { rotulo: "Entrega", icone: UserRoundPlusIcon, preposicao: "para" },
   devolucao: { rotulo: "Devolução", icone: UndoIcon, preposicao: "de" },
-  transferencia: { rotulo: "Saída por transferência", icone: ArrowRightLeftIcon, preposicao: "de" },
+  transferencia: { rotulo: "Saída por Transferência", icone: ArrowRightLeftIcon, preposicao: "de" },
 };
 
 async function UltimasMovimentacoes() {
@@ -679,7 +679,7 @@ async function UltimasMovimentacoes() {
   if (criados.error || encerrados.error) {
     console.error("Erro ao listar movimentações:", criados.error ?? encerrados.error);
     return (
-      <CardSimples titulo="Últimas movimentações">
+      <CardSimples titulo="Últimas Movimentações">
         <p className="text-destructive">Não foi possível carregar as movimentações.</p>
       </CardSimples>
     );
@@ -722,7 +722,7 @@ async function UltimasMovimentacoes() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Últimas movimentações</CardTitle>
+        <CardTitle>Últimas Movimentações</CardTitle>
         <CardDescription>Entregas e devoluções mais recentes.</CardDescription>
       </CardHeader>
       <CardContent>

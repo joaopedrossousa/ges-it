@@ -39,7 +39,7 @@ export function HistoricoServicos({ dispositivoId, servicos }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Histórico de serviços</CardTitle>
+        <CardTitle>Histórico de Serviços</CardTitle>
         <CardDescription>
           {total === 0
             ? "Nenhum serviço registrado."
@@ -84,7 +84,7 @@ export function HistoricoServicos({ dispositivoId, servicos }: Props) {
               <TableRow>
                 <TableHead>Data</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Prestador de serviço</TableHead>
+                <TableHead>Prestador de Serviço</TableHead>
                 <TableHead className="text-right">Custo</TableHead>
                 <TableHead>Garantia</TableHead>
                 <TableHead>Descrição</TableHead>

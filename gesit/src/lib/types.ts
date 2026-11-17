@@ -41,12 +41,12 @@ export const SITUACOES_PAGAMENTO = Constants.public.Enums.situacao_pagamento;
 
 export const TIPO_SERVICO_LABEL: Record<TipoServico, string> = {
   formatacao: "Formatação",
-  troca_tela: "Troca de tela",
-  troca_bateria: "Troca de bateria",
-  troca_teclado: "Troca de teclado",
+  troca_tela: "Troca de Tela",
+  troca_bateria: "Troca de Bateria",
+  troca_teclado: "Troca de Teclado",
   limpeza: "Limpeza",
-  reparo_placa: "Reparo de placa",
-  atualizacao_sistema: "Atualização de sistema",
+  reparo_placa: "Reparo de Placa",
+  atualizacao_sistema: "Atualização de Sistema",
   outro: "Outro",
 };
 
@@ -108,9 +108,9 @@ export const SITUACOES_VIDA_UTIL_FILTRO = [
 
 export const SITUACAO_VIDA_UTIL_LABEL: Record<SituacaoVidaUtil, string> = {
   ok: "OK",
-  proximo: "Próximo da troca",
+  proximo: "Próximo da Troca",
   vencido: "Vencido",
-  sem_data: "Sem data",
+  sem_data: "Sem Data",
   baixado: "Baixado",
 };
 
@@ -123,7 +123,7 @@ export function paraSituacaoVidaUtil(valor: unknown): SituacaoVidaUtil | null {
 
 export const STATUS_DISPOSITIVO_LABEL: Record<StatusDispositivo, string> = {
   disponivel: "Disponível",
-  em_uso: "Em uso",
+  em_uso: "Em Uso",
   manutencao: "Manutenção",
   baixado: "Baixado",
 };

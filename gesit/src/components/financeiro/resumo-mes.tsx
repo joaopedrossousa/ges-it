@@ -41,9 +41,9 @@ function Cartao({
 export function ResumoMes({ resumo }: { resumo: ResumoLancamentos }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <Cartao rotulo="Total do mês" total={resumo.total} icone={WalletIcon} corIcone="text-brand-blue" />
+      <Cartao rotulo="Total do Mês" total={resumo.total} icone={WalletIcon} corIcone="text-brand-blue" />
       <Cartao rotulo="Pago" total={resumo.pago} icone={CircleCheckIcon} corIcone="text-brand-green" />
-      <Cartao rotulo="Em aberto" total={resumo.aberto} icone={ClockIcon} corIcone="text-amber-600" />
+      <Cartao rotulo="Em Aberto" total={resumo.aberto} icone={ClockIcon} corIcone="text-amber-600" />
       <Cartao
         rotulo="Vencido"
         total={resumo.vencido}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { CalendarCheckIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,8 @@ export function SeletorMes({ mesAtual }: { mesAtual: string }) {
         <ChevronLeftIcon />
       </Button>
       <Select value={mes} onValueChange={ir}>
-        <SelectTrigger className="w-48" aria-label="Competência (mês)">
+        {/* Cabe "Novembro de 2026 (atual)" inteiro. */}
+        <SelectTrigger className="w-64" aria-label="Competência (mês)">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -60,7 +61,8 @@ export function SeletorMes({ mesAtual }: { mesAtual: string }) {
       </Button>
       {mes !== mesAtual && (
         <Button type="button" variant="ghost" size="sm" onClick={() => ir(mesAtual)}>
-          Mês atual
+          <CalendarCheckIcon />
+          Voltar ao mês atual
         </Button>
       )}
     </div>

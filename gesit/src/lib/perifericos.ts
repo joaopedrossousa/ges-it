@@ -8,8 +8,8 @@ export const PERIFERICO_LABEL: Record<Periferico, string> = {
   carregador: "Carregador",
   headset: "Headset",
   mouse: "Mouse",
-  suporte_notebook: "Suporte notebook",
-  chip: "Chip telefônico",
+  suporte_notebook: "Suporte Notebook",
+  chip: "Chip Telefônico",
 };
 
 /** Mesma regra de normalizar_perifericos no banco. Monitor não tem periféricos nem "formatado". */

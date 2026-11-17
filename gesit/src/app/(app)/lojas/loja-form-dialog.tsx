@@ -88,7 +88,7 @@ export function LojaFormDialog({ loja, trigger }: Props) {
       <DialogContent>
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>{editando ? "Editar loja" : "Nova loja"}</DialogTitle>
+            <DialogTitle>{editando ? "Editar Loja" : "Nova Loja"}</DialogTitle>
             <DialogDescription>
               {editando
                 ? "Altere os dados da loja/filial."

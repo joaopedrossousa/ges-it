@@ -41,7 +41,7 @@ export const TIPO_REGISTRO_LABEL: Record<TabelaAuditoria, string> = {
   lojas: "Loja",
   vinculos: "Vínculo",
   servicos: "Serviço",
-  servicos_financeiros: "Serviço financeiro",
+  servicos_financeiros: "Serviço Financeiro",
   lancamentos: "Lançamento",
 };
 
@@ -124,8 +124,8 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
   servicos_financeiros: {
     ...CAMPOS_COMUNS,
     tipo: "Tipo",
-    descricao: "Descrição",
     fornecedor: "Fornecedor",
+    descricao: "Descrição",
     identificador: "Identificador",
     loja_id: "Filial",
     dia_vencimento: "Dia de vencimento",
@@ -136,6 +136,7 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     competencia: "Competência",
     servico_id: "Serviço",
     tipo: "Tipo",
+    fornecedor: "Fornecedor",
     descricao: "Descrição",
     loja_id: "Filial",
     vencimento: "Vencimento",

@@ -10,7 +10,7 @@ import {
 } from "@/lib/auditoria";
 import type { Json } from "@/lib/database.types";
 import { descricaoDispositivo } from "@/lib/dispositivos";
-import { formatarCompetenciaCurta } from "@/lib/financeiro";
+import { formatarCompetenciaCurta, nomeFinanceiro } from "@/lib/financeiro";
 import { limitesPeriodo, type FiltrosAuditoria } from "@/lib/filtros-auditoria";
 import type { createClient } from "@/lib/supabase/server";
 import { TIPO_SERVICO_LABEL } from "@/lib/types";
@@ -118,7 +118,10 @@ export async function montarLinhasAuditoria(
       supabase.from("servicos").select("id, dispositivo_id, tipo").in("id", lote),
     ),
     emLotes(porTabela("lancamentos"), (lote) =>
-      supabase.from("lancamentos").select("id, descricao, competencia").in("id", lote),
+      supabase
+        .from("lancamentos")
+        .select("id, fornecedor, descricao, competencia")
+        .in("id", lote),
     ),
   ]);
   const vinculos = new Map(vinculosLista.map((v) => [v.id, v]));
@@ -155,7 +158,10 @@ export async function montarLinhasAuditoria(
         .in("id", lote),
     ),
     emLotes(idsServicosFinanceiros, (lote) =>
-      supabase.from("servicos_financeiros").select("id, descricao, identificador").in("id", lote),
+      supabase
+        .from("servicos_financeiros")
+        .select("id, fornecedor, descricao, identificador")
+        .in("id", lote),
     ),
     // Corpo POST: sem limite de URL, mas mantém os lotes por simetria.
     emLotes(idsUsuarios, (lote) => supabase.rpc("emails_operadores", { p_ids: lote })),
@@ -166,10 +172,7 @@ export async function montarLinhasAuditoria(
     colaboradores: new Map(colaboradores.map((c) => [c.id, c.nome])),
     dispositivos: new Map(dispositivos.map((d) => [d.id, descricaoDispositivo(d)])),
     servicosFinanceiros: new Map(
-      servicosFinanceiros.map((s) => [
-        s.id,
-        s.identificador ? `${s.descricao} (${s.identificador})` : s.descricao,
-      ]),
+      servicosFinanceiros.map((s) => [s.id, nomeFinanceiro(s)]),
     ),
   };
   const emails = new Map(usuarios.map((u) => [u.id, u.email]));
@@ -210,7 +213,7 @@ export async function montarLinhasAuditoria(
         const la = lancamentos.get(l.registro_id);
         if (!la) return { texto: "Lançamento não encontrado", href: null };
         return {
-          texto: `${la.descricao} · ${formatarCompetenciaCurta(la.competencia)}`,
+          texto: `${nomeFinanceiro(la)} · ${formatarCompetenciaCurta(la.competencia)}`,
           href: `/financeiro/lancamentos?mes=${la.competencia.slice(0, 7)}`,
         };
       }

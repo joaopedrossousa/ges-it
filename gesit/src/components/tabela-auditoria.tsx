@@ -26,10 +26,10 @@ export function TabelaAuditoria({ linhas, mostrarRegistro, vazio }: Props) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Data/hora</TableHead>
+          <TableHead>Data/Hora</TableHead>
           <TableHead>Usuário</TableHead>
           <TableHead>Ação</TableHead>
-          {mostrarRegistro && <TableHead>Tipo de registro</TableHead>}
+          {mostrarRegistro && <TableHead>Tipo de Registro</TableHead>}
           {mostrarRegistro && <TableHead>Registro</TableHead>}
           <TableHead>Alterações</TableHead>
         </TableRow>

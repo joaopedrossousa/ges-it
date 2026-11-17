@@ -14,7 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TIPO_DESPESA_LABEL } from "@/lib/financeiro";
+import { NomeFinanceiro } from "@/components/financeiro/nome-financeiro";
+import { TIPO_DESPESA_LABEL, nomeFinanceiro } from "@/lib/financeiro";
 import { lerFiltrosServicosFinanceiros } from "@/lib/filtros-financeiro";
 import { formatarMoeda } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
@@ -23,7 +24,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FiltrosServicos } from "./filtros";
 import { ServicoFinanceiroFormDialog } from "./servico-financeiro-form-dialog";
 
-export const metadata: Metadata = { title: "Serviços e fornecedores" };
+export const metadata: Metadata = { title: "Serviços e Fornecedores" };
 
 export default function ServicosFinanceirosPage({
   searchParams,
@@ -32,7 +33,7 @@ export default function ServicosFinanceirosPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Serviços e fornecedores</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Serviços e Fornecedores</h1>
           <p className="text-muted-foreground">
             Catálogo das despesas recorrentes, usado para preencher os lançamentos do mês.
           </p>
@@ -53,7 +54,7 @@ export default function ServicosFinanceirosPage({
         <FiltrosServicos />
       </Suspense>
 
-      <Suspense fallback={<TabelaCarregando colunas={8} />}>
+      <Suspense fallback={<TabelaCarregando colunas={7} />}>
         <TabelaServicos searchParams={searchParams} />
       </Suspense>
     </div>
@@ -93,7 +94,8 @@ async function TabelaServicos({
     )
     .order("ativo", { ascending: false })
     .order("tipo")
-    .order("descricao")
+    .order("fornecedor")
+    .order("descricao", { nullsFirst: true })
     .order("id");
   if (tipo) q = q.eq("tipo", tipo);
   if (ativo !== undefined) q = q.eq("ativo", ativo);
@@ -114,11 +116,10 @@ async function TabelaServicos({
         <TableHeader>
           <TableRow>
             <TableHead>Tipo</TableHead>
-            <TableHead>Descrição / identificador</TableHead>
-            <TableHead>Fornecedor</TableHead>
+            <TableHead>Fornecedor / Descrição</TableHead>
             <TableHead>Filial</TableHead>
-            <TableHead className="text-right">Dia de venc.</TableHead>
-            <TableHead className="text-right">Valor de referência</TableHead>
+            <TableHead className="text-right">Dia de Vencimento</TableHead>
+            <TableHead className="text-right">Valor de Referência</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-0 text-right">Ações</TableHead>
           </TableRow>
@@ -126,7 +127,7 @@ async function TabelaServicos({
         <TableBody>
           {data.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                 {filtrando
                   ? "Nenhum serviço encontrado com esses filtros."
                   : "Nenhum serviço cadastrado."}
@@ -137,14 +138,12 @@ async function TabelaServicos({
             <TableRow key={s.id} className={s.ativo ? undefined : "opacity-60"}>
               <TableCell>{TIPO_DESPESA_LABEL[s.tipo]}</TableCell>
               <TableCell>
-                <div className="leading-tight">
-                  <div className="font-medium">{s.descricao}</div>
-                  {s.identificador && (
-                    <div className="text-xs text-muted-foreground">{s.identificador}</div>
-                  )}
-                </div>
+                <NomeFinanceiro
+                  fornecedor={s.fornecedor}
+                  descricao={s.descricao}
+                  identificador={s.identificador}
+                />
               </TableCell>
-              <TableCell>{s.fornecedor ?? "—"}</TableCell>
               <TableCell>{(s.loja_id && nomesLojas.get(s.loja_id)) ?? "—"}</TableCell>
               <TableCell className="text-right tabular-nums">{s.dia_vencimento ?? "—"}</TableCell>
               <TableCell className="text-right tabular-nums">
@@ -162,7 +161,7 @@ async function TabelaServicos({
                   trigger={
                     <Button variant="ghost" size="sm">
                       <PencilIcon />
-                      Editar<span className="sr-only"> {s.descricao}</span>
+                      Editar<span className="sr-only"> {nomeFinanceiro(s)}</span>
                     </Button>
                   }
                 />

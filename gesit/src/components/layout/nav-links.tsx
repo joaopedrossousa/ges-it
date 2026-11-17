@@ -46,7 +46,7 @@ const GRUPOS: Grupo[] = [
     itens: [
       { href: "/financeiro", label: "Painel", icon: WalletIcon, exato: true },
       { href: "/financeiro/lancamentos", label: "Lançamentos", icon: ReceiptTextIcon },
-      { href: "/financeiro/servicos", label: "Serviços e fornecedores", icon: ListChecksIcon },
+      { href: "/financeiro/servicos", label: "Serviços e Fornecedores", icon: ListChecksIcon },
       { href: "/financeiro/relatorios", label: "Relatórios", icon: FileSpreadsheetIcon },
     ],
   },
@@ -132,7 +132,7 @@ function MenuAgrupado({ pathname }: { pathname: string | null }) {
               aria-expanded={aberto}
               aria-controls={listaId}
               className={cn(
-                "flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-xs font-semibold tracking-wide uppercase transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                "flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-xs font-semibold transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
                 atual === g.id ? "text-foreground" : "text-muted-foreground",
               )}
             >

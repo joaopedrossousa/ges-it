@@ -137,8 +137,8 @@ export function DispositivoFormDialog({ dispositivo, lojas, trigger }: Props) {
         <DialogHeader>
           <DialogTitle>
             {editando
-              ? `Editar ${TIPO_DISPOSITIVO_LABEL[tipo].toLowerCase()}`
-              : "Novo dispositivo"}
+              ? `Editar ${TIPO_DISPOSITIVO_LABEL[tipo]}`
+              : "Novo Dispositivo"}
           </DialogTitle>
           <DialogDescription>
             {editando

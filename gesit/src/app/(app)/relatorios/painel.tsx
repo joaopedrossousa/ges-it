@@ -116,7 +116,7 @@ function PorLoja({ lojas }: { lojas: LojaOpcao[] }) {
   return (
     <CartaoRelatorio
       icone={StoreIcon}
-      titulo="Dispositivos por loja"
+      titulo="Dispositivos por Loja"
       descricao="Vínculos em aberto agrupados pela loja do vínculo, com subtotal por loja."
       rodape={
         <ExportarBotoes
@@ -210,7 +210,7 @@ function Movimentacoes({ periodoPadrao }: { periodoPadrao: Props["periodoPadrao"
   return (
     <CartaoRelatorio
       icone={CalendarRangeIcon}
-      titulo="Movimentações por período"
+      titulo="Movimentações por Período"
       descricao="Entregas, transferências e devoluções, com quem fez cada operação."
       rodape={
         <ExportarBotoes
@@ -233,7 +233,7 @@ function SemTermo({ lojas }: { lojas: LojaOpcao[] }) {
   return (
     <CartaoRelatorio
       icone={FileWarningIcon}
-      titulo="Vínculos sem termo"
+      titulo="Vínculos sem Termo"
       descricao="Vínculos em aberto sem termo de responsabilidade, do mais antigo para o mais novo."
       rodape={<ExportarBotoes relatorio="vinculos-sem-termo" params={{ loja: filtro(loja) }} />}
     >
@@ -256,7 +256,7 @@ function Servicos({ lojas, periodoPadrao }: Props) {
   return (
     <CartaoRelatorio
       icone={WrenchIcon}
-      titulo="Serviços por período"
+      titulo="Serviços por Período"
       descricao="Manutenções dos dispositivos, com prestador de serviço, custo e garantia. A loja é a do vínculo na data do serviço."
       rodape={
         <ExportarBotoes

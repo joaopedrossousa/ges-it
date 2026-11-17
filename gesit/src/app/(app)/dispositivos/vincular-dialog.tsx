@@ -229,7 +229,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Vincular dispositivo</DialogTitle>
+          <DialogTitle>Vincular Dispositivo</DialogTitle>
           <DialogDescription>
             Entregue um dispositivo a um colaborador, com o termo de responsabilidade.
           </DialogDescription>

@@ -39,7 +39,8 @@ import { alterarSituacaoLancamento } from "../actions";
 export function SituacaoMenu({
   lancamento,
 }: {
-  lancamento: { id: string; descricao: string; situacao: SituacaoPagamento };
+  /** `nome`: fornecedor · descrição · identificador. */
+  lancamento: { id: string; nome: string; situacao: SituacaoPagamento };
 }) {
   const [isPending, startTransition] = useTransition();
   const [dialogoPago, setDialogoPago] = useState(false);
@@ -86,11 +87,11 @@ export function SituacaoMenu({
             ) : (
               <ChevronDownIcon />
             )}
-            Situação<span className="sr-only"> de {lancamento.descricao}</span>
+            Situação<span className="sr-only"> de {lancamento.nome}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Alterar situação</DropdownMenuLabel>
+          <DropdownMenuLabel>Alterar Situação</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {SITUACOES_PAGAMENTO.map((s) => (
             <DropdownMenuItem
@@ -125,8 +126,8 @@ export function SituacaoMenu({
             }}
           >
             <DialogHeader>
-              <DialogTitle>Marcar como pago</DialogTitle>
-              <DialogDescription>{lancamento.descricao}</DialogDescription>
+              <DialogTitle>Registrar Pagamento</DialogTitle>
+              <DialogDescription>{lancamento.nome}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-2">
               <Label htmlFor={`pago-${lancamento.id}`}>Data do pagamento</Label>
@@ -157,7 +158,7 @@ export function SituacaoMenu({
               </Button>
               <Button type="submit" disabled={isPending}>
                 {isPending && <Carregando decorativo tamanho="sm" />}
-                {isPending ? "Salvando..." : "Marcar como pago"}
+                {isPending ? "Salvando..." : "Registrar pagamento"}
               </Button>
             </DialogFooter>
           </form>

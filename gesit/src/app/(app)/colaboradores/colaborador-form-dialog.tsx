@@ -108,7 +108,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>{editando ? "Editar usuário" : "Novo usuário"}</DialogTitle>
+            <DialogTitle>{editando ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
             <DialogDescription>
               {editando
                 ? "Altere os dados do usuário."

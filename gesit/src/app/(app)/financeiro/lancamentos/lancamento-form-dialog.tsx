@@ -42,6 +42,7 @@ import {
   ehTipoDespesa,
   formatarMes,
   mesesAoRedor,
+  nomeFinanceiro,
   vencimentoNoMes,
 } from "@/lib/financeiro";
 import type { ServicoFinanceiroOpcao } from "@/lib/financeiro-servidor";
@@ -67,7 +68,8 @@ export type LancamentoEditavel = {
   competencia: string;
   servico_id: string | null;
   tipo: TipoDespesa;
-  descricao: string;
+  fornecedor: string;
+  descricao: string | null;
   loja_id: string | null;
   vencimento: string;
   valor: number;
@@ -98,6 +100,7 @@ const CAMPOS = [
   "competencia",
   "servico_id",
   "tipo",
+  "fornecedor",
   "descricao",
   "loja_id",
   "vencimento",
@@ -125,7 +128,7 @@ export function LancamentoFormDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{editando ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
+          <DialogTitle>{editando ? "Editar Lançamento" : "Novo Lançamento"}</DialogTitle>
           <DialogDescription>
             Escolha um serviço do catálogo para preencher os campos, ou Avulso para preencher
             à mão. Tudo continua editável.
@@ -152,10 +155,6 @@ export function LancamentoFormDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function rotuloServico(s: ServicoFinanceiroOpcao) {
-  return s.identificador ? `${s.descricao} (${s.identificador})` : s.descricao;
 }
 
 function FormLancamento({
@@ -193,6 +192,7 @@ function FormLancamento({
       competencia: lancamento?.competencia ?? competenciaPadrao,
       servico_id: lancamento?.servico_id ?? "",
       tipo: lancamento?.tipo,
+      fornecedor: lancamento?.fornecedor ?? "",
       descricao: lancamento?.descricao ?? "",
       loja_id: lancamento?.loja_id ?? "",
       vencimento: lancamento?.vencimento ?? "",
@@ -219,8 +219,8 @@ function FormLancamento({
         const loja = s.loja_id ? lojas.find((l) => l.id === s.loja_id)?.nome : undefined;
         return {
           value: s.id,
-          label: s.ativo ? rotuloServico(s) : `${rotuloServico(s)} (inativo)`,
-          descricao: [TIPO_DESPESA_LABEL[s.tipo], s.fornecedor, loja].filter(Boolean).join(" · "),
+          label: s.ativo ? nomeFinanceiro(s) : `${nomeFinanceiro(s)} (inativo)`,
+          descricao: [TIPO_DESPESA_LABEL[s.tipo], loja].filter(Boolean).join(" · "),
           termos: s.identificador ?? undefined,
         };
       }),
@@ -243,7 +243,8 @@ function FormLancamento({
     if (!s) return;
     setValue("servico_id", s.id, opcoes);
     setValue("tipo", s.tipo, opcoes);
-    setValue("descricao", s.descricao, opcoes);
+    setValue("fornecedor", s.fornecedor, opcoes);
+    setValue("descricao", s.descricao ?? "", opcoes);
     setValue("loja_id", s.loja_id ?? "", opcoes);
     if (s.valor_referencia !== null) setValue("valor", valorParaCampo(s.valor_referencia), opcoes);
     if (s.dia_vencimento !== null) {
@@ -322,7 +323,7 @@ function FormLancamento({
               value={field.value || AVULSO}
               onChange={escolherServico}
               onBlur={field.onBlur}
-              placeholderBusca="Buscar serviço, identificador ou fornecedor..."
+              placeholderBusca="Buscar fornecedor, descrição ou identificador..."
               vazio="Nenhum serviço encontrado."
               disabled={isPending}
               invalid={Boolean(erro("servico_id"))}
@@ -397,12 +398,28 @@ function FormLancamento({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="lanc-descricao">Descrição</Label>
+          <Label htmlFor="lanc-fornecedor">Fornecedor</Label>
+          <Input
+            id="lanc-fornecedor"
+            autoComplete="off"
+            maxLength={150}
+            placeholder="Ex.: IBL NET"
+            aria-required
+            aria-invalid={Boolean(erro("fornecedor"))}
+            aria-describedby={descrito("fornecedor", erro("fornecedor"))}
+            disabled={isPending}
+            {...register("fornecedor")}
+          />
+          <MensagemErro id="lanc-fornecedor-erro" mensagem={erro("fornecedor")} />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="lanc-descricao">Descrição (opcional)</Label>
           <Input
             id="lanc-descricao"
             autoComplete="off"
             maxLength={150}
-            aria-required
+            placeholder="Ex.: Link principal"
             aria-invalid={Boolean(erro("descricao"))}
             aria-describedby={descrito("descricao", erro("descricao"))}
             disabled={isPending}

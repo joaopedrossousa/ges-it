@@ -137,7 +137,7 @@ export function DevolverDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Registrar devolução</DialogTitle>
+          <DialogTitle>Registrar Devolução</DialogTitle>
           <DialogDescription>
             {dispositivo.descricao} — encerra o vínculo com{" "}
             <strong>{colaboradorNome}</strong>.

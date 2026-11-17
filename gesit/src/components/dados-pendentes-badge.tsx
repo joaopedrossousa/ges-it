@@ -14,7 +14,7 @@ export function DadosPendentesBadge({ detalhe }: { detalhe: string }) {
       className="border-transparent bg-amber-500/15 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400"
     >
       <CircleAlertIcon aria-hidden />
-      Dados pendentes
+      Dados Pendentes
       <span className="sr-only">: {detalhe}</span>
     </Badge>
   );

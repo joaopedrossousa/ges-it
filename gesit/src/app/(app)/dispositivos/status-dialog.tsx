@@ -82,7 +82,7 @@ export function StatusDialog({ dispositivo, trigger }: Props) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Alterar status</DialogTitle>
+          <DialogTitle>Alterar Status</DialogTitle>
           <DialogDescription>{dispositivo.descricao}</DialogDescription>
         </DialogHeader>
 

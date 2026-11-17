@@ -41,7 +41,7 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={TODOS}>Todos os cadastros</SelectItem>
-          <SelectItem value="1">Dados pendentes</SelectItem>
+          <SelectItem value="1">Dados Pendentes</SelectItem>
         </SelectContent>
       </Select>
 

@@ -9,8 +9,8 @@ import type { TipoDespesa, VwLancamentoRow } from "@/lib/types";
 export type ServicoFinanceiroOpcao = {
   id: string;
   tipo: TipoDespesa;
-  descricao: string;
-  fornecedor: string | null;
+  fornecedor: string;
+  descricao: string | null;
   identificador: string | null;
   loja_id: string | null;
   dia_vencimento: number | null;
@@ -29,7 +29,8 @@ export const listarServicosFinanceirosOpcoes = cache(
       )
       .order("ativo", { ascending: false })
       .order("tipo")
-      .order("descricao")
+      .order("fornecedor")
+      .order("descricao", { nullsFirst: true })
       .order("id");
     if (error) {
       console.error("Erro ao listar serviços financeiros:", error);
@@ -46,7 +47,7 @@ export const LIMITE_LANCAMENTOS_MES = 1000;
 
 /**
  * Lançamentos da competência com os filtros, na ordem da planilha: tipo,
- * vencimento, descrição.
+ * vencimento, fornecedor, descrição.
  */
 export async function buscarLancamentosDoMes(f: FiltrosLancamentos) {
   const supabase = await createClient();
@@ -56,7 +57,8 @@ export async function buscarLancamentosDoMes(f: FiltrosLancamentos) {
     .eq("competencia", competenciaDoMes(f.mes))
     .order("tipo")
     .order("vencimento")
-    .order("descricao")
+    .order("fornecedor")
+    .order("descricao", { nullsFirst: true })
     .order("id")
     .range(0, LIMITE_LANCAMENTOS_MES - 1);
 
@@ -67,6 +69,7 @@ export async function buscarLancamentosDoMes(f: FiltrosLancamentos) {
   if (f.busca) {
     q = q.or(
       [
+        `fornecedor.ilike.%${f.busca}%`,
         `descricao.ilike.%${f.busca}%`,
         `servico_identificador.ilike.%${f.busca}%`,
         `id_aprovacao.ilike.%${f.busca}%`,

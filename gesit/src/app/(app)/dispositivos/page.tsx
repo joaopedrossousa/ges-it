@@ -210,8 +210,8 @@ async function TabelaDispositivos({
               <TableHead>Modelo</TableHead>
               <TableHead>Identificador</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Vida útil</TableHead>
-              <TableHead>Usuário / filial</TableHead>
+              <TableHead>Vida Útil</TableHead>
+              <TableHead>Usuário / Filial</TableHead>
               <TableHead className="w-0 text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -266,7 +266,7 @@ async function TabelaDispositivos({
                     ) : d.loja_atual_nome ? (
                       <div className="leading-tight">
                         <div className="text-muted-foreground">
-                          {d.status === "baixado" ? "Sem usuário" : "Em estoque"}
+                          {d.status === "baixado" ? "Sem Usuário" : "Em Estoque"}
                         </div>
                         <div className="text-xs text-muted-foreground">{d.loja_atual_nome}</div>
                       </div>

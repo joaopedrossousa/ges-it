@@ -20,8 +20,8 @@ export type BarraFilial = {
 
 /** Em uso no azul da marca, estoque no verde (tokens --chart-1 e --chart-2). */
 const CONFIG = {
-  em_uso: { label: "Em uso", color: "var(--chart-1)" },
-  em_estoque: { label: "Em estoque", color: "var(--chart-2)" },
+  em_uso: { label: "Em Uso", color: "var(--chart-1)" },
+  em_estoque: { label: "Em Estoque", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 const formatador = new Intl.NumberFormat("pt-BR");
@@ -203,8 +203,8 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
             <thead className="text-muted-foreground">
               <tr>
                 <th className="py-1 text-left font-normal">Filial</th>
-                <th className="py-1 text-right font-normal">Em uso</th>
-                <th className="py-1 text-right font-normal">Em estoque</th>
+                <th className="py-1 text-right font-normal">Em Uso</th>
+                <th className="py-1 text-right font-normal">Em Estoque</th>
                 <th className="py-1 text-right font-normal">Total</th>
               </tr>
             </thead>

@@ -76,7 +76,7 @@ export function ServicoFormDialog({ dispositivoId, servico, trigger }: Props) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editando ? "Editar serviço" : "Registrar serviço"}</DialogTitle>
+          <DialogTitle>{editando ? "Editar Serviço" : "Registrar Serviço"}</DialogTitle>
           <DialogDescription>
             Manutenção feita no dispositivo, por técnico interno ou empresa.
           </DialogDescription>

@@ -173,7 +173,8 @@ export type Database = {
           created_at: string
           criado_por: string | null
           data_pagamento: string | null
-          descricao: string
+          descricao: string | null
+          fornecedor: string
           id: string
           id_aprovacao: string | null
           loja_id: string | null
@@ -192,7 +193,8 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data_pagamento?: string | null
-          descricao: string
+          descricao?: string | null
+          fornecedor: string
           id?: string
           id_aprovacao?: string | null
           loja_id?: string | null
@@ -211,7 +213,8 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           data_pagamento?: string | null
-          descricao?: string
+          descricao?: string | null
+          fornecedor?: string
           id?: string
           id_aprovacao?: string | null
           loja_id?: string | null
@@ -328,9 +331,9 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
-          descricao: string
+          descricao: string | null
           dia_vencimento: number | null
-          fornecedor: string | null
+          fornecedor: string
           id: string
           identificador: string | null
           loja_id: string | null
@@ -342,9 +345,9 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
-          descricao: string
+          descricao?: string | null
           dia_vencimento?: number | null
-          fornecedor?: string | null
+          fornecedor: string
           id?: string
           identificador?: string | null
           loja_id?: string | null
@@ -356,9 +359,9 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
-          descricao?: string
+          descricao?: string | null
           dia_vencimento?: number | null
-          fornecedor?: string | null
+          fornecedor?: string
           id?: string
           identificador?: string | null
           loja_id?: string | null
@@ -542,6 +545,8 @@ export type Database = {
           criado_por: string | null
           data_pagamento: string | null
           descricao: string | null
+          dias_para_vencer: number | null
+          fornecedor: string | null
           id: string | null
           id_aprovacao: string | null
           loja_cidade: string | null

@@ -46,7 +46,7 @@ import { formatarCPF } from "@/lib/validators";
 import { ColaboradorFormDialog } from "../colaborador-form-dialog";
 import { StatusButton } from "../status-button";
 
-export const metadata: Metadata = { title: "Detalhes do usuário" };
+export const metadata: Metadata = { title: "Detalhes do Usuário" };
 
 export default function ColaboradorPage({
   params,
@@ -172,7 +172,7 @@ async function DetalheColaborador({
 
       <Card>
         <CardHeader>
-          <CardTitle>Dados cadastrais</CardTitle>
+          <CardTitle>Dados Cadastrais</CardTitle>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-2">
@@ -197,7 +197,7 @@ async function DetalheColaborador({
 
       <Card>
         <CardHeader>
-          <CardTitle>Dispositivos atuais</CardTitle>
+          <CardTitle>Dispositivos Atuais</CardTitle>
           <CardDescription>
             {atuais.length === 0
               ? "Nenhum dispositivo vinculado no momento."
@@ -277,7 +277,7 @@ async function DetalheColaborador({
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de uso</CardTitle>
+          <CardTitle>Histórico de Uso</CardTitle>
         </CardHeader>
         <CardContent>
           <HistoricoVinculos contexto="colaborador" linhas={historico} agora={agora} />

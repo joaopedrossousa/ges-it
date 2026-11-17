@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { erroDoBanco, errosDoZod, type ActionResult } from "@/lib/action-result";
 import { REGEX_CAMINHO_ANEXO } from "@/lib/anexos";
-import { SITUACAO_PAGAMENTO_LABEL } from "@/lib/financeiro";
+import { SITUACAO_PAGAMENTO_LABEL, nomeFinanceiro } from "@/lib/financeiro";
 import { createClient } from "@/lib/supabase/server";
 import {
   lancamentoSchema,
@@ -108,16 +108,12 @@ async function avisoDuplicado(
     q,
     supabase
       .from("servicos_financeiros")
-      .select("descricao, identificador")
+      .select("fornecedor, descricao, identificador")
       .eq("id", servicoId)
       .maybeSingle(),
   ]);
   if (!existentes?.length) return null;
-  const nome = servico
-    ? servico.identificador
-      ? `${servico.descricao} (${servico.identificador})`
-      : servico.descricao
-    : "este serviço";
+  const nome = servico ? nomeFinanceiro(servico) : "este serviço";
   return `Já existe um lançamento de ${nome} neste mês.`;
 }
 
