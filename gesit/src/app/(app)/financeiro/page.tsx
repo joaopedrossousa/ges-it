@@ -55,7 +55,7 @@ export default function PainelFinanceiroPage({ searchParams }: PageProps<"/finan
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Painel Financeiro</h1>
-          <p className="text-muted-foreground">Despesas de T.I. do mês e o que precisa de atenção.</p>
+          <p className="text-muted-foreground">Despesas Mensais TI</p>
         </div>
         <Suspense fallback={<div className="h-9 w-96" />}>
           <Seletor />
