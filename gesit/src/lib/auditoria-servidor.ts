@@ -310,7 +310,7 @@ export async function montarLinhasAuditoria(
         const a = atividades.get(l.registro_id);
         if (!a) return { texto: "Atividade não encontrada", href: null };
         return a.arquivada
-          ? { texto: `${a.titulo} (arquivada)`, href: "/atividades/arquivadas" }
+          ? { texto: `${a.titulo} (concluída)`, href: "/atividades/concluidas" }
           : { texto: a.titulo, href: `/atividades?atividade=${a.id}` };
       }
       case "kanban_comentarios": {
@@ -318,7 +318,7 @@ export async function montarLinhasAuditoria(
         const a = c ? atividades.get(c.atividade_id) : undefined;
         if (!a) return { texto: "Comentário de atividade não encontrada", href: null };
         return a.arquivada
-          ? { texto: `Comentário · ${a.titulo} (arquivada)`, href: "/atividades/arquivadas" }
+          ? { texto: `Comentário · ${a.titulo} (concluída)`, href: "/atividades/concluidas" }
           : { texto: `Comentário · ${a.titulo}`, href: `/atividades?atividade=${a.id}` };
       }
       case "perfis_usuarios":

@@ -31,6 +31,7 @@ import { cn } from "cn";
 import {
   AlarmClockIcon,
   ArchiveIcon,
+  CircleCheckBigIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
   CalendarIcon,
@@ -92,6 +93,7 @@ import { executarAcao } from "@/lib/executar-acao";
 import { formatarDataISO } from "@/lib/format";
 
 import { arquivarColuna, marcarUrgente, moverAtividade, moverColuna } from "./actions";
+import { concluirAtividade } from "./concluir-atividade";
 import { ColunaFormDialog } from "./coluna-form-dialog";
 import { BarraFiltros } from "./filtros-quadro";
 import { PainelAtividade, type EstadoPainel } from "./painel-atividade";
@@ -784,7 +786,7 @@ function CartaoAtividade({
   );
 }
 
-/** Menu "..." do cartão: abrir e ligar/desligar "Urgente". */
+/** Menu "..." do cartão: abrir, ligar/desligar "Urgente" e concluir. */
 function MenuCartao({ atividade, onAbrir }: { atividade: AtividadeQuadro; onAbrir: () => void }) {
   const [isPending, startTransition] = useTransition();
 
@@ -797,6 +799,13 @@ function MenuCartao({ atividade, onAbrir }: { atividade: AtividadeQuadro; onAbri
         return;
       }
       toast.success(valor ? "Marcada como urgente." : "Deixou de ser urgente.");
+    });
+  }
+
+  function concluir() {
+    startTransition(async () => {
+      const r = await concluirAtividade(atividade.id);
+      if (!r.ok) toast.error("Não foi possível concluir.", { description: r.error });
     });
   }
 
@@ -821,6 +830,11 @@ function MenuCartao({ atividade, onAbrir }: { atividade: AtividadeQuadro; onAbri
         <DropdownMenuItem onSelect={alternarUrgente}>
           <SirenIcon />
           {atividade.urgente ? "Desmarcar urgente" : "Marcar como urgente"}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={concluir}>
+          <CircleCheckBigIcon />
+          Concluir
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -978,8 +992,8 @@ function ArquivarColunaDialog({
             {bloqueada
               ? `A coluna "${coluna?.nome}" tem ${
                   atividadesAtivas === 1 ? "1 atividade ativa" : `${atividadesAtivas} atividades ativas`
-                }. Mova ou arquive as atividades antes de arquivar a coluna.`
-              : `A coluna "${coluna?.nome}" sai do quadro, mas continua guardada. Dá para restaurar em Atividades Arquivadas.`}
+                }. Mova ou conclua as atividades antes de arquivar a coluna.`
+              : `A coluna "${coluna?.nome}" sai do quadro, mas continua guardada. Dá para restaurar em Atividades > Concluídas, na seção Colunas Arquivadas.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

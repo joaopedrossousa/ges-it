@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/usuarios", destination: "/colaboradores", permanent: true },
       { source: "/usuarios/:caminho*", destination: "/colaboradores/:caminho*", permanent: true },
+      // Atividades arquivadas passaram a se chamar concluídas (migration 028).
+      { source: "/atividades/arquivadas", destination: "/atividades/concluidas", permanent: true },
     ];
   },
   // Lidos do disco na geração do PDF: precisam ir junto para a função da Netlify.

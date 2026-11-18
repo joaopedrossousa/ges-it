@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArchiveIcon, SirenIcon } from "lucide-react";
+import { CircleCheckBigIcon, SirenIcon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -56,21 +56,16 @@ import {
   type AtividadeFormInput,
 } from "@/lib/validators";
 
-import {
-  arquivarAtividade,
-  atualizarAtividade,
-  criarAtividade,
-  marcarUrgente,
-  restaurarAtividade,
-} from "./actions";
+import { atualizarAtividade, criarAtividade, marcarUrgente } from "./actions";
 import { ComentariosAtividade } from "./comentarios-atividade";
+import { concluirAtividade } from "./concluir-atividade";
 
 /** O que o painel mostra: nova atividade numa coluna ou edição de uma existente. */
 export type EstadoPainel = { modo: "nova"; colunaId: string } | { modo: "editar"; id: string } | null;
 
 type Props = {
   estado: EstadoPainel;
-  /** Resolvida pelo quadro a partir do id (null se sumiu, ex.: arquivada por outra pessoa). */
+  /** Resolvida pelo quadro a partir do id (null se sumiu, ex.: concluída por outra pessoa). */
   atividade: AtividadeQuadro | null;
   colunas: ColunaQuadro[];
   categorias: CategoriaKanban[];
@@ -146,7 +141,8 @@ function FormAtividade({
   onFechar: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [confirmarArquivo, setConfirmarArquivo] = useState(false);
+  // Concluir com alterações não salvas pede confirmação (elas se perdem).
+  const [confirmarConclusao, setConfirmarConclusao] = useState(false);
   // Nova atividade: aplicado logo depois de criar.
   const [urgenteNova, setUrgenteNova] = useState(false);
 
@@ -196,27 +192,16 @@ function FormAtividade({
     });
   });
 
-  function arquivar() {
+  function concluir() {
     if (!atividade) return;
     startTransition(async () => {
-      const r = await executarAcao(() => arquivarAtividade(atividade.id));
+      const r = await concluirAtividade(atividade.id);
+      setConfirmarConclusao(false);
       if (!r.ok) {
-        setConfirmarArquivo(false);
         setError("root", { message: r.error });
         return;
       }
-      setConfirmarArquivo(false);
       onFechar();
-      toast.success("Atividade arquivada.", {
-        action: {
-          label: "Desfazer",
-          onClick: async () => {
-            const d = await executarAcao(() => restaurarAtividade(atividade.id));
-            if (d.ok) toast.success("Atividade restaurada.");
-            else toast.error(d.error);
-          },
-        },
-      });
     });
   }
 
@@ -450,34 +435,34 @@ function FormAtividade({
           {atividade && (
             <Button
               type="button"
-              variant="destructive"
-              onClick={() => setConfirmarArquivo(true)}
+              variant="outline"
+              onClick={() => (isDirty ? setConfirmarConclusao(true) : concluir())}
               disabled={isPending}
               className="ml-auto"
             >
-              <ArchiveIcon />
-              Arquivar
+              <CircleCheckBigIcon />
+              Concluir
             </Button>
           )}
         </SheetFooter>
       </div>
 
-      <Dialog open={confirmarArquivo} onOpenChange={setConfirmarArquivo}>
+      <Dialog open={confirmarConclusao} onOpenChange={setConfirmarConclusao}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Arquivar Atividade?</DialogTitle>
+            <DialogTitle>Concluir sem Salvar?</DialogTitle>
             <DialogDescription>
-              Ela sai do quadro, mas continua guardada. Dá para restaurar em Atividades
-              Arquivadas.
+              As alterações feitas no painel não foram salvas e serão descartadas. A atividade
+              sai do quadro e vai para Concluídas; dá para reabrir depois.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmarArquivo(false)} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={arquivar} disabled={isPending}>
+            <Button onClick={concluir} disabled={isPending}>
               {isPending && <Carregando decorativo tamanho="sm" />}
-              {isPending ? "Arquivando..." : "Arquivar"}
+              {isPending ? "Concluindo..." : "Concluir sem salvar"}
+            </Button>
+            <Button variant="outline" onClick={() => setConfirmarConclusao(false)} disabled={isPending}>
+              Continuar editando
             </Button>
           </DialogFooter>
         </DialogContent>

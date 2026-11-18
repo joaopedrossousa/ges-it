@@ -5,7 +5,7 @@ import {
   ChevronDownIcon,
   FileChartColumnIcon,
   FileSpreadsheetIcon,
-  ArchiveIcon,
+  CircleCheckBigIcon,
   HistoryIcon,
   HouseIcon,
   SquareKanbanIcon,
@@ -64,7 +64,7 @@ const GRUPOS: Grupo[] = [
     itens: [
       { href: "/atividades", label: "Quadro", icon: SquareKanbanIcon, exato: true },
       { href: "/atividades/categorias", label: "Categorias", icon: TagsIcon },
-      { href: "/atividades/arquivadas", label: "Arquivadas", icon: ArchiveIcon },
+      { href: "/atividades/concluidas", label: "Concluídas", icon: CircleCheckBigIcon },
     ],
   },
   {

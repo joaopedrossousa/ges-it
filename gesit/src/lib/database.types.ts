@@ -401,6 +401,8 @@ export type Database = {
         Row: {
           arquivada: boolean
           coluna_id: string
+          concluida_em: string | null
+          concluida_por: string | null
           created_at: string
           criado_por: string | null
           descricao: string | null
@@ -418,6 +420,8 @@ export type Database = {
         Insert: {
           arquivada?: boolean
           coluna_id: string
+          concluida_em?: string | null
+          concluida_por?: string | null
           created_at?: string
           criado_por?: string | null
           descricao?: string | null
@@ -435,6 +439,8 @@ export type Database = {
         Update: {
           arquivada?: boolean
           coluna_id?: string
+          concluida_em?: string | null
+          concluida_por?: string | null
           created_at?: string
           criado_por?: string | null
           descricao?: string | null

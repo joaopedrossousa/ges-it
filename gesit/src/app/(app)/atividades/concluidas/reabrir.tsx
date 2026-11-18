@@ -1,6 +1,6 @@
 "use client";
 
-import { ArchiveRestoreIcon, ChevronDownIcon } from "lucide-react";
+import { ArchiveRestoreIcon, ChevronDownIcon, RotateCcwIcon } from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
@@ -21,10 +21,10 @@ import { executarAcao } from "@/lib/executar-acao";
 import { restaurarAtividade, restaurarColuna } from "../actions";
 
 /**
- * Restaura a atividade no fim de uma coluna ativa. A coluna em que ela estava
- * vem primeiro (se ainda estiver ativa).
+ * Reabre a atividade concluída no fim de uma coluna ativa (no banco,
+ * restaurar_atividade). A coluna de origem vem primeiro, se ainda estiver ativa.
  */
-export function RestaurarAtividade({
+export function ReabrirAtividade({
   atividade,
   colunas,
 }: {
@@ -35,34 +35,39 @@ export function RestaurarAtividade({
   const original = colunas.find((c) => c.id === atividade.coluna_id);
   const outras = colunas.filter((c) => c.id !== atividade.coluna_id);
 
-  function restaurar(coluna: ColunaQuadro) {
+  function reabrir(coluna: ColunaQuadro) {
     startTransition(async () => {
       const r = await executarAcao(() => restaurarAtividade(atividade.id, coluna.id));
-      if (!r.ok) toast.error("Não foi possível restaurar.", { description: r.error });
-      else toast.success(`Atividade restaurada em "${coluna.nome}".`);
+      if (!r.ok) toast.error("Não foi possível reabrir.", { description: r.error });
+      else toast.success(`Atividade reaberta em "${coluna.nome}".`);
     });
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" disabled={isPending || colunas.length === 0}>
-          {isPending ? <Carregando decorativo tamanho="sm" /> : <ArchiveRestoreIcon />}
-          Restaurar<span className="sr-only"> {atividade.titulo}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={isPending || colunas.length === 0}
+          title={colunas.length === 0 ? "Não há colunas ativas no quadro" : undefined}
+        >
+          {isPending ? <Carregando decorativo tamanho="sm" /> : <RotateCcwIcon />}
+          Reabrir<span className="sr-only"> {atividade.titulo}</span>
           <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Restaurar na coluna</DropdownMenuLabel>
+        <DropdownMenuLabel>Reabrir na coluna</DropdownMenuLabel>
         {original && (
-          <DropdownMenuItem onSelect={() => restaurar(original)}>
+          <DropdownMenuItem onSelect={() => reabrir(original)}>
             <AmostraCor cor={original.cor} />
-            {original.nome} (onde estava)
+            {original.nome} (de origem)
           </DropdownMenuItem>
         )}
         {original && outras.length > 0 && <DropdownMenuSeparator />}
         {outras.map((c) => (
-          <DropdownMenuItem key={c.id} onSelect={() => restaurar(c)}>
+          <DropdownMenuItem key={c.id} onSelect={() => reabrir(c)}>
             <AmostraCor cor={c.cor} />
             {c.nome}
           </DropdownMenuItem>
@@ -72,7 +77,7 @@ export function RestaurarAtividade({
   );
 }
 
-/** A coluna volta para o fim do quadro. */
+/** Coluna arquivada: volta para o fim do quadro. */
 export function RestaurarColuna({ coluna }: { coluna: { id: string; nome: string } }) {
   const [isPending, startTransition] = useTransition();
 

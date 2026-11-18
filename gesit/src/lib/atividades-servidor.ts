@@ -1,6 +1,14 @@
 import { cache } from "react";
 
-import type { AtividadeQuadro, CategoriaKanban, ColunaQuadro, UsuarioSistema } from "@/lib/atividades";
+import {
+  SEM_RESPONSAVEL,
+  type AtividadeQuadro,
+  type CategoriaKanban,
+  type ColunaQuadro,
+  type UsuarioSistema,
+} from "@/lib/atividades";
+import { palavrasBusca } from "@/lib/busca";
+import { intervaloDoMes, type FiltrosConcluidas } from "@/lib/filtros-concluidas";
 import { buscarTodas } from "@/lib/relatorios/comum";
 import { createClient } from "@/lib/supabase/server";
 
@@ -83,6 +91,42 @@ export async function listarAtividadesAtivas(): Promise<AtividadeQuadro[]> {
   ]);
   const comentarios = new Map(contagens.map((c) => [c.atividade_id, c.total ?? 0]));
   return linhas.map((l) => paraAtividadeQuadro(l, comentarios.get(l.id) ?? 0));
+}
+
+/** Campos da tela Concluídas (os do quadro mais a conclusão, migration 028). */
+const SELECT_CONCLUIDA =
+  "id, coluna_id, titulo, prioridade, responsavel_id, prazo, criado_por, created_at, updated_at, urgente, urgente_por, urgente_em, concluida_em, concluida_por, kanban_atividade_categorias(categoria_id)";
+
+export type AtividadeConcluida = AtividadeQuadro & {
+  concluida_em: string | null;
+  concluida_por: string | null;
+};
+
+/**
+ * Concluídas (arquivada no banco) com os filtros da tela, da conclusão mais
+ * recente para a mais antiga. Mês no fuso de Palmas.
+ */
+export async function listarAtividadesConcluidas(f: FiltrosConcluidas): Promise<AtividadeConcluida[]> {
+  const supabase = await createClient();
+  const linhas = await buscarTodas((de, ate) => {
+    let q = supabase.from("kanban_atividades").select(SELECT_CONCLUIDA).eq("arquivada", true);
+    if (f.mes) {
+      const { desde, antesDe } = intervaloDoMes(f.mes);
+      q = q.gte("concluida_em", desde).lt("concluida_em", antesDe);
+    }
+    if (f.responsavel === SEM_RESPONSAVEL) q = q.is("responsavel_id", null);
+    else if (f.responsavel) q = q.eq("responsavel_id", f.responsavel);
+    for (const palavra of palavrasBusca(f.q)) q = q.ilike("titulo", `%${palavra}%`);
+    return q
+      .order("concluida_em", { ascending: false })
+      .order("id")
+      .range(de, ate);
+  });
+  return linhas.map(({ concluida_em, concluida_por, ...l }) => ({
+    ...paraAtividadeQuadro(l),
+    concluida_em,
+    concluida_por,
+  }));
 }
 
 /** Id do usuário logado (claims do JWT). Uma leitura por requisição. */

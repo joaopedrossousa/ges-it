@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { erroDoBanco, errosDoZod, type ActionResult } from "@/lib/action-result";
+import { erroDoBanco as erroDoBancoBruto, errosDoZod, type ActionResult } from "@/lib/action-result";
 import { createClient } from "@/lib/supabase/server";
 import {
   atividadeSchema,
@@ -27,7 +27,25 @@ import {
 const idSchema = z.uuid();
 const posicaoSchema = z.number().int().min(0).max(100_000);
 
-/** Quadro, arquivadas e categorias leem as mesmas tabelas. */
+/**
+ * As funções SQL (017 e 022) ainda dizem "arquivada" para a atividade; na
+ * interface ela é "concluída" (migration 028). Colunas continuam arquivadas.
+ */
+function erroDoBanco<Campo extends string>(
+  ...args: Parameters<typeof erroDoBancoBruto<Campo>>
+): ActionResult<Campo> {
+  const r = erroDoBancoBruto<Campo>(...args);
+  if (r.ok) return r;
+  return {
+    ...r,
+    error: r.error
+      .replace("Esta atividade está arquivada. Restaure-a", "Esta atividade está concluída. Reabra-a")
+      .replace("Mova ou arquive as atividades", "Mova ou conclua as atividades")
+      .replace("Restaure a atividade em outra coluna", "Reabra a atividade em outra coluna"),
+  };
+}
+
+/** Quadro, concluídas e categorias leem as mesmas tabelas. */
 function revalidar() {
   revalidatePath("/atividades", "layout");
 }
@@ -188,6 +206,7 @@ export async function moverAtividade(
   return { ok: true };
 }
 
+/** Concluir (no banco: arquivar_atividade, que grava concluida_em/por). */
 export async function arquivarAtividade(id: string): Promise<ActionResult> {
   if (!idSchema.safeParse(id).success) return invalido("Atividade");
 
@@ -199,7 +218,7 @@ export async function arquivarAtividade(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-/** Volta para o fim da coluna escolhida (sem coluna: a de antes). */
+/** Reabrir: volta para o fim da coluna escolhida (sem coluna: a de antes). */
 export async function restaurarAtividade(id: string, colunaId?: string): Promise<ActionResult> {
   if (!idSchema.safeParse(id).success) return invalido("Atividade");
   if (colunaId !== undefined && !idSchema.safeParse(colunaId).success) return invalido("Coluna");

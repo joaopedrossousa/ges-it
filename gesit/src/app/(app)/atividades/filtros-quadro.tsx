@@ -1,6 +1,6 @@
 "use client";
 
-import { ArchiveIcon, SirenIcon, XIcon } from "lucide-react";
+import { CircleCheckBigIcon, SirenIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 
 import { CampoBusca } from "@/components/campo-busca";
@@ -117,9 +117,9 @@ export function BarraFiltros({
           </Button>
         )}
         <Button variant="outline" asChild>
-          <Link href="/atividades/arquivadas">
-            <ArchiveIcon />
-            Ver arquivadas
+          <Link href="/atividades/concluidas">
+            <CircleCheckBigIcon />
+            Ver concluídas
           </Link>
         </Button>
       </div>

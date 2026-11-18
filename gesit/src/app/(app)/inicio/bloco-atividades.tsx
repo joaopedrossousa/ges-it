@@ -428,7 +428,7 @@ async function carregarRecentes() {
     idsAtividades.length > 0
       ? supabase.from("kanban_atividades").select("id, titulo, arquivada").in("id", idsAtividades)
       : Promise.resolve({ data: [], error: null }),
-    // Inclui as arquivadas: o log pode citar uma coluna que já saiu do quadro.
+    // Inclui as concluídas (arquivada no banco): o log pode citar uma atividade que já saiu do quadro.
     supabase.from("kanban_colunas").select("id, nome"),
     listarUsuariosSistema(),
   ]);
@@ -469,7 +469,7 @@ export async function AtividadesRecentes() {
             const href = !a
               ? "/atividades"
               : a.arquivada
-                ? "/atividades/arquivadas"
+                ? "/atividades/concluidas"
                 : hrefAtividade(a.id);
             const nomeAtividade = <span className="font-medium">{a?.titulo ?? "uma atividade"}</span>;
             return (
@@ -490,7 +490,7 @@ export async function AtividadesRecentes() {
                       </>
                     )}
                     {e.tipo === "comentou" && <>comentou em {nomeAtividade}</>}
-                    {a?.arquivada && <span className="text-muted-foreground"> (arquivada)</span>}
+                    {a?.arquivada && <span className="text-muted-foreground"> (concluída)</span>}
                   </span>
                   {e.comentario && (
                     <span className="block truncate text-muted-foreground">

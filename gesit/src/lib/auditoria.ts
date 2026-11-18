@@ -188,7 +188,9 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     prioridade: "Prioridade",
     responsavel_id: "Responsável",
     prazo: "Prazo",
-    arquivada: "Arquivada",
+    // Na interface, a atividade "arquivada" é "concluída" (migration 028).
+    arquivada: "Concluída",
+    concluida_em: "Concluída em",
     categorias: "Categorias",
     // Migration 022
     urgente: "Urgente",
@@ -234,6 +236,8 @@ const CAMPOS_OCULTOS = new Set([
   "removida_por",
   // Comentários: o autor é o Usuário do log da inserção.
   "autor_id",
+  // Conclusão de atividade (028): quem concluiu é o Usuário do log.
+  "concluida_por",
 ]);
 
 /**
@@ -252,6 +256,7 @@ const DATAS_HORA = new Set([
   "data_fim",
   "removida_em",
   "urgente_em",
+  "concluida_em",
   "editado_em",
   "removido_em",
 ]);
