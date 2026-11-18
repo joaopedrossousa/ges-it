@@ -21,6 +21,8 @@ type Props = {
   descricao?: ReactNode;
   /** Link do cabeçalho ("Ver quadro", "Ver lançamentos"...). */
   acao?: { href: string; rotulo: string };
+  /** Selo ao lado do título (ex.: contador "3 urgentes"). */
+  selo?: ReactNode;
   children: ReactNode;
   className?: string;
   /**
@@ -45,6 +47,7 @@ export function Bloco({
   children,
   className,
   destaque,
+  selo,
 }: Props) {
   return (
     <Card className={cn("min-w-0", destaque && DESTAQUE, className)}>
@@ -56,11 +59,13 @@ export function Bloco({
             className={cn(
               "size-4 shrink-0 text-muted-foreground",
               corIcone,
-              destaque && "text-etiqueta-vermelho-texto",
+              // No destaque, o ícone fica um pouco maior e no vermelho do título.
+              destaque && "size-5 text-etiqueta-vermelho-texto",
             )}
             aria-hidden
           />
           {titulo}
+          {selo}
         </CardTitle>
         {descricao && <CardDescription>{descricao}</CardDescription>}
         {acao && (
@@ -87,6 +92,32 @@ export function TudoEmDia({ children }: { children: ReactNode }) {
       <span>
         <strong className="font-semibold">Tudo em dia.</strong> {children}
       </span>
+    </p>
+  );
+}
+
+/**
+ * Faixa compacta de uma linha, sem cartão: bloco sem nada a mostrar que não
+ * deve ocupar espaço (ex.: "Nenhuma atividade urgente" no topo do Início).
+ */
+export function FaixaDiscreta({
+  icone: Icone,
+  children,
+  acao,
+}: {
+  icone: LucideIcon;
+  children: ReactNode;
+  acao?: { href: string; rotulo: string };
+}) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">
+      <Icone className="size-4 shrink-0" aria-hidden />
+      <span className="flex-1">{children}</span>
+      {acao && (
+        <Link href={acao.href} className="text-xs font-medium text-primary hover:underline">
+          {acao.rotulo}
+        </Link>
+      )}
     </p>
   );
 }

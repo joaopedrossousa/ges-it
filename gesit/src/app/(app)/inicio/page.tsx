@@ -53,11 +53,15 @@ export default function InicioPage() {
         </Suspense>
       </section>
 
-      {/* Mesma ordem de antes, sem o Urgentes: Meus Cards, Atividades Recentes e Resumo. */}
-      <section aria-label="Atividades e movimentações" className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      {/* Meus Cards em largura total (as colunas do quadro lado a lado). */}
+      <section aria-label="Meus cards">
         <Suspense fallback={<BlocoCarregando titulo="Meus Cards" icone={SquareUserRoundIcon} />}>
           <MeusCards />
         </Suspense>
+      </section>
+
+      {/* Atividades Recentes e Resumo de Movimentações lado a lado. */}
+      <section aria-label="Movimentações" className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <Suspense
           fallback={<BlocoCarregando titulo="Atividades Recentes" icone={HistoryIcon} linhas={6} />}
         >

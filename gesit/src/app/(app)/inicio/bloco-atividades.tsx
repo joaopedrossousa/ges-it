@@ -24,7 +24,15 @@ import { formatarDataHora, formatarDataISO, hojeEmPalmas } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { CorKanban, PrioridadeAtividade } from "@/lib/types";
 
-import { Bloco, ErroBloco, ItemBloco, ListaBloco, TudoEmDia, falhaDoBloco } from "./bloco";
+import {
+  Bloco,
+  ErroBloco,
+  FaixaDiscreta,
+  ItemBloco,
+  ListaBloco,
+  TudoEmDia,
+  falhaDoBloco,
+} from "./bloco";
 
 const hrefAtividade = (id: string) => `/atividades?atividade=${id}`;
 
@@ -176,6 +184,7 @@ export async function MeusCards() {
         <TudoEmDia>Nenhuma atividade atribuída a você.</TudoEmDia>
       ) : (
         <div className="grid gap-4">
+          <div className="grid gap-x-6 gap-y-4 lg:grid-cols-2 lg:items-start">
           {grupos.map(({ coluna, itens }) => (
             <section key={coluna.id} aria-label={`Coluna ${coluna.nome}`} className="grid gap-1">
               <h3 className="flex items-center gap-2">
@@ -206,6 +215,7 @@ export async function MeusCards() {
               </ListaBloco>
             </section>
           ))}
+          </div>
           {total > mostrados && (
             <p className="text-xs text-muted-foreground">
               Mostrando {mostrados} de {total}. As demais estão no quadro.
@@ -221,12 +231,12 @@ export async function MeusCards() {
 // Urgentes
 // ===========================================================================
 
-const LIMITE_URGENTES = 8;
+const LIMITE_URGENTES = 6;
 
-/** Cards urgentes de todos, dos marcados mais recentemente. */
+/** Cards urgentes de todos, dos marcados mais recentemente, com as categorias. */
 async function carregarUrgentes() {
   const supabase = await createClient();
-  const [urgentes, usuarios] = await Promise.all([
+  const [urgentes, usuarios, categorias] = await Promise.all([
     supabase
       .from("vw_atividades_urgentes")
       .select(
@@ -237,12 +247,31 @@ async function carregarUrgentes() {
       .order("id")
       .limit(LIMITE_URGENTES),
     listarUsuariosSistema(),
+    listarCategoriasKanban(),
   ]);
   if (urgentes.error) throw urgentes.error;
+
+  const ids = urgentes.data.flatMap((a) => (a.id ? [a.id] : []));
+  const cats =
+    ids.length > 0
+      ? await supabase
+          .from("kanban_atividade_categorias")
+          .select("atividade_id, categoria_id")
+          .in("atividade_id", ids)
+      : { data: [], error: null };
+  if (cats.error) throw cats.error;
+  const categoriasPorId = new Map(categorias.map((c) => [c.id, c]));
+  const categoriasDe = new Map<string, CategoriaKanban[]>();
+  for (const { atividade_id, categoria_id } of cats.data) {
+    const c = categoriasPorId.get(categoria_id);
+    if (c) categoriasDe.set(atividade_id, [...(categoriasDe.get(atividade_id) ?? []), c]);
+  }
+
   return {
     linhas: urgentes.data,
     total: urgentes.count ?? urgentes.data.length,
     usuariosPorId: new Map(usuarios.map((u) => [u.id, u])),
+    categoriasDe,
     hoje: hojeEmPalmas(),
   };
 }
@@ -252,57 +281,67 @@ export async function Urgentes() {
   const titulo = "Urgentes";
   const dados = await carregarUrgentes().catch(falhaDoBloco(titulo));
   if (!dados) return <ErroBloco titulo={titulo} icone={SirenIcon} />;
-  const { linhas, total, usuariosPorId, hoje } = dados;
+  const { linhas, total, usuariosPorId, categoriasDe, hoje } = dados;
+
+  // Sem urgentes: uma linha discreta, sem cartão nem vermelho (não ocupa o topo à toa).
+  if (total === 0) {
+    return (
+      <FaixaDiscreta icone={SirenIcon} acao={{ href: "/atividades", rotulo: "Ver quadro" }}>
+        Nenhuma atividade urgente.
+      </FaixaDiscreta>
+    );
+  }
 
   return (
     <Bloco
       titulo={titulo}
       icone={SirenIcon}
-      // Destaque só com itens: vazio, o bloco fica neutro ("Tudo em dia").
-      destaque={total > 0}
-      descricao={
-        total > 0
-          ? `${total} ${total === 1 ? "atividade urgente" : "atividades urgentes"} no quadro.`
-          : "Atividades marcadas como urgentes, de todos."
+      destaque
+      selo={
+        <Etiqueta cor="vermelho" className="font-semibold tabular-nums">
+          {total} {total === 1 ? "urgente" : "urgentes"}
+        </Etiqueta>
       }
-      acao={{ href: "/atividades?urgente=1", rotulo: "Ver no quadro" }}
+      descricao="Atividades marcadas como urgentes, de todos. Clique para abrir o cartão no quadro."
+      acao={{ href: "/atividades?urgente=1", rotulo: "Ver todas" }}
     >
-      {total === 0 ? (
-        <TudoEmDia>Nenhuma atividade urgente.</TudoEmDia>
-      ) : (
-        <div className="grid gap-3">
-          <ListaBloco grade>
-            {linhas.map((a) =>
-              a.id ? (
-                <ItemBloco key={a.id} href={hrefAtividade(a.id)}>
-                  <span className="grid min-w-0 flex-1 gap-1.5">
-                    <span className="font-medium break-words">{a.titulo}</span>
-                    <span className="flex flex-wrap items-center gap-1">
-                      {a.coluna_nome && a.coluna_cor && (
-                        <SeloColuna nome={a.coluna_nome} cor={a.coluna_cor} />
-                      )}
-                      {a.prioridade && <SeloPrioridade prioridade={a.prioridade} />}
-                      <Prazo prazo={a.prazo} hoje={hoje} />
-                      <Comentarios n={a.comentarios} />
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {a.responsavel_id
-                        ? nomeUsuario(usuariosPorId.get(a.responsavel_id))
-                        : "Sem responsável"}
-                      {a.urgente_em && ` · urgente desde ${formatarDataHora(a.urgente_em)}`}
-                    </span>
+      <div className="grid gap-3">
+        <ListaBloco grade>
+          {linhas.map((a) =>
+            a.id ? (
+              <ItemBloco key={a.id} href={hrefAtividade(a.id)}>
+                <span className="grid min-w-0 flex-1 gap-1.5">
+                  <span className="font-medium break-words">{a.titulo}</span>
+                  <span className="flex flex-wrap items-center gap-1">
+                    {a.coluna_nome && a.coluna_cor && (
+                      <SeloColuna nome={a.coluna_nome} cor={a.coluna_cor} />
+                    )}
+                    {a.prioridade && <SeloPrioridade prioridade={a.prioridade} />}
+                    {(categoriasDe.get(a.id) ?? []).map((c) => (
+                      <Etiqueta key={c.id} cor={c.cor}>
+                        {c.nome}
+                      </Etiqueta>
+                    ))}
+                    <Prazo prazo={a.prazo} hoje={hoje} />
+                    <Comentarios n={a.comentarios} />
                   </span>
-                </ItemBloco>
-              ) : null,
-            )}
-          </ListaBloco>
-          {total > linhas.length && (
-            <p className="text-xs text-muted-foreground">
-              Mostrando as {linhas.length} marcadas mais recentemente de {total}.
-            </p>
+                  <span className="text-xs text-muted-foreground">
+                    {a.responsavel_id
+                      ? nomeUsuario(usuariosPorId.get(a.responsavel_id))
+                      : "Sem responsável"}
+                    {a.urgente_em && ` · urgente desde ${formatarDataHora(a.urgente_em)}`}
+                  </span>
+                </span>
+              </ItemBloco>
+            ) : null,
           )}
-        </div>
-      )}
+        </ListaBloco>
+        {total > linhas.length && (
+          <p className="text-xs text-muted-foreground">
+            Mostrando as {linhas.length} marcadas mais recentemente de {total}.
+          </p>
+        )}
+      </div>
     </Bloco>
   );
 }
