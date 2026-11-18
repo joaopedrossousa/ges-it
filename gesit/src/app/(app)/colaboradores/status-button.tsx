@@ -35,7 +35,7 @@ type Props = {
   size?: "sm" | "default";
 };
 
-/** Inativar/Reativar — substitui a exclusão de usuários. */
+/** Inativar/Reativar — substitui a exclusão de colaboradores. */
 export function StatusButton({ id, nome, ativo, size = "sm" }: Props) {
   const [isPending, startTransition] = useTransition();
   const [bloqueio, setBloqueio] = useState<{

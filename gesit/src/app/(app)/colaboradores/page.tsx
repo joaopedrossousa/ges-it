@@ -33,7 +33,7 @@ import { ColaboradorFormDialog } from "./colaborador-form-dialog";
 import { Filtros } from "./filtros";
 import { StatusButton } from "./status-button";
 
-export const metadata: Metadata = { title: "Usuários" };
+export const metadata: Metadata = { title: "Colaboradores" };
 
 type SearchParams = PageProps<"/colaboradores">["searchParams"];
 
@@ -43,7 +43,7 @@ export default function ColaboradoresPage({
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Colaboradores</h1>
         <p className="text-muted-foreground">
           Pessoas que podem receber dispositivos.
         </p>
@@ -71,7 +71,7 @@ async function BarraDeFerramentas() {
         trigger={
           <Button className="self-start md:self-auto">
             <PlusIcon />
-            Novo usuário
+            Novo colaborador
           </Button>
         }
       />
@@ -131,7 +131,7 @@ async function TabelaColaboradores({
   if (error) {
     console.error("Erro ao listar colaboradores:", error);
     return (
-      <p className="text-destructive">Não foi possível carregar os usuários.</p>
+      <p className="text-destructive">Não foi possível carregar os colaboradores.</p>
     );
   }
 
@@ -166,8 +166,8 @@ async function TabelaColaboradores({
                   className="py-8 text-center text-muted-foreground"
                 >
                   {filtrando
-                    ? "Nenhum usuário encontrado com esses filtros."
-                    : "Nenhum usuário cadastrado."}
+                    ? "Nenhum colaborador encontrado com esses filtros."
+                    : "Nenhum colaborador cadastrado."}
                 </TableCell>
               </TableRow>
             )}
@@ -220,7 +220,7 @@ async function TabelaColaboradores({
         params={params}
         pagina={pagina}
         total={count ?? linhas.length}
-        rotulo={["usuário", "usuários"]}
+        rotulo={["colaborador", "colaboradores"]}
       />
     </div>
   );

@@ -23,7 +23,7 @@ import { createClient } from "@/lib/supabase/server";
 const LIMITE = 20;
 
 /**
- * Seção "Alterações" dos detalhes do dispositivo e do usuário: o log
+ * Seção "Alterações" dos detalhes do dispositivo e do colaborador: o log
  * daquele registro (mais recentes primeiro), com link para o log completo.
  */
 export async function SecaoAlteracoes({ tabela, registroId }: { tabela: Tabela; registroId: string }) {

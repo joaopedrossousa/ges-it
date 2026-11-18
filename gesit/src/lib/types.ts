@@ -158,7 +158,7 @@ export const TIPO_DISPOSITIVO_TITULO: Record<TipoDispositivo, string> = {
 
 /**
  * Infraestrutura (access point, switch, firewall, rack...) pertence à filial
- * e nunca é vinculada a usuário (migration 018: vincular_dispositivo recusa).
+ * e nunca é vinculada a colaborador (migration 018: vincular_dispositivo recusa).
  */
 export function ehInfraestrutura(tipo: TipoDispositivo | null | undefined): boolean {
   return tipo === "infraestrutura";
@@ -218,7 +218,7 @@ export type LojaRow = Tables<"lojas">;
 export type LojaInsert = TablesInsert<"lojas">;
 export type LojaUpdate = TablesUpdate<"lojas">;
 
-/** "Usuários" na interface. */
+/** "Colaboradores" na interface (quem recebe dispositivos). */
 export type ColaboradorRow = Tables<"colaboradores">;
 export type ColaboradorInsert = TablesInsert<"colaboradores">;
 export type ColaboradorUpdate = TablesUpdate<"colaboradores">;

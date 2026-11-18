@@ -29,7 +29,7 @@ const idSchema = z.uuid();
 function revalidar(id?: string) {
   revalidatePath("/colaboradores");
   if (id) revalidatePath(`/colaboradores/${id}`);
-  // O nome do usuário aparece também em dispositivos e no Dashboard.
+  // O nome do colaborador aparece também em dispositivos e no Dashboard.
   revalidatePath("/");
   revalidatePath("/dispositivos");
   revalidatePath("/dispositivos/[id]", "page");
@@ -56,13 +56,13 @@ export async function atualizarColaborador(
   input: ColaboradorFormInput,
 ): Promise<ActionResult<CampoColaborador>> {
   if (!idSchema.safeParse(id).success) {
-    return { ok: false, error: "Usuário inválido." };
+    return { ok: false, error: "Colaborador inválido." };
   }
   const parsed = colaboradorSchema.safeParse(input);
   if (!parsed.success) return errosDoZod(parsed.error);
 
   // `ativo` só muda por alterarStatusColaborador; o default do schema
-  // (true) não pode reativar um usuário inativo ao editar.
+  // (true) não pode reativar um colaborador inativo ao editar.
   const { ativo: _ignorado, ...dados } = parsed.data;
   void _ignorado;
 
@@ -73,7 +73,7 @@ export async function atualizarColaborador(
     .eq("id", id)
     .select("id");
   if (error) return erroDoBanco(error, DUPLICIDADES);
-  if (!data?.length) return { ok: false, error: "Usuário não encontrado." };
+  if (!data?.length) return { ok: false, error: "Colaborador não encontrado." };
 
   revalidar(id);
   return { ok: true };
@@ -163,7 +163,7 @@ export async function alterarStatusColaborador(
     }
     return erroDoBanco(error);
   }
-  if (!data?.length) return { ok: false, error: "Usuário não encontrado." };
+  if (!data?.length) return { ok: false, error: "Colaborador não encontrado." };
 
   revalidar(id);
   return { ok: true };

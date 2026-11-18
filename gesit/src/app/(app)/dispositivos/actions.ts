@@ -83,7 +83,7 @@ function revalidar() {
   revalidatePath("/dispositivos/[id]", "page");
 }
 
-/** Vínculos também aparecem no detalhe dos usuários envolvidos. */
+/** Vínculos também aparecem no detalhe dos colaboradores envolvidos. */
 function revalidarVinculos() {
   revalidar();
   revalidatePath("/colaboradores/[id]", "page");
@@ -277,7 +277,7 @@ export async function alterarStatusDispositivo(
   if (atual.vinculo_id) {
     return {
       ok: false,
-      error: `Dispositivo vinculado a ${atual.colaborador_nome ?? "um usuário"}. Faça a devolução antes de alterar o status.`,
+      error: `Dispositivo vinculado a ${atual.colaborador_nome ?? "um colaborador"}. Faça a devolução antes de alterar o status.`,
     };
   }
 
@@ -395,7 +395,7 @@ function mensagemStatus(texto: string) {
 }
 
 /**
- * Vincula o dispositivo a um usuário. Se já houver vínculo aberto, a função
+ * Vincula o dispositivo a um colaborador. Se já houver vínculo aberto, a função
  * SQL vincular_dispositivo encerra o anterior (transferência).
  * O PDF do termo já foi enviado pelo navegador para o bucket "termos".
  */

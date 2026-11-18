@@ -120,7 +120,7 @@ const inventario: Gerador = async (supabase, params) => {
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.8 },
       { chave: "status", titulo: "Status", peso: 0.8 },
-      { chave: "usuario", titulo: "Usuário Atual", peso: 1.3 },
+      { chave: "usuario", titulo: "Colaborador Atual", peso: 1.3 },
       { chave: "loja", titulo: "Loja", peso: 1 },
       { chave: "desde", titulo: "Desde", tipo: "data", peso: 0.75 },
       { chave: "compra", titulo: "Compra", tipo: "data", peso: 0.75 },
@@ -135,7 +135,7 @@ const inventario: Gerador = async (supabase, params) => {
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
       { chave: "status", titulo: "Status", peso: 0.8 },
-      { chave: "usuario", titulo: "Usuário Atual", peso: 1.5 },
+      { chave: "usuario", titulo: "Colaborador Atual", peso: 1.5 },
       { chave: "loja", titulo: "Loja", peso: 1.1 },
       { chave: "vida_util", titulo: "Vida Útil", peso: 0.95 },
     ],
@@ -226,7 +226,7 @@ const dispositivosPorLoja: Gerador = async (supabase, params) => {
       { chave: "modelo", titulo: "Modelo", peso: 1.3 },
       { chave: "identificador", titulo: "Identificador", peso: 1.4 },
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
-      { chave: "usuario", titulo: "Usuário", peso: 1.5 },
+      { chave: "usuario", titulo: "Colaborador", peso: 1.5 },
       { chave: "cargo", titulo: "Cargo", peso: 1.1 },
       { chave: "desde", titulo: "Desde", tipo: "data", peso: 0.8 },
       { chave: "termo", titulo: "Termo", peso: 0.6 },
@@ -327,7 +327,7 @@ const infraestruturaPorFilial: Gerador = async (supabase, params) => {
 };
 
 // ===========================================================================
-// 3 e 4. Históricos (dispositivo e usuário)
+// 3 e 4. Históricos (dispositivo e colaborador)
 // ===========================================================================
 
 const COLUNAS_PERIODO = [
@@ -460,7 +460,7 @@ const historicoDispositivo: Gerador = async (supabase, params, agora) => {
       ...(d.numero_patrimonio ? [{ rotulo: "Patrimônio", valor: d.numero_patrimonio }] : []),
       { rotulo: "Status Atual", valor: STATUS_DISPOSITIVO_LABEL[d.status] },
     ],
-    colunas: [{ chave: "usuario", titulo: "Usuário", peso: 1.5 }, ...COLUNAS_PERIODO],
+    colunas: [{ chave: "usuario", titulo: "Colaborador", peso: 1.5 }, ...COLUNAS_PERIODO],
     colunasPdf: [{ chave: "usuario", titulo: "Colaborador", peso: 1.4 }, ...COLUNAS_PERIODO_PDF],
     linhas: vinculos.map((v) => ({
       usuario: v.colaborador?.nome ?? null,
@@ -468,13 +468,13 @@ const historicoDispositivo: Gerador = async (supabase, params, agora) => {
     })),
     vazio:
       d.tipo === "infraestrutura"
-        ? "Itens de infraestrutura pertencem à filial e não são vinculados a usuários."
+        ? "Itens de infraestrutura pertencem à filial e não são vinculados a colaboradores."
         : "Este dispositivo ainda não teve vínculos.",
   };
 };
 
 const historicoUsuario: Gerador = async (supabase, params, agora) => {
-  const id = idObrigatorio(params, "Usuário inválido.");
+  const id = idObrigatorio(params, "Colaborador inválido.");
 
   const { data: c, error } = await supabase
     .from("colaboradores")
@@ -482,7 +482,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!c) throw new ErroRelatorio(404, "Usuário não encontrado.");
+  if (!c) throw new ErroRelatorio(404, "Colaborador não encontrado.");
 
   const vinculos = await buscarTodas((de, ate) =>
     supabase
@@ -497,12 +497,12 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
   );
 
   return {
-    slug: "historico-usuario",
-    titulo: "Histórico do Usuário",
+    slug: "historico-colaborador",
+    titulo: "Histórico do Colaborador",
     aba: "Histórico",
     orientacao: "paisagem",
     filtros: [
-      { rotulo: "Usuário", valor: c.ativo ? c.nome : `${c.nome} (inativo)` },
+      { rotulo: "Colaborador", valor: c.ativo ? c.nome : `${c.nome} (inativo)` },
       ...(c.cargo ? [{ rotulo: "Cargo", valor: c.cargo }] : []),
       // CPF sempre mascarado nos relatórios.
       { rotulo: "CPF", valor: mascararCPF(c.cpf) },
@@ -525,7 +525,7 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
       dispositivo_pdf: v.dispositivo ? descricaoDispositivo(v.dispositivo) : null,
       ...camposPeriodo(v, agora, v.dispositivo?.tipo ?? null),
     })),
-    vazio: "Este usuário ainda não teve dispositivos vinculados.",
+    vazio: "Este colaborador ainda não teve dispositivos vinculados.",
   };
 };
 
@@ -741,7 +741,7 @@ const vinculosSemTermo: Gerador = async (supabase, params, agora) => {
       { chave: "ha", titulo: "Há", peso: 1.1 },
       { chave: "dispositivo", titulo: "Dispositivo", peso: 1.4 },
       { chave: "identificador", titulo: "Identificador", peso: 1.4 },
-      { chave: "usuario", titulo: "Usuário", peso: 1.4 },
+      { chave: "usuario", titulo: "Colaborador", peso: 1.4 },
       { chave: "loja", titulo: "Loja", peso: 1 },
     ],
     linhas: dados.map((v) => ({
@@ -816,7 +816,7 @@ const servicos: Gerador = async (supabase, params, agora) => {
       { chave: "tipo_dispositivo", titulo: "Tipo de Dispositivo", peso: 0.9 },
       { chave: "identificador", titulo: "Identificador", peso: 1.3 },
       { chave: "patrimonio", titulo: "Patrimônio", peso: 0.9 },
-      { chave: "usuario", titulo: "Usuário na Data", peso: 1.3 },
+      { chave: "usuario", titulo: "Colaborador na Data", peso: 1.3 },
       { chave: "loja", titulo: "Loja na Data", peso: 1.1 },
       { chave: "fornecedor", titulo: "Prestador de Serviço", peso: 1.4 },
       { chave: "custo", titulo: "Custo", tipo: "moeda", peso: 0.9 },

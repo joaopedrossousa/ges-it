@@ -459,7 +459,7 @@ function MonitorForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
 
 /**
  * Infraestrutura (access point, switch, firewall, rack...): sem marca e sem
- * usuário. O que é o item vai em "Dispositivo"; a filial é obrigatória.
+ * colaborador. O que é o item vai em "Dispositivo"; a filial é obrigatória.
  */
 function InfraestruturaForm({ dispositivo, lojas, onSalvo, onCancelar }: FormProps) {
   const { salvar, isPending, etapa } = useSalvarDispositivo(dispositivo, onSalvo);
@@ -1053,8 +1053,8 @@ function CampoFilialEstoque<T extends FieldValues, U extends FieldValues>({
       />
       <p id={`${id}-ajuda`} className="text-xs text-muted-foreground">
         {obrigatoria
-          ? "Onde o item está instalado. Itens de infraestrutura não são vinculados a usuários."
-          : "Onde o aparelho fica quando não está com um usuário."}
+          ? "Onde o item está instalado. Itens de infraestrutura não são vinculados a colaboradores."
+          : "Onde o aparelho fica quando não está com um colaborador."}
       </p>
       <MensagemErro id={`${id}-erro`} mensagem={erro} />
     </div>

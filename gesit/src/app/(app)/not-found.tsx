@@ -19,7 +19,7 @@ export default function NaoEncontrado() {
           <Link href="/dispositivos">Dispositivos</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/colaboradores">Usuários</Link>
+          <Link href="/colaboradores">Colaboradores</Link>
         </Button>
       </div>
     </div>

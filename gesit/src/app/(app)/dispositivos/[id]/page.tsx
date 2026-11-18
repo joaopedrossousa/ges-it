@@ -356,7 +356,7 @@ async function DetalheDispositivo({
                   )}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Itens de infraestrutura pertencem à filial e não são vinculados a usuários.
+                  Itens de infraestrutura pertencem à filial e não são vinculados a colaboradores.
                   Para mudar de filial, edite o item.
                 </p>
               </div>
@@ -365,7 +365,7 @@ async function DetalheDispositivo({
         ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Usuário Atual</CardTitle>
+            <CardTitle>Colaborador Atual</CardTitle>
             {aberto?.colaborador && opcaoDispositivo && (
               <CardAction className="flex gap-2">
                 <VincularDialog
@@ -458,7 +458,7 @@ async function DetalheDispositivo({
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {podeVincular
-                    ? "Nenhum usuário vinculado a este dispositivo."
+                    ? "Nenhum colaborador vinculado a este dispositivo."
                     : "Altere o status para Disponível para poder vincular."}
                 </p>
                 {podeVincular && opcaoDispositivo ? (

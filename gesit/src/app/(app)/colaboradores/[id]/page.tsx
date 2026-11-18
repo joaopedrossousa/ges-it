@@ -47,7 +47,7 @@ import { formatarCPF } from "@/lib/validators";
 import { ColaboradorFormDialog } from "../colaborador-form-dialog";
 import { StatusButton } from "../status-button";
 
-export const metadata: Metadata = { title: "Detalhes do Usuário" };
+export const metadata: Metadata = { title: "Detalhes do Colaborador" };
 
 export default function ColaboradorPage({
   params,
@@ -57,7 +57,7 @@ export default function ColaboradorPage({
       <Button asChild variant="ghost" size="sm" className="-ml-2">
         <Link href="/colaboradores">
           <ArrowLeftIcon />
-          Usuários
+          Colaboradores
         </Link>
       </Button>
 
@@ -103,7 +103,7 @@ async function DetalheColaborador({
       colaboradorRes.error ?? vinculosRes.error,
     );
     return (
-      <p className="text-destructive">Não foi possível carregar o usuário.</p>
+      <p className="text-destructive">Não foi possível carregar o colaborador.</p>
     );
   }
   const colaborador = colaboradorRes.data;

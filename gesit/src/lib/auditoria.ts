@@ -46,7 +46,7 @@ export const TABELAS_AUDITORIA = [
 export type TabelaAuditoria = (typeof TABELAS_AUDITORIA)[number];
 
 export const TIPO_REGISTRO_LABEL: Record<TabelaAuditoria, string> = {
-  colaboradores: "Usuário",
+  colaboradores: "Colaborador",
   dispositivos: "Dispositivo",
   dispositivo_imagens: "Imagem de Dispositivo",
   lojas: "Loja",
@@ -131,7 +131,7 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
   },
   vinculos: {
     dispositivo_id: "Dispositivo",
-    colaborador_id: "Usuário",
+    colaborador_id: "Colaborador",
     loja_id: "Loja",
     data_inicio: "Início",
     data_fim: "Fim",
@@ -263,7 +263,7 @@ export type NomesAuditoria = {
   lojas: Map<string, string>;
   colaboradores: Map<string, string>;
   dispositivos: Map<string, string>;
-  /** Vínculo → nome do usuário (imagens de entrega/transferência/devolução). */
+  /** Vínculo → nome do colaborador (imagens de entrega/transferência/devolução). */
   vinculos: Map<string, string>;
   /** Atividade → título (comentários). */
   atividades: Map<string, string>;
@@ -302,7 +302,7 @@ export function formatarValorAuditoria(
   if (s === null) return JSON.stringify(valor);
 
   if (campo === "loja_id" || campo === "loja_estoque_id") return nomes.lojas.get(s) ?? "Loja não encontrada";
-  if (campo === "colaborador_id") return nomes.colaboradores.get(s) ?? "Usuário não encontrado";
+  if (campo === "colaborador_id") return nomes.colaboradores.get(s) ?? "Colaborador não encontrado";
   if (campo === "dispositivo_id") return nomes.dispositivos.get(s) ?? "Dispositivo não encontrado";
   if (campo === "vinculo_id") return nomes.vinculos.get(s) ?? "Vínculo não encontrado";
   if (campo === "momento" && ehMomentoImagem(s)) return MOMENTO_IMAGEM_LABEL[s];

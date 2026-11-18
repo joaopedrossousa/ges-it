@@ -19,7 +19,7 @@ const DUPLICIDADES = [
 
 function revalidar() {
   revalidatePath("/lojas");
-  // Nomes de loja aparecem em usuários, dispositivos (filtro e detalhe) e no Dashboard.
+  // Nomes de loja aparecem em colaboradores, dispositivos (filtro e detalhe) e no Dashboard.
   revalidatePath("/colaboradores", "layout");
   revalidatePath("/dispositivos", "layout");
   revalidatePath("/");

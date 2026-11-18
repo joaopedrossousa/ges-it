@@ -42,7 +42,7 @@ const GRUPOS: Grupo[] = [
     label: "Ativos e Imobilizados",
     itens: [
       { href: "/", label: "Dashboard", icon: LayoutDashboardIcon, exato: true },
-      { href: "/colaboradores", label: "Usuários", icon: UsersIcon },
+      { href: "/colaboradores", label: "Colaboradores", icon: UsersIcon },
       { href: "/dispositivos", label: "Dispositivos", icon: MonitorSmartphoneIcon },
       { href: "/relatorios", label: "Relatórios", icon: FileChartColumnIcon },
     ],

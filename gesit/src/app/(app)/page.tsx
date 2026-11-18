@@ -128,8 +128,8 @@ export default function DashboardPage() {
           <Suspense fallback={<CardCarregando titulo="Vínculos sem Termo" />}>
             <VinculosSemTermo />
           </Suspense>
-          <Suspense fallback={<CardCarregando titulo="Usuários com Dados Pendentes" />}>
-            <UsuariosComDadosPendentes />
+          <Suspense fallback={<CardCarregando titulo="Colaboradores com Dados Pendentes" />}>
+            <ColaboradoresComDadosPendentes />
           </Suspense>
         </div>
         <Suspense fallback={<CardCarregando titulo="Últimas Movimentações" />}>
@@ -393,7 +393,7 @@ async function ProximosDaTroca() {
                   <p className="text-muted-foreground">
                     {d.tipo === "infraestrutura"
                       ? (d.loja_atual_nome ?? "Sem filial")
-                      : (d.colaborador_nome ?? "Sem usuário")}
+                      : (d.colaborador_nome ?? "Sem colaborador")}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -574,13 +574,13 @@ async function VinculosSemTermo() {
 }
 
 // ===========================================================================
-// Usuários com dados pendentes
+// Colaboradores com dados pendentes
 // ===========================================================================
 
 const LIMITE_PENDENTES = 10;
 
-/** Usuários ativos sem CPF e/ou sem e-mail (opcionais desde a migration 013). */
-async function UsuariosComDadosPendentes() {
+/** Colaboradores ativos sem CPF e/ou sem e-mail (opcionais desde a migration 013). */
+async function ColaboradoresComDadosPendentes() {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const supabase = await createClient();
   const { data, count, error } = await supabase
@@ -593,10 +593,10 @@ async function UsuariosComDadosPendentes() {
     .limit(LIMITE_PENDENTES);
 
   if (error) {
-    console.error("Erro ao listar usuários com dados pendentes:", error);
+    console.error("Erro ao listar colaboradores com dados pendentes:", error);
     return (
-      <CardSimples titulo="Usuários com Dados Pendentes">
-        <p className="text-destructive">Não foi possível carregar os usuários.</p>
+      <CardSimples titulo="Colaboradores com Dados Pendentes">
+        <p className="text-destructive">Não foi possível carregar os colaboradores.</p>
       </CardSimples>
     );
   }
@@ -611,12 +611,12 @@ async function UsuariosComDadosPendentes() {
             className={total > 0 ? "size-4 text-amber-600 dark:text-amber-400" : "size-4 text-muted-foreground"}
             aria-hidden
           />
-          Usuários com Dados Pendentes
+          Colaboradores com Dados Pendentes
         </CardTitle>
         <CardDescription>
           {total === 0
-            ? "Todos os usuários ativos têm CPF e e-mail cadastrados."
-            : `${total} ${total === 1 ? "usuário ativo" : "usuários ativos"} sem CPF ou sem e-mail.`}
+            ? "Todos os colaboradores ativos têm CPF e e-mail cadastrados."
+            : `${total} ${total === 1 ? "colaborador ativo" : "colaboradores ativos"} sem CPF ou sem e-mail.`}
         </CardDescription>
       </CardHeader>
       {total > 0 && (
@@ -642,7 +642,7 @@ async function UsuariosComDadosPendentes() {
           <p className="mt-3 text-xs text-muted-foreground">
             {total > data.length && `Mostrando ${data.length} de ${total}. `}
             <Link href="/colaboradores?pendentes=1" className="font-medium text-primary hover:underline">
-              Ver na listagem de usuários
+              Ver na listagem de colaboradores
             </Link>
           </p>
         </CardContent>

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * GET /api/busca/colaboradores?q=<texto>&excluir=<uuid>
  * Combobox do diálogo de vincular: só colaboradores ativos, sem CPF.
- * Cada palavra precisa casar com nome ou e-mail. `excluir` tira o usuário
+ * Cada palavra precisa casar com nome ou e-mail. `excluir` tira o colaborador
  * atual do dispositivo (não pode receber o mesmo dispositivo).
  */
 export async function GET(request: NextRequest) {

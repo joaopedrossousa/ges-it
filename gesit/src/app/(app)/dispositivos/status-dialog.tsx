@@ -199,7 +199,7 @@ export function StatusDialog({ dispositivo, trigger }: Props) {
             className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-400"
           >
             Este dispositivo está vinculado a{" "}
-            <strong>{dispositivo.colaboradorNome ?? "um usuário"}</strong>. Faça a
+            <strong>{dispositivo.colaboradorNome ?? "um colaborador"}</strong>. Faça a
             devolução antes de alterar o status.
           </p>
         ) : baixaDefinitiva ? (

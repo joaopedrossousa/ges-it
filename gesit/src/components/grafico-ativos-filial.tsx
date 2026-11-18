@@ -32,7 +32,7 @@ const CONFIG = {
 type Chave = keyof typeof CONFIG;
 
 /**
- * Infraestrutura não é vinculada a usuário (migration 018): tudo fica na
+ * Infraestrutura não é vinculada a colaborador (migration 018): tudo fica na
  * filial, então o gráfico dela mostra só uma série, "Na Filial" (no verde
  * do estoque), sem a divisão em uso/estoque.
  */
@@ -108,7 +108,7 @@ export function GraficoAtivosFilial({ tipo, barras, semFilial }: Props) {
             className="size-2.5 rounded-[3px]"
             style={{ background: CONFIG.em_estoque.color }}
           />
-          {ROTULO_NA_FILIAL}: não são vinculados a usuários
+          {ROTULO_NA_FILIAL}: não são vinculados a colaboradores
         </p>
       )}
 

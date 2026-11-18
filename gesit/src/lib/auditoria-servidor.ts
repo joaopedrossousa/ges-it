@@ -125,7 +125,7 @@ export async function montarLinhasAuditoria(
 ): Promise<LinhaAuditoria[]> {
   const porTabela = (t: string) => unicos(linhas.filter((l) => l.tabela === t).map((l) => l.registro_id));
 
-  // Vínculos e serviços apontam para dispositivos/usuários: busca-os primeiro.
+  // Vínculos e serviços apontam para dispositivos/colaboradores: busca-os primeiro.
   // Lançamentos aparecem pela descrição e competência.
   // Imagens: o dispositivo e o momento vêm da própria linha (a remoção só
   // traz removida/removida_em no log).
@@ -244,7 +244,7 @@ export async function montarLinhasAuditoria(
     vinculos: new Map(
       vinculosLista.map((v) => [
         v.id,
-        colaboradores.find((c) => c.id === v.colaborador_id)?.nome ?? "Usuário não encontrado",
+        colaboradores.find((c) => c.id === v.colaborador_id)?.nome ?? "Colaborador não encontrado",
       ]),
     ),
     servicosFinanceiros: new Map(
@@ -267,7 +267,7 @@ export async function montarLinhasAuditoria(
     switch (l.tabela) {
       case "colaboradores":
         return {
-          texto: nomes.colaboradores.get(l.registro_id) ?? "Usuário não encontrado",
+          texto: nomes.colaboradores.get(l.registro_id) ?? "Colaborador não encontrado",
           href: `/colaboradores/${l.registro_id}`,
         };
       case "dispositivos":

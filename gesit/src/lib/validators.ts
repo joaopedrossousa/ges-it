@@ -385,7 +385,7 @@ export const monitorSchema = z
 /**
  * Infraestrutura (access point, switch, firewall, rack...): sem marca; o que
  * é o item vai em `equipamento`. Pertence à filial (obrigatória) e nunca é
- * vinculada a usuário. Serial e patrimônio opcionais (migration 018).
+ * vinculada a colaborador. Serial e patrimônio opcionais (migration 018).
  */
 export const infraestruturaSchema = z
   .object({
@@ -459,7 +459,7 @@ export const servicoSchema = z
 /** Argumentos de vincular_dispositivo. O PDF já deve estar no bucket "termos". */
 export const vinculoSchema = z.object({
   dispositivo_id: idObrigatorio("Selecione o dispositivo."),
-  colaborador_id: idObrigatorio("Selecione o usuário."),
+  colaborador_id: idObrigatorio("Selecione o colaborador."),
   termo_path: textoOpcional(500),
   observacao: textoOpcional(1000),
   perifericos,

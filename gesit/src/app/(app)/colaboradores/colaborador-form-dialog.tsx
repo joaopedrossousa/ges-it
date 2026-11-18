@@ -51,7 +51,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
   const [isPending, startTransition] = useTransition();
   const editando = Boolean(colaborador);
 
-  // Lojas inativas só aparecem se já forem a loja atual do usuário.
+  // Lojas inativas só aparecem se já forem a loja atual do colaborador.
   const opcoes = opcoesLojas(
     lojas.filter((l) => l.ativo || l.id === colaborador?.loja_id),
   );
@@ -97,7 +97,7 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
         return;
       }
 
-      toast.success(editando ? "Usuário atualizado." : "Usuário cadastrado.");
+      toast.success(editando ? "Colaborador atualizado." : "Colaborador cadastrado.");
       setOpen(false);
     });
   });
@@ -108,11 +108,11 @@ export function ColaboradorFormDialog({ lojas, colaborador, trigger }: Props) {
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>{editando ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
+            <DialogTitle>{editando ? "Editar Colaborador" : "Novo Colaborador"}</DialogTitle>
             <DialogDescription>
               {editando
-                ? "Altere os dados do usuário."
-                : "Cadastre um usuário para vincular dispositivos."}
+                ? "Altere os dados do colaborador."
+                : "Cadastre um colaborador para vincular dispositivos."}
             </DialogDescription>
           </DialogHeader>
 

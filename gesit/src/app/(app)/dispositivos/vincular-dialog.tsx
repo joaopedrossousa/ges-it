@@ -121,7 +121,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
   const usuarioAtual = dispositivo?.dados.colaborador_id
     ? {
         id: dispositivo.dados.colaborador_id,
-        nome: dispositivo.dados.colaborador_nome ?? "usuário atual",
+        nome: dispositivo.dados.colaborador_nome ?? "colaborador atual",
       }
     : null;
 
@@ -152,7 +152,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
     }
     setDispositivo(opcao);
     setErros((e) => ({ ...e, dispositivo: undefined }));
-    // O usuário atual do dispositivo não pode recebê-lo de novo.
+    // O colaborador atual do dispositivo não pode recebê-lo de novo.
     if (opcao.dados.colaborador_id && opcao.dados.colaborador_id === colaborador?.value) {
       setColaborador(null);
     }
@@ -172,7 +172,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
     const colaboradorId = colaborador.value;
     // Monitor: sem periféricos e sem "formatado" (o banco recusa).
     const conferencia = temConferencia(dispositivo.dados.tipo);
-    // Transferência: já há usuário; senão, entrega (momento das imagens).
+    // Transferência: já há colaborador; senão, entrega (momento das imagens).
     const momento = usuarioAtual ? "transferencia" : "entrega";
     setErros({});
     setOrfao(null);
@@ -283,7 +283,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
                 ).map(opcaoDispositivo)
               }
               placeholder="Selecione o dispositivo"
-              placeholderBusca="Marca, modelo, patrimônio, serial, IMEI ou usuário"
+              placeholderBusca="Marca, modelo, patrimônio, serial, IMEI ou colaborador"
               vazio="Nenhum dispositivo disponível ou em uso encontrado."
               disabled={ocupado}
               invalid={Boolean(erros.dispositivo)}
@@ -309,7 +309,7 @@ export function VincularDialog({ dispositivoInicial, colaboradorInicial, trigger
           <div className="grid gap-2">
             <Label htmlFor="vinc-colaborador">Colaborador</Label>
             <ComboboxBusca
-              // Remonta ao trocar de dispositivo: a exclusão do usuário atual muda.
+              // Remonta ao trocar de dispositivo: a exclusão do colaborador atual muda.
               key={usuarioAtual?.id ?? "sem-usuario"}
               id="vinc-colaborador"
               value={colaborador}

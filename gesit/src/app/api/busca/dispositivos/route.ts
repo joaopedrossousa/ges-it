@@ -14,7 +14,7 @@ import { somenteDigitos } from "@/lib/validators";
  * Combobox do diálogo de vincular: dispositivos disponíveis ou em uso.
  * Infraestrutura fica de fora: pertence à filial e não é vinculada.
  * Cada palavra precisa casar com marca, modelo, serial, patrimônio, IMEI,
- * número da linha ou usuário atual.
+ * número da linha ou colaborador atual.
  */
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q") ?? "";

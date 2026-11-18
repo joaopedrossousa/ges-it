@@ -13,7 +13,7 @@ type Props = {
   pagina: number;
   total: number;
   porPagina?: number;
-  /** Ex.: ["usuário", "usuários"]. */
+  /** Ex.: ["colaborador", "colaboradores"]. */
   rotulo: [singular: string, plural: string];
 };
 

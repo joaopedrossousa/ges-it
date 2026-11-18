@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // exceljs fica fora do bundle do servidor (o @react-pdf/renderer já é externo por padrão).
   serverExternalPackages: ["exceljs"],
+  // "Usuários" virou "Colaboradores": /usuarios (e subrotas) leva para /colaboradores.
+  async redirects() {
+    return [
+      { source: "/usuarios", destination: "/colaboradores", permanent: true },
+      { source: "/usuarios/:caminho*", destination: "/colaboradores/:caminho*", permanent: true },
+    ];
+  },
   // Lidos do disco na geração do PDF: precisam ir junto para a função da Netlify.
   outputFileTracingIncludes: {
     "/api/relatorios/*": [

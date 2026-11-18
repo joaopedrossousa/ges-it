@@ -10,7 +10,7 @@ export type DispositivoOpcao = {
   /** IMEI 1 formatado (telefone), patrimônio (monitor) ou Serial Number. */
   identificador: string;
   status: StatusDispositivo;
-  /** Usuário atual, se houver vínculo aberto. */
+  /** Colaborador atual, se houver vínculo aberto. */
   colaborador_id: string | null;
   colaborador_nome: string | null;
 };

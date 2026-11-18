@@ -267,7 +267,7 @@ export function DevolverDialog({
               id="dev-obs"
               rows={3}
               maxLength={1000}
-              placeholder="Ex.: tela com risco; mouse fica com o usuário."
+              placeholder="Ex.: tela com risco; mouse fica com o colaborador."
               value={observacao}
               onChange={(e) => setObservacao(e.target.value)}
               disabled={isPending}

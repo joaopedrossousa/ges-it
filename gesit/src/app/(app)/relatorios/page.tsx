@@ -20,7 +20,7 @@ export default function RelatoriosPage() {
           <Link href="/dispositivos" className="text-primary underline-offset-4 hover:underline">
             Dispositivos
           </Link>
-          , com os filtros da listagem; os históricos, na página de cada dispositivo e usuário.
+          , com os filtros da listagem; os históricos, na página de cada dispositivo e colaborador.
         </p>
       </div>
 

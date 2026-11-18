@@ -173,7 +173,7 @@ async function carregarMovimentacoes() {
       n: nCriados.count ?? 0,
       href: "/relatorios",
     },
-    { rotulo: "Transferências", ajuda: "Trocas de usuário", n: transferencias, href: "/relatorios" },
+    { rotulo: "Transferências", ajuda: "Trocas de colaborador", n: transferencias, href: "/relatorios" },
     {
       rotulo: "Devoluções",
       ajuda: "Vínculos encerrados por devolução",
