@@ -22,13 +22,13 @@ import {
   TIPO_REGISTRO_LABEL,
 } from "@/lib/auditoria";
 
-export type UsuarioOpcao = { id: string; email: string };
+export type UsuarioOpcao = { id: string; email: string; nome: string };
 
 export function Filtros({ usuarios }: { usuarios: UsuarioOpcao[] }) {
   const { valor, atualizar, isPending } = useFiltrosUrl();
   const opcoesUsuarios = [
     { value: TODOS, label: "Todos os usuários" },
-    ...usuarios.map((u) => ({ value: u.id, label: u.email })),
+    ...usuarios.map((u) => ({ value: u.id, label: u.nome, descricao: u.email })),
   ];
   const de = valor("de", "");
   const ate = valor("ate", "");

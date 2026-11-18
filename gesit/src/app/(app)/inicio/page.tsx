@@ -10,7 +10,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { nomeUsuario } from "@/lib/atividades";
+import { primeiroNomeUsuario } from "@/lib/atividades";
 import { listarUsuariosSistema, usuarioLogadoId } from "@/lib/atividades-servidor";
 
 import { AtividadesRecentes, MeusCards, Urgentes } from "./bloco-atividades";
@@ -86,7 +86,7 @@ async function Saudacao() {
   try {
     const [uid, usuarios] = await Promise.all([usuarioLogadoId(), listarUsuariosSistema()]);
     const u = usuarios.find((x) => x.id === uid);
-    if (u) nome = u.nome ? u.nome.split(" ")[0] : nomeUsuario(u);
+    nome = primeiroNomeUsuario(u);
   } catch (e) {
     console.error("Erro ao carregar a saudação:", e);
   }

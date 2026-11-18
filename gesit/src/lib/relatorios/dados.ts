@@ -39,7 +39,16 @@ import {
   paraSituacaoVidaUtil,
   type TipoDispositivo,
 } from "@/lib/types";
+import { nomesDeUsuarios, type AutorExibicao } from "@/lib/usuarios-servidor";
 import { mascararCPF } from "@/lib/validators";
+
+/** "João Pedro Sousa (joao.sousa@...)" para os relatórios; "—" sem autor. */
+function autorRelatorio(mapa: Map<string, AutorExibicao>, id: string | null | undefined) {
+  if (!id) return "—";
+  const a = mapa.get(id);
+  if (!a) return "Usuário removido";
+  return a.email ? `${a.nome} (${a.email})` : a.nome;
+}
 
 import {
   buscarTodas,
@@ -653,14 +662,8 @@ const movimentacoes: Gerador = async (supabase, params, agora) => {
   if (eventos.length > LIMITE_LINHAS) throw new ErroRelatorio(422, MSG_LIMITE);
   eventos.sort((a, b) => a.quando.getTime() - b.quando.getTime());
 
-  // Quem fez a operação: e-mails em auth.users, via função restrita (migration 007).
-  const ids = [...new Set(eventos.map((e) => e.por).filter((x): x is string => !!x))];
-  const emails = new Map<string, string>();
-  if (ids.length) {
-    const { data, error } = await supabase.rpc("emails_operadores", { p_ids: ids });
-    if (error) throw new Error(error.message);
-    for (const u of data) emails.set(u.id, u.email);
-  }
+  // Quem fez a operação: nome de exibição (Administração > Usuários) e e-mail.
+  const autores = await nomesDeUsuarios(supabase, eventos.map((e) => e.por));
 
   const contagem = (tipo: TipoMovimentacao) => eventos.filter((e) => e.operacao === tipo).length;
 
@@ -695,7 +698,7 @@ const movimentacoes: Gerador = async (supabase, params, agora) => {
       de: e.de,
       para: e.para,
       loja: e.v.loja?.nome ?? null,
-      por: e.por ? (emails.get(e.por) ?? "—") : "—",
+      por: autorRelatorio(autores, e.por),
       observacao: e.observacao,
     })),
     vazio: "Nenhuma movimentação no período.",
@@ -889,13 +892,8 @@ const baixas: Gerador = async (supabase, params, agora) => {
     return q;
   });
 
-  // E-mail de quem registrou (aparece no log da mudança de status).
-  const ids = [...new Set(dados.flatMap((d) => (d.criado_por ? [d.criado_por] : [])))];
-  const emails = new Map<string, string>();
-  if (ids.length) {
-    const { data } = await supabase.rpc("emails_operadores", { p_ids: ids });
-    data?.forEach((u) => emails.set(u.id, u.email));
-  }
+  // Quem registrou: nome de exibição (Administração > Usuários) e e-mail.
+  const autores = await nomesDeUsuarios(supabase, dados.map((d) => d.criado_por));
 
   // "2 Roubo · 1 Furto", na ordem dos motivos.
   const porMotivo = MOTIVOS_BAIXA.flatMap((m) => {
@@ -954,7 +952,7 @@ const baixas: Gerador = async (supabase, params, agora) => {
       loja: d.loja_nome,
       informacoes: d.informacoes,
       anexos: d.qtd_anexos ?? 0,
-      registrada_por: d.criado_por ? (emails.get(d.criado_por) ?? "—") : "—",
+      registrada_por: autorRelatorio(autores, d.criado_por),
       registrada_em: d.created_at ? new Date(d.created_at) : null,
     })),
     vazio: "Nenhuma baixa no período com esses filtros.",
@@ -972,8 +970,7 @@ const auditoria: Gerador = async (supabase, params) => {
 
   let emailUsuario: string | null = null;
   if (f.usuario) {
-    const { data } = await supabase.rpc("emails_operadores", { p_ids: [f.usuario] });
-    emailUsuario = data?.[0]?.email ?? "usuário não encontrado";
+    emailUsuario = autorRelatorio(await nomesDeUsuarios(supabase, [f.usuario]), f.usuario);
   }
 
   const filtros = [
@@ -1003,7 +1000,8 @@ const auditoria: Gerador = async (supabase, params) => {
     ],
     linhas: linhas.map((l) => ({
       quando: new Date(l.quando),
-      usuario: l.usuario,
+      // Excel: nome e e-mail, para a rastreabilidade.
+      usuario: l.usuarioEmail ? `${l.usuario} (${l.usuarioEmail})` : l.usuario,
       acao: l.acao,
       tipo: l.tipoRegistro,
       registro: l.registro.texto,

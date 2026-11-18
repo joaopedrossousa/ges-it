@@ -11,6 +11,7 @@ import { connection } from "next/server";
 import { nomeDispositivo } from "@/lib/dispositivos";
 import { formatarDataHora } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { nomeDoAutor, nomesDeUsuarios } from "@/lib/usuarios-servidor";
 import { MOTIVO_BAIXA_LABEL, type MotivoBaixa, type TipoDispositivo } from "@/lib/types";
 
 import { Bloco, ErroBloco, ItemBloco, ListaBloco, TudoEmDia, falhaDoBloco } from "./bloco";
@@ -157,13 +158,11 @@ async function carregarMovimentacoes() {
   }
   const recentes = eventos.sort((a, b) => b.quando.localeCompare(a.quando)).slice(0, LIMITE);
 
-  // Quem fez: e-mail (quem opera aparece em vinculos ou no log; ver emails_operadores).
-  const ids = [...new Set(recentes.flatMap((e) => (e.por ? [e.por] : [])))];
-  const emails = new Map<string, string>();
-  if (ids.length > 0) {
-    const { data } = await supabase.rpc("emails_operadores", { p_ids: ids });
-    data?.forEach((u) => emails.set(u.id, u.email));
-  }
+  // Quem fez: nome de exibição (Administração > Usuários), e-mail no title.
+  const autores = await nomesDeUsuarios(
+    supabase,
+    recentes.map((e) => e.por),
+  );
 
   const transferencias = nTransferencias.count ?? 0;
   const contagens = [
@@ -183,7 +182,7 @@ async function carregarMovimentacoes() {
     { rotulo: "Baixas", ajuda: "Dispositivos baixados", n: nBaixas.count ?? 0, href: "/dispositivos?status=baixado" },
   ];
 
-  return { recentes, emails, contagens };
+  return { recentes, autores, contagens };
 }
 
 export async function ResumoMovimentacoes() {
@@ -191,7 +190,7 @@ export async function ResumoMovimentacoes() {
   const titulo = "Resumo de Movimentações";
   const dados = await carregarMovimentacoes().catch(falhaDoBloco(titulo));
   if (!dados) return <ErroBloco titulo={titulo} icone={ArrowRightLeftIcon} />;
-  const { recentes, emails, contagens } = dados;
+  const { recentes, autores, contagens } = dados;
 
   return (
     <Bloco
@@ -223,6 +222,7 @@ export async function ResumoMovimentacoes() {
             {recentes.map((e) => {
               const { rotulo, icone: Icone } = EVENTO[e.tipo];
               const item = e.dispositivo ? nomeDispositivo(e.dispositivo) : "Dispositivo";
+              const autor = nomeDoAutor(autores, e.por);
               return (
                 <ItemBloco key={e.chave} href={`/dispositivos/${e.dispositivoId}`}>
                   <Icone className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -237,7 +237,9 @@ export async function ResumoMovimentacoes() {
                     </span>
                     <span className="block text-xs text-muted-foreground">
                       {formatarDataHora(e.quando)}
-                      {e.por && ` · por ${emails.get(e.por) ?? "usuário removido"}`}
+                      {autor && (
+                        <span title={autor.email ?? undefined}> · por {autor.nome}</span>
+                      )}
                     </span>
                   </span>
                 </ItemBloco>

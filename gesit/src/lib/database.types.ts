@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      avisos_telegram_log: {
+        Row: {
+          criado_em: string
+          erro: string | null
+          id: number
+          mensagem: string
+          referencia: string | null
+          request_id: number | null
+          tipo: string
+        }
+        Insert: {
+          criado_em?: string
+          erro?: string | null
+          id?: never
+          mensagem: string
+          referencia?: string | null
+          request_id?: number | null
+          tipo: string
+        }
+        Update: {
+          criado_em?: string
+          erro?: string | null
+          id?: never
+          mensagem?: string
+          referencia?: string | null
+          request_id?: number | null
+          tipo?: string
+        }
+        Relationships: []
+      }
       colaboradores: {
         Row: {
           ativo: boolean
@@ -678,6 +708,27 @@ export type Database = {
         }
         Relationships: []
       }
+      perfis_usuarios: {
+        Row: {
+          created_at: string
+          id: string
+          nome_exibicao: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          nome_exibicao: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome_exibicao?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       servicos: {
         Row: {
           anexo_path: string | null
@@ -1227,6 +1278,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      avisos_financeiros_diarios: { Args: never; Returns: number }
       baixar_dispositivo: {
         Args: {
           p_anexos?: Json
@@ -1256,6 +1308,10 @@ export type Database = {
         }
         Returns: string
       }
+      definir_nome_usuario: {
+        Args: { p_nome: string; p_usuario: string }
+        Returns: undefined
+      }
       devolver_dispositivo: {
         Args: {
           p_dispositivo_id: string
@@ -1283,6 +1339,12 @@ export type Database = {
           id: string
         }[]
       }
+      enviar_telegram: {
+        Args: { p_referencia: string; p_texto: string; p_tipo: string }
+        Returns: number
+      }
+      enviar_telegram_teste: { Args: never; Returns: number }
+      formatar_reais: { Args: { p_valor: number }; Returns: string }
       kanban_definir_categorias: {
         Args: { p_atividade: string; p_categorias: string[] }
         Returns: undefined
@@ -1321,6 +1383,7 @@ export type Database = {
         Args: { p_coluna: string; p_posicao: number }
         Returns: undefined
       }
+      nome_curto_usuario: { Args: { p_id: string }; Returns: string }
       normalizar_perifericos: {
         Args: {
           p_formatado: boolean
@@ -1340,6 +1403,21 @@ export type Database = {
         Returns: undefined
       }
       restaurar_coluna: { Args: { p_coluna: string }; Returns: undefined }
+      turno_resumo_financeiro: {
+        Args: { p_referencia: string }
+        Returns: string
+      }
+      usuarios_administracao: {
+        Args: never
+        Returns: {
+          criado_em: string
+          email: string
+          id: string
+          nome_exibicao: string
+          nome_supabase: string
+          ultimo_acesso: string
+        }[]
+      }
       usuarios_auditoria: {
         Args: never
         Returns: {

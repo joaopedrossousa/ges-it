@@ -38,7 +38,9 @@ import {
 import { lerFiltrosLancamentos } from "@/lib/filtros-financeiro";
 import { formatarDataISO, formatarMoeda } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
+import { createClient } from "@/lib/supabase/server";
 import { TIPOS_DESPESA } from "@/lib/types";
+import { nomeDoAutor, nomesDeUsuarios, type AutorExibicao } from "@/lib/usuarios-servidor";
 
 import { FiltrosLancamentos } from "./filtros";
 import { LancamentoFormDialog, type LancamentoEditavel } from "./lancamento-form-dialog";
@@ -118,7 +120,10 @@ async function BarraDeFiltros() {
 }
 
 /** Linhas da view vêm com colunas anuláveis; só edita se os dados básicos existirem. */
-function paraEdicao(l: LancamentoLinha): LancamentoEditavel | null {
+function paraEdicao(
+  l: LancamentoLinha,
+  autores: Map<string, AutorExibicao>,
+): LancamentoEditavel | null {
   if (
     !l.id ||
     !l.competencia ||
@@ -146,6 +151,8 @@ function paraEdicao(l: LancamentoLinha): LancamentoEditavel | null {
     aprovacao_ok: l.aprovacao_ok,
     observacao: l.observacao,
     anexo_path: l.anexo_path,
+    lancado_por: nomeDoAutor(autores, l.criado_por),
+    lancado_em: l.created_at,
   };
 }
 
@@ -162,6 +169,11 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
     console.error("Erro ao listar lançamentos:", error);
     return <p className="text-destructive">Não foi possível carregar os lançamentos.</p>;
   }
+  // "Lançado por" no diálogo de edição: nome de exibição de quem criou.
+  const autores = await nomesDeUsuarios(
+    await createClient(),
+    data.map((l) => l.criado_por),
+  );
 
   const filtrando = Boolean(
     filtros.tipo || filtros.situacao || filtros.vencimento || filtros.lojaId || filtros.busca,
@@ -214,7 +226,7 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
             {grupos.map(({ tipo, linhas }) => (
               <Fragment key={tipo}>
                 {linhas.map((l, i) => {
-                  const editavel = paraEdicao(l);
+                  const editavel = paraEdicao(l, autores);
                   return (
                     <TableRow
                       key={l.id ?? i}

@@ -228,7 +228,7 @@ function FormAtividade({
     ...usuarios.map((u) => ({
       value: u.id,
       label: nomeUsuario(u),
-      descricao: u.nome ? u.email : undefined,
+      descricao: u.email,
     })),
   ];
 

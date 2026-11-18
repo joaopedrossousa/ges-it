@@ -42,6 +42,7 @@ export const TABELAS_AUDITORIA = [
   "kanban_comentarios",
   "kanban_colunas",
   "kanban_categorias",
+  "perfis_usuarios",
 ] as const;
 export type TabelaAuditoria = (typeof TABELAS_AUDITORIA)[number];
 
@@ -58,6 +59,7 @@ export const TIPO_REGISTRO_LABEL: Record<TabelaAuditoria, string> = {
   kanban_comentarios: "Comentário de Atividade",
   kanban_colunas: "Coluna do Quadro",
   kanban_categorias: "Categoria de Atividade",
+  perfis_usuarios: "Usuário do Sistema",
 };
 
 export const ACOES_AUDITORIA = ["insercao", "alteracao"] as const;
@@ -210,6 +212,10 @@ const CAMPOS: Record<TabelaAuditoria, Record<string, string>> = {
     nome: "Nome",
     cor: "Cor",
     ativa: "Ativa",
+  },
+  // Migration 027: nome de exibição (Administração > Usuários).
+  perfis_usuarios: {
+    nome_exibicao: "Nome de exibição",
   },
 };
 

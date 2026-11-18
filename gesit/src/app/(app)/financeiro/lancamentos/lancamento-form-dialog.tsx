@@ -46,7 +46,7 @@ import {
   vencimentoNoMes,
 } from "@/lib/financeiro";
 import type { ServicoFinanceiroOpcao } from "@/lib/financeiro-servidor";
-import { hojeEmPalmas } from "@/lib/format";
+import { formatarDataHora, hojeEmPalmas } from "@/lib/format";
 import type { LojaOpcao } from "@/lib/lojas";
 import {
   SITUACOES_PAGAMENTO,
@@ -79,6 +79,9 @@ export type LancamentoEditavel = {
   aprovacao_ok: boolean | null;
   observacao: string | null;
   anexo_path: string | null;
+  /** Quem lançou (nome de exibição, Administração > Usuários) e quando. */
+  lancado_por?: { nome: string; email: string | null } | null;
+  lancado_em?: string | null;
 };
 
 type Props = {
@@ -132,6 +135,15 @@ export function LancamentoFormDialog({
           <DialogDescription>
             Escolha um serviço do catálogo para preencher os campos, ou Avulso para preencher
             à mão. Tudo continua editável.
+            {lancamento?.lancado_por && (
+              <span className="mt-1 block">
+                Lançado por{" "}
+                <span className="font-medium text-foreground" title={lancamento.lancado_por.email ?? undefined}>
+                  {lancamento.lancado_por.nome}
+                </span>
+                {lancamento.lancado_em && ` em ${formatarDataHora(lancamento.lancado_em)}`}.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
         {/* O formulário só existe com o diálogo aberto: reabrir começa do zero. */}

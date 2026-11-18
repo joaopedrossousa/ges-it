@@ -48,6 +48,7 @@ import {
 } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
+import { nomesDeUsuarios } from "@/lib/usuarios-servidor";
 import { TIPO_DISPOSITIVO_LABEL, ehInfraestrutura } from "@/lib/types";
 import { formatarIMEI, formatarLinha } from "@/lib/validators";
 
@@ -161,14 +162,12 @@ async function DetalheDispositivo({
   const descricao = descricaoDispositivo(d);
   const resumo = { id: d.id, descricao, tipo: d.tipo };
 
-  // Imagens: autor por e-mail (quem gravou aparece no log, ver emails_operadores).
+  // Imagens: quem enviou, pelo nome de exibição (Administração > Usuários).
   const linhasImagens = imagensRes.data;
-  const autores = new Map<string, string>();
-  const idsAutores = [...new Set(linhasImagens.flatMap((i) => (i.criado_por ? [i.criado_por] : [])))];
-  if (idsAutores.length) {
-    const { data } = await supabase.rpc("emails_operadores", { p_ids: idsAutores });
-    data?.forEach((u) => autores.set(u.id, u.email));
-  }
+  const autores = await nomesDeUsuarios(
+    supabase,
+    linhasImagens.map((i) => i.criado_por),
+  );
   const imagens: ImagemDispositivo[] = linhasImagens.map((i) => ({
     id: i.id,
     momento: i.momento,
@@ -176,7 +175,7 @@ async function DetalheDispositivo({
     detalhe: [
       i.vinculo?.colaborador?.nome,
       formatarDataHora(i.created_at),
-      i.criado_por ? (autores.get(i.criado_por) ?? "—") : null,
+      i.criado_por ? (autores.get(i.criado_por)?.nome ?? "Usuário removido") : null,
     ]
       .filter(Boolean)
       .join(" · "),

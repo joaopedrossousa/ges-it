@@ -102,7 +102,10 @@ export type ColunaQuadro = { id: string; nome: string; cor: CorKanban };
 
 export type CategoriaKanban = { id: string; nome: string; cor: CorKanban; ativa: boolean };
 
-/** Usuário do sistema (auth.users, via usuarios_sistema). */
+/**
+ * Usuário do sistema (auth.users, via usuarios_sistema). `nome`: o cadastrado
+ * em Administração > Usuários (migration 027) ou, sem ele, o do Supabase.
+ */
 export type UsuarioSistema = { id: string; email: string; nome: string | null };
 
 export type AtividadeQuadro = {
@@ -138,10 +141,41 @@ export type ComentarioAtividade = {
 /** Imagem do comentário: URL assinada de 60 s gerada no clique/carga. */
 export const urlAnexoComentario = (id: string) => `/api/atividades/anexo?id=${id}`;
 
-/** Nome para exibir: o do cadastro, senão o e-mail. */
+/**
+ * Nome para exibir (painel, seletores, comentários, auditoria): igual ao
+ * nomeCurtoUsuario. O e-mail completo vai no title (tituloUsuario) ou como
+ * descrição nos seletores.
+ */
 export function nomeUsuario(u: UsuarioSistema | undefined): string {
-  if (!u) return "Usuário removido";
-  return u.nome || u.email;
+  return nomeCurtoUsuario(u);
+}
+
+/** Primeiro nome, para a saudação ("Olá, João"). */
+export function primeiroNomeUsuario(u: UsuarioSistema | undefined): string | null {
+  if (!u) return null;
+  return nomeCurtoUsuario(u).split(" ")[0] || null;
+}
+
+/**
+ * "joão pedro DE sousa" → "João Pedro de Sousa": iniciais maiúsculas e as
+ * partículas (de, da, do, das, dos, e) em minúsculo, menos na primeira
+ * palavra; partes com hífen também ("ana-maria" → "Ana-Maria").
+ */
+export function capitalizarNome(texto: string): string {
+  const particulas = new Set(["de", "da", "do", "das", "dos", "e"]);
+  return texto
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((palavra, i) => {
+      const minuscula = palavra.toLocaleLowerCase("pt-BR");
+      if (i > 0 && particulas.has(minuscula)) return minuscula;
+      return minuscula
+        .split("-")
+        .map((p) => p.charAt(0).toLocaleUpperCase("pt-BR") + p.slice(1))
+        .join("-");
+    })
+    .join(" ");
 }
 
 /**

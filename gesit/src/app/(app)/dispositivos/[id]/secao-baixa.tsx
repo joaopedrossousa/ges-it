@@ -5,6 +5,7 @@ import { GaleriaAnexos, type ItemGaleria } from "@/components/galeria-anexos";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatarDataHora, formatarDataISO } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { nomeDoAutor, nomesDeUsuarios } from "@/lib/usuarios-servidor";
 import { MOTIVO_BAIXA_LABEL } from "@/lib/types";
 
 /**
@@ -51,11 +52,8 @@ export async function SecaoBaixa({ dispositivoId }: { dispositivoId: string }) {
     );
   }
 
-  let autor = "—";
-  if (baixa.criado_por) {
-    const { data } = await supabase.rpc("emails_operadores", { p_ids: [baixa.criado_por] });
-    autor = data?.[0]?.email ?? "Usuário não encontrado";
-  }
+  // Nome de exibição (Administração > Usuários); e-mail no title.
+  const autor = nomeDoAutor(await nomesDeUsuarios(supabase, [baixa.criado_por]), baixa.criado_por);
 
   const anexos: ItemGaleria[] = [...baixa.anexos]
     .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
@@ -79,7 +77,9 @@ export async function SecaoBaixa({ dispositivoId }: { dispositivoId: string }) {
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <CampoDetalhe rotulo="Motivo">{MOTIVO_BAIXA_LABEL[baixa.motivo]}</CampoDetalhe>
           <CampoDetalhe rotulo="Data da baixa">{formatarDataISO(baixa.data_baixa)}</CampoDetalhe>
-          <CampoDetalhe rotulo="Registrada por">{autor}</CampoDetalhe>
+          <CampoDetalhe rotulo="Registrada por">
+            {autor ? <span title={autor.email ?? undefined}>{autor.nome}</span> : "—"}
+          </CampoDetalhe>
           <CampoDetalhe rotulo="Registrada em">{formatarDataHora(baixa.created_at)}</CampoDetalhe>
           <div className="sm:col-span-2 lg:col-span-4">
             <CampoDetalhe rotulo="Informações da baixa">

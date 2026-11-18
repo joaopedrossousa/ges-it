@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   iniciaisUsuario,
   nomeUsuario,
+  tituloUsuario,
   urlAnexoComentario,
   type ComentarioAtividade,
   type UsuarioSistema,
@@ -352,7 +353,9 @@ function ItemComentario({
           {c.autor_id ? iniciaisUsuario(autor) : "?"}
         </span>
         <div className="min-w-0 flex-1 text-sm leading-tight">
-          <p className="truncate font-medium">{nomeAutor}</p>
+          <p className="truncate font-medium" title={tituloUsuario(autor)}>
+            {nomeAutor}
+          </p>
           <p className="text-xs text-muted-foreground">
             {formatarDataHora(c.created_at)}
             {c.editado_em && (

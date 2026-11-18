@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { capitalizarNome } from "./atividades";
 import { hojeEmPalmas } from "./format";
 import { PERIFERICOS } from "./perifericos";
 import {
@@ -527,6 +528,15 @@ export const imagensDispositivoSchema = z.object({
     .min(1, "Envie ao menos uma imagem.")
     .max(20, "Envie no máximo 20 imagens por vez."),
 });
+
+/**
+ * Nome de exibição do usuário do sistema (Administração > Usuários,
+ * migration 027): obrigatório, até 100 caracteres, iniciais maiúsculas.
+ */
+export const nomeExibicaoSchema = z.object({
+  nome: textoObrigatorio("o nome de exibição", 100).transform(capitalizarNome),
+});
+export type NomeExibicaoInput = z.input<typeof nomeExibicaoSchema>;
 
 // ===========================================================================
 // Gestão Financeira (migration 015)

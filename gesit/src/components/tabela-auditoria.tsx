@@ -45,7 +45,7 @@ export function TabelaAuditoria({ linhas, mostrarRegistro, vazio }: Props) {
         {linhas.map((l) => (
           <TableRow key={l.id} className="align-top">
             <TableCell className="whitespace-nowrap">{formatarDataHora(l.quando)}</TableCell>
-            <TableCell className="max-w-56 truncate" title={l.usuario}>
+            <TableCell className="max-w-56 truncate" title={l.usuarioEmail ?? l.usuario}>
               {l.usuario}
             </TableCell>
             <TableCell>

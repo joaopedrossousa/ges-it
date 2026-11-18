@@ -8,7 +8,7 @@ import {
   type Alteracao,
   type NomesAuditoria,
 } from "@/lib/auditoria";
-import { nomeUsuario } from "@/lib/atividades";
+import { nomeCurtoUsuario, nomeUsuario } from "@/lib/atividades";
 import type { Json } from "@/lib/database.types";
 import { descricaoDispositivo } from "@/lib/dispositivos";
 import { formatarCompetenciaCurta, nomeFinanceiro } from "@/lib/financeiro";
@@ -54,7 +54,10 @@ export type LinhaAuditoriaBruta = {
 export type LinhaAuditoria = {
   id: number;
   quando: string;
+  /** Nome de exibição de quem fez (Administração > Usuários). */
   usuario: string;
+  /** E-mail de quem fez (tooltip e Excel). */
+  usuarioEmail: string | null;
   acao: string;
   codigoAcao: AcaoAuditoria;
   tipoRegistro: string;
@@ -185,9 +188,6 @@ export async function montarLinhasAuditoria(
     ...porTabela("kanban_categorias"),
     ...idsDaLista(linhas, "categorias"),
   ]);
-  const temResponsavel =
-    idsDoCampo(linhas, "responsavel_id").length > 0 || idsDoCampo(linhas, "urgente_por").length > 0;
-
   const [
     lojas,
     colaboradores,
@@ -226,13 +226,12 @@ export async function montarLinhasAuditoria(
     emLotes(idsCategoriasKanban, (lote) =>
       supabase.from("kanban_categorias").select("id, nome").in("id", lote),
     ),
-    // Responsável: qualquer usuário do sistema (não só quem aparece no log).
-    temResponsavel
-      ? supabase.rpc("usuarios_sistema").then(({ data, error }) => {
-          if (error) throw new Error(error.message);
-          return data;
-        })
-      : Promise.resolve([]),
+    // Nomes de exibição de todos os usuários do sistema (Administração >
+    // Usuários): quem fez, responsável, quem marcou urgente e perfis.
+    supabase.rpc("usuarios_sistema").then(({ data, error }) => {
+      if (error) throw new Error(error.message);
+      return data;
+    }),
   ]);
   const atividades = new Map(atividadesLista.map((a) => [a.id, a]));
 
@@ -257,6 +256,7 @@ export async function montarLinhasAuditoria(
     ),
   };
   const emails = new Map(usuarios.map((u) => [u.id, u.email]));
+  const emailDe = new Map(usuariosSistema.map((u) => [u.id, u.email]));
 
   const dispositivo = (id: string | undefined) => ({
     texto: (id && nomes.dispositivos.get(id)) || "Dispositivo não encontrado",
@@ -321,6 +321,13 @@ export async function montarLinhasAuditoria(
           ? { texto: `Comentário · ${a.titulo} (arquivada)`, href: "/atividades/arquivadas" }
           : { texto: `Comentário · ${a.titulo}`, href: `/atividades?atividade=${a.id}` };
       }
+      case "perfis_usuarios":
+        return {
+          texto: nomes.usuarios.get(l.registro_id)
+            ? `${nomes.usuarios.get(l.registro_id)} (${emailDe.get(l.registro_id) ?? "e-mail não encontrado"})`
+            : "Usuário do sistema removido",
+          href: "/administracao/usuarios",
+        };
       case "kanban_colunas":
         return {
           texto: nomes.colunasKanban.get(l.registro_id) ?? "Coluna não encontrada",
@@ -343,8 +350,12 @@ export async function montarLinhasAuditoria(
         id: l.id,
         quando: l.alterado_em,
         usuario: l.alterado_por
-          ? (emails.get(l.alterado_por) ?? "Usuário removido")
+          ? (nomes.usuarios.get(l.alterado_por) ??
+            (emails.get(l.alterado_por)
+              ? nomeCurtoUsuario({ id: l.alterado_por, email: emails.get(l.alterado_por) ?? "", nome: null })
+              : "Usuário removido"))
           : "Sistema (fora do app)",
+        usuarioEmail: l.alterado_por ? (emailDe.get(l.alterado_por) ?? emails.get(l.alterado_por) ?? null) : null,
         acao: ACAO_LABEL[l.acao],
         codigoAcao: l.acao,
         tipoRegistro: TIPO_REGISTRO_LABEL[l.tabela],

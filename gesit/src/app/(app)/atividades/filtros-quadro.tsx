@@ -48,7 +48,7 @@ export function BarraFiltros({
   const opcoesUsuarios = [
     { value: TODOS, label: "Todos os responsáveis" },
     { value: SEM_RESPONSAVEL, label: "Sem responsável" },
-    ...usuarios.map((u) => ({ value: u.id, label: nomeUsuario(u), descricao: u.nome ? u.email : undefined })),
+    ...usuarios.map((u) => ({ value: u.id, label: nomeUsuario(u), descricao: u.email })),
   ];
   const valor = (v: string) => v || TODOS;
   const gravar = (chave: keyof FiltrosQuadro) => (v: string) => onChange(chave, v === TODOS ? "" : v);

@@ -15,6 +15,7 @@ import {
   ReceiptTextIcon,
   StoreIcon,
   TagsIcon,
+  UserCogIcon,
   UsersIcon,
   WalletIcon,
   type LucideIcon,
@@ -71,6 +72,7 @@ const GRUPOS: Grupo[] = [
     label: "Administração",
     itens: [
       { href: "/lojas", label: "Lojas", icon: StoreIcon },
+      { href: "/administracao/usuarios", label: "Usuários", icon: UserCogIcon },
       { href: "/auditoria", label: "Auditoria", icon: HistoryIcon },
     ],
   },

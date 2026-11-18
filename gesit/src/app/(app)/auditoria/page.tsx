@@ -11,6 +11,7 @@ import { consultaAuditoria, montarLinhasAuditoria } from "@/lib/auditoria-servid
 import { faixaDaPagina, paginaDoParametro, primeiro } from "@/lib/busca";
 import { lerFiltrosAuditoria, temFiltroAuditoria } from "@/lib/filtros-auditoria";
 import { createClient } from "@/lib/supabase/server";
+import { nomesDeUsuarios } from "@/lib/usuarios-servidor";
 
 import { ExportarAuditoria } from "./exportar-auditoria";
 import { Filtros } from "./filtros";
@@ -58,7 +59,12 @@ async function BarraDeFiltros() {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("usuarios_auditoria");
   if (error) console.error("Erro ao listar usuários da auditoria:", error);
-  return <Filtros usuarios={data ?? []} />;
+  // Nome de exibição (Administração > Usuários) no lugar do e-mail.
+  const nomes = await nomesDeUsuarios(supabase, (data ?? []).map((u) => u.id));
+  const usuarios = (data ?? [])
+    .map((u) => ({ id: u.id, email: u.email, nome: nomes.get(u.id)?.nome ?? u.email }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  return <Filtros usuarios={usuarios} />;
 }
 
 async function TabelaLog({ searchParams }: { searchParams: SearchParams }) {
