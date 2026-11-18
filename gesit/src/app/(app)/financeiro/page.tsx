@@ -10,6 +10,10 @@ import {
   type GastoFilial,
   type MesGasto,
 } from "@/components/financeiro/graficos";
+import {
+  EvolucaoFornecedores,
+  EvolucaoFornecedoresCarregando,
+} from "@/components/financeiro/evolucao-fornecedores";
 import { NomeFinanceiro } from "@/components/financeiro/nome-financeiro";
 import { ResumoMes, ResumoMesCarregando } from "@/components/financeiro/resumo-mes";
 import { SeletorMes } from "@/components/financeiro/seletor-mes";
@@ -39,7 +43,12 @@ import {
   resumirLancamentos,
   somarMeses,
 } from "@/lib/financeiro";
-import { buscarGastosPeriodo, buscarVencimentos } from "@/lib/financeiro-servidor";
+import { montarEvolucao } from "@/lib/financeiro-evolucao";
+import {
+  buscarGastosPeriodo,
+  buscarLancamentosEvolucao,
+  buscarVencimentos,
+} from "@/lib/financeiro-servidor";
 import { formatarDataISO, formatarMoeda } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
 
@@ -100,6 +109,28 @@ export default function PainelFinanceiroPage({ searchParams }: PageProps<"/finan
   );
 }
 
+/**
+ * Evolução Mensal por Fornecedor: todos os lançamentos agrupados no servidor;
+ * período, agrupamento e seleção mudam no navegador. Falha só neste bloco.
+ */
+async function BlocoEvolucaoFornecedor({ mes }: { mes: string }) {
+  await connection(); // sessão (o Supabase lê Date.now()): só na requisição
+  const dados = await buscarLancamentosEvolucao()
+    .then(montarEvolucao)
+    .catch((e: unknown) => {
+      console.error("Erro ao carregar a evolução por fornecedor:", e);
+      return null;
+    });
+  if (!dados) {
+    return (
+      <p role="alert" className="rounded-xl border p-4 text-sm text-destructive">
+        Não foi possível carregar a evolução por fornecedor.
+      </p>
+    );
+  }
+  return <EvolucaoFornecedores dados={dados} mesRef={mes} />;
+}
+
 async function Seletor() {
   await connection(); // horário de Palmas: só na requisição
   return <SeletorMes mesAtual={mesAtualEmPalmas()} />;
@@ -158,6 +189,10 @@ async function ResumoEGraficos({ searchParams }: { searchParams: SearchParams })
       </div>
 
       <GraficoEvolucaoMensal meses={evolucao} />
+
+      <Suspense fallback={<EvolucaoFornecedoresCarregando />}>
+        <BlocoEvolucaoFornecedor mes={mes} />
+      </Suspense>
 
       <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <GraficoGastosPorTipo valores={gastosPorTipo(doMes)} mes={mes} />

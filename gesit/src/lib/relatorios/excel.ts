@@ -133,6 +133,7 @@ export async function gerarExcel(relatorio: Relatorio, meta: MetaRelatorio): Pro
     }
   } else {
     for (const linha of relatorio.linhas) adicionar(valoresDa(linha));
+    if (relatorio.linhaTotal && relatorio.linhas.length) adicionar(valoresDa(relatorio.linhaTotal), true);
     if (resumo && relatorio.linhas.length) {
       adicionar(linhaResumo(0, "Total", relatorio.linhas, ""), true);
     }

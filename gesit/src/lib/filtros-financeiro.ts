@@ -30,9 +30,13 @@ export type FiltrosLancamentos = {
   lojaId?: string;
   /** Fornecedor, descrição, identificador do serviço ou ID de aprovação. */
   busca: string;
+  /** Fornecedor exato (link da Evolução por Fornecedor do Painel). */
+  fornecedor?: string;
+  /** Serviço do catálogo (uuid) ou "avulso" (link da Evolução por Fornecedor). */
+  servico?: string;
 };
 
-/** Lê ?mes, ?tipo, ?situacao, ?venc, ?loja e ?q; valores inválidos são ignorados. */
+/** Lê ?mes, ?tipo, ?situacao, ?venc, ?loja, ?q, ?fornecedor e ?servico; valores inválidos são ignorados. */
 export function lerFiltrosLancamentos(params: Params, agora = new Date()): FiltrosLancamentos {
   const ler = leitor(params);
   const loja = ler("loja");
@@ -43,6 +47,11 @@ export function lerFiltrosLancamentos(params: Params, agora = new Date()): Filtr
     vencimento: vencimentoSchema.safeParse(ler("venc")).data,
     lojaId: z.uuid().safeParse(loja).success ? loja : undefined,
     busca: limparBusca(ler("q") ?? "").slice(0, 100),
+    fornecedor: limparBusca(ler("fornecedor") ?? "").slice(0, 150) || undefined,
+    servico: (() => {
+      const s = ler("servico");
+      return s === "avulso" || z.uuid().safeParse(s).success ? s : undefined;
+    })(),
   };
 }
 

@@ -36,6 +36,7 @@ export const TIPOS_RELATORIO = [
   "financeiro-despesas-periodo",
   "financeiro-despesas-fornecedor",
   "financeiro-pendencias",
+  "financeiro-evolucao-fornecedor",
 ] as const;
 export type TipoRelatorio = (typeof TIPOS_RELATORIO)[number];
 
@@ -77,6 +78,11 @@ export type Relatorio = {
   agruparPor?: string;
   /** Somas em reais no subtotal de cada grupo e no total (em vez de só contar). */
   resumo?: ResumoValores;
+  /**
+   * Linha final de totais por coluna (ex.: "Total Geral" de cada mês), em
+   * destaque e fora da contagem de registros. Só em relatório sem `agruparPor`.
+   */
+  linhaTotal?: Linha;
   /** Texto quando não há linhas. */
   vazio: string;
 };

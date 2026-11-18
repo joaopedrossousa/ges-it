@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import { competenciaDoMes } from "@/lib/financeiro";
+import { SELECT_EVOLUCAO, type LinhaEvolucao } from "@/lib/financeiro-evolucao";
 import type { FiltrosLancamentos } from "@/lib/filtros-financeiro";
 import { createClient } from "@/lib/supabase/server";
 import type { TipoDespesa, VwLancamentoRow } from "@/lib/types";
@@ -66,6 +67,11 @@ export async function buscarLancamentosDoMes(f: FiltrosLancamentos) {
   if (f.situacao) q = q.eq("situacao", f.situacao);
   if (f.vencimento) q = q.eq("situacao_vencimento", f.vencimento);
   if (f.lojaId) q = q.eq("loja_id", f.lojaId);
+  // Vindos do Painel (Evolução por Fornecedor): fornecedor exato (sem
+  // diferenciar maiúsculas) e serviço do catálogo ("avulso" = sem serviço).
+  if (f.fornecedor) q = q.ilike("fornecedor", escaparLike(f.fornecedor));
+  if (f.servico === "avulso") q = q.is("servico_id", null);
+  else if (f.servico) q = q.eq("servico_id", f.servico);
   if (f.busca) {
     q = q.or(
       [
@@ -77,6 +83,11 @@ export async function buscarLancamentosDoMes(f: FiltrosLancamentos) {
     );
   }
   return q;
+}
+
+/** Texto literal no ilike (sem curingas % e _). */
+function escaparLike(texto: string) {
+  return texto.replace(/[\\%_]/g, (c) => "\\" + c);
 }
 
 /** Máximo de linhas por resposta do PostgREST (max-rows padrão do Supabase). */
@@ -100,6 +111,28 @@ export const buscarGastosPeriodo = cache(async (deMes: string, ateMes: string) =
       .select(SELECT_GASTOS)
       .gte("competencia", competenciaDoMes(deMes))
       .lte("competencia", competenciaDoMes(ateMes))
+      .order("competencia")
+      .order("id")
+      .range(de, de + LOTE - 1);
+    if (error) throw new Error(error.message);
+    linhas.push(...data);
+    if (data.length < LOTE) break;
+  }
+  return linhas;
+});
+
+/**
+ * Todos os lançamentos, com os campos da Evolução por Fornecedor (o período
+ * e o agrupamento são escolhidos na tela). Em lotes, ordenação estável.
+ */
+export const buscarLancamentosEvolucao = cache(async (): Promise<LinhaEvolucao[]> => {
+  const supabase = await createClient();
+  const linhas: LinhaEvolucao[] = [];
+  for (let de = 0; de < LIMITE_PAINEL; de += LOTE) {
+    const { data, error } = await supabase
+      .from("vw_lancamentos")
+      .select(SELECT_EVOLUCAO)
+      .neq("situacao", "cancelado")
       .order("competencia")
       .order("id")
       .range(de, de + LOTE - 1);

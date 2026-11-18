@@ -132,6 +132,7 @@ const s = StyleSheet.create({
   linhaCabecalho: { flexDirection: "row", backgroundColor: COR.azul, color: "#FFFFFF", fontWeight: 700 },
   linha: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COR.borda },
   zebra: { backgroundColor: COR.zebra },
+  linhaTotal: { fontWeight: 700, color: COR.azulEscuro, borderTopWidth: 0.75, borderTopColor: COR.azul },
   // Uma linha por célula, com reticências: altura previsível (o Excel traz o texto completo).
   celula: { paddingVertical: PAD_CELULA, paddingHorizontal: 4, maxLines: 1, textOverflow: "ellipsis" },
   grupo: {
@@ -186,7 +187,7 @@ function Celulas({ colunas, linha }: { colunas: Coluna[]; linha?: Linha }) {
 
 /** Tudo o que vai abaixo do cabeçalho da tabela, já achatado. */
 type Item =
-  | { tipo: "linha"; linha: Linha; zebra: boolean }
+  | { tipo: "linha"; linha: Linha; zebra: boolean; destaque?: boolean }
   | { tipo: "grupo"; titulo: string }
   /** Subtotal e total: uma ou mais linhas de texto (o resumo quebra nos "·"). */
   | { tipo: "subtotal"; linhas: string[] }
@@ -221,6 +222,9 @@ function itensDoRelatorio(relatorio: Relatorio): Item[] {
   if (!agruparPor) {
     return [
       ...linhas.map(linhaItem),
+      ...(relatorio.linhaTotal && linhas.length
+        ? [{ tipo: "linha", linha: relatorio.linhaTotal, zebra: false, destaque: true } satisfies Item]
+        : []),
       {
         tipo: "total",
         linhas: resumido("Total", linhas, 9, contar(linhas.length, "registro", "registros")),
@@ -288,7 +292,7 @@ function ItemTabela({ item, colunas }: { item: Item; colunas: Coluna[] }) {
   switch (item.tipo) {
     case "linha":
       return (
-        <View style={item.zebra ? [s.linha, s.zebra] : s.linha}>
+        <View style={[s.linha, ...(item.zebra ? [s.zebra] : []), ...(item.destaque ? [s.linhaTotal] : [])]}>
           <Celulas colunas={colunas} linha={item.linha} />
         </View>
       );

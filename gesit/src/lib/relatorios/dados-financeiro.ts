@@ -8,6 +8,7 @@ import {
   competenciaDoMes,
   formatarCompetenciaCurta,
   formatarMes,
+  lerMes,
   mesAtualEmPalmas,
   mesesEntre,
   nomeFinanceiro,
@@ -18,6 +19,18 @@ import {
   somarReais,
 } from "@/lib/financeiro";
 import { limparBusca } from "@/lib/busca";
+import {
+  AGRUPAMENTOS_EVOLUCAO,
+  PERIODOS_EVOLUCAO,
+  ehAgrupamentoEvolucao,
+  ehPeriodoEvolucao,
+  mesesDoPeriodo,
+  montarEvolucao,
+  tabelaEvolucao,
+  textoVariacao,
+  type DadosEvolucao,
+} from "@/lib/financeiro-evolucao";
+import { buscarLancamentosEvolucao } from "@/lib/financeiro-servidor";
 import { formatarMoeda } from "@/lib/format";
 import { TIPOS_DESPESA, type SituacaoPagamento, type TipoDespesa, type VwLancamentoRow } from "@/lib/types";
 
@@ -29,7 +42,7 @@ import {
   type Gerador,
   type Supabase,
 } from "./comum";
-import { ErroRelatorio, type Coluna, type Linha, type ResumoValores } from "./tipos";
+import { ErroRelatorio, type Coluna, type Linha, type Relatorio, type ResumoValores } from "./tipos";
 
 /**
  * Relatórios da Gestão Financeira (migrations 015 e 016). Valores sempre sem
@@ -487,9 +500,101 @@ const pendencias: Gerador = async (supabase, params) => {
   };
 };
 
+// ===========================================================================
+// Evolução Mensal por Fornecedor (tabela do Painel)
+// ===========================================================================
+
+/** O PDF tem uma coluna por mês: acima disso as células não cabem na página. */
+const MAX_MESES_PDF = 12;
+
+/**
+ * Mesmos dados e regra da tabela "Evolução Mensal por Fornecedor" do Painel
+ * (cancelados fora): ?mes (fim do período), ?periodo (6m, 12m, ano, tudo)
+ * e ?agrupamento (fornecedor ou servico).
+ */
+const evolucaoFornecedor: Gerador = async (_supabase, params) =>
+  relatorioEvolucao(montarEvolucao(await buscarLancamentosEvolucao()), params);
+
+/** Monta o relatório a partir dos dados já agrupados (puro). */
+export function relatorioEvolucao(dados: DadosEvolucao, params: URLSearchParams): Relatorio {
+  const mes = lerMes(params.get("mes"));
+  const p = params.get("periodo");
+  const periodo = ehPeriodoEvolucao(p) ? p : "12m";
+  const a = params.get("agrupamento");
+  const agrupamento = ehAgrupamentoEvolucao(a) ? a : "fornecedor";
+
+  const meses = mesesDoPeriodo(periodo, mes, dados);
+  if (params.get("formato") === "pdf" && meses.length > MAX_MESES_PDF) {
+    throw new ErroRelatorio(
+      422,
+      `O PDF aceita até ${MAX_MESES_PDF} meses e este período tem ${meses.length}. Escolha um período menor ou exporte em Excel.`,
+    );
+  }
+  const t = tabelaEvolucao(dados[agrupamento], meses);
+  const rotuloMes = (m: string) => {
+    const [ano, mm] = m.split("-");
+    const nome = new Date(Number(ano), Number(mm) - 1, 15)
+      .toLocaleDateString("pt-BR", { month: "short" })
+      .replace(".", "");
+    return `${nome.charAt(0).toUpperCase()}${nome.slice(1)}/${ano.slice(2)}`;
+  };
+
+  const colunas: Coluna[] = [
+    { chave: "nome", titulo: agrupamento === "fornecedor" ? "Fornecedor" : "Serviço", peso: 2.4 },
+    ...meses.map((m, i): Coluna => ({ chave: `m${i}`, titulo: rotuloMes(m), tipo: "moeda", peso: 1 })),
+    { chave: "total", titulo: "Total", tipo: "moeda", peso: 1.1 },
+    { chave: "media", titulo: "Média Mensal", tipo: "moeda", peso: 1.1 },
+    { chave: "variacao", titulo: "Variação", peso: 0.8 },
+  ];
+  // No PDF, os valores vão sem o "R$" (chaves p*), senão 12 meses não cabem
+  // na largura da página; o Excel recebe os números (moeda).
+  const reais = (v: number) =>
+    v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const linha = (nome: string, valores: number[], total: number, media: number, variacao: string): Linha => ({
+    nome,
+    ...Object.fromEntries(valores.flatMap((v, i) => [[`m${i}`, v], [`p${i}`, reais(v)]])),
+    total,
+    media,
+    p_total: reais(total),
+    p_media: reais(media),
+    variacao,
+  });
+  const linhas = t.linhas.map((l) => linha(l.serie.nome, l.valores, l.total, l.media, textoVariacao(l)));
+  const colunasPdf: Coluna[] = [
+    { chave: "nome", titulo: colunas[0].titulo, peso: 2.6 },
+    ...meses.map((m, i): Coluna => ({ chave: `p${i}`, titulo: rotuloMes(m), peso: 1 })),
+    { chave: "p_total", titulo: "Total", peso: 1.15 },
+    { chave: "p_media", titulo: "Média", peso: 1 },
+    { chave: "variacao", titulo: "Variação", peso: 0.85 },
+  ];
+
+  return {
+    slug: `evolucao-por-${agrupamento}`,
+    titulo: `Evolução Mensal por ${agrupamento === "fornecedor" ? "Fornecedor" : "Serviço"}`,
+    aba: "Evolução",
+    orientacao: "paisagem",
+    filtros: [
+      {
+        rotulo: "Período",
+        valor: `${PERIODOS_EVOLUCAO.find((x) => x.valor === periodo)?.rotulo ?? periodo} (${meses.length > 0 ? `${formatarCompetenciaCurta(`${meses[0]}-01`)} a ${formatarCompetenciaCurta(`${meses[meses.length - 1]}-01`)}` : "—"})`,
+      },
+      { rotulo: "Agrupamento", valor: AGRUPAMENTOS_EVOLUCAO.find((x) => x.valor === agrupamento)?.rotulo ?? agrupamento },
+      { rotulo: "Regra", valor: "Valor por competência, cancelados fora (igual à Evolução Mensal)" },
+      { rotulo: "Total do período", valor: formatarMoeda(t.totalGeral) },
+      ...(params.get("formato") === "pdf" ? [{ rotulo: "Valores", valor: "Em reais (R$)" }] : []),
+    ],
+    colunas,
+    colunasPdf,
+    linhas,
+    linhaTotal: linha("Total Geral", t.totais, t.totalGeral, t.mediaGeral, textoVariacao(t.variacaoGeral)),
+    vazio: "Nenhum lançamento no período.",
+  };
+}
+
 export const GERADORES_FINANCEIRO = {
   "financeiro-controle-mensal": controleMensal,
   "financeiro-despesas-periodo": despesasPeriodo,
   "financeiro-despesas-fornecedor": despesasFornecedor,
   "financeiro-pendencias": pendencias,
+  "financeiro-evolucao-fornecedor": evolucaoFornecedor,
 } satisfies Record<string, Gerador>;

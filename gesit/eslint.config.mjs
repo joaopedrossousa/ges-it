@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Temporários de trabalho (CLAUDE.md: apagar ao terminar).
+    ".tmp/**",
   ]),
 ]);
 

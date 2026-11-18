@@ -1,6 +1,7 @@
 import { cn } from "cn";
 import { PencilIcon, PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 import { Fragment, Suspense } from "react";
 
@@ -176,8 +177,27 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
   );
 
   const filtrando = Boolean(
-    filtros.tipo || filtros.situacao || filtros.vencimento || filtros.lojaId || filtros.busca,
+    filtros.tipo ||
+      filtros.situacao ||
+      filtros.vencimento ||
+      filtros.lojaId ||
+      filtros.busca ||
+      filtros.fornecedor ||
+      filtros.servico,
   );
+  // Vindo da Evolução por Fornecedor do Painel: diz o que está filtrado e como limpar.
+  const servicoFiltrado =
+    filtros.servico && filtros.servico !== "avulso"
+      ? servicos.find((s) => s.id === filtros.servico)
+      : undefined;
+  const filtroPainel =
+    filtros.servico === "avulso"
+      ? `Avulsos — ${filtros.fornecedor ?? "todos os fornecedores"}`
+      : servicoFiltrado
+        ? nomeFinanceiro(servicoFiltrado)
+        : filtros.servico
+          ? "Serviço não encontrado"
+          : filtros.fornecedor;
   const grupos = TIPOS_DESPESA.map((tipo) => ({
     tipo,
     linhas: data.filter((l) => l.tipo === tipo),
@@ -193,6 +213,28 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
           Cancelados ficam fora dos totais.
           {filtrando && " Totais calculados com os filtros aplicados."}
         </p>
+        {filtroPainel && (
+          <p className="flex flex-wrap items-center gap-2 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-2 text-sm">
+            <span>
+              Mostrando só <strong className="font-medium">{filtroPainel}</strong>.
+            </span>
+            <Link
+              href={`/financeiro/lancamentos?${new URLSearchParams(
+                Object.entries({
+                  mes: filtros.mes,
+                  tipo: filtros.tipo,
+                  situacao: filtros.situacao,
+                  venc: filtros.vencimento,
+                  loja: filtros.lojaId,
+                  q: filtros.busca,
+                }).filter((par): par is [string, string] => Boolean(par[1])),
+              )}`}
+              className="font-medium text-primary hover:underline"
+            >
+              Limpar este filtro
+            </Link>
+          </p>
+        )}
       </div>
 
       <div className="rounded-lg border">
