@@ -68,10 +68,11 @@ import {
   CLASSES_COR,
   FILTROS_VAZIOS,
   iniciaisUsuario,
-  nomeUsuario,
+  nomeCurtoUsuario,
   passaNosFiltros,
   situacaoPrazo,
   temFiltro,
+  tituloUsuario,
   type AtividadeQuadro,
   type CategoriaKanban,
   type ColunaQuadro,
@@ -788,17 +789,18 @@ function CartaoConteudo({
   return (
     <div
       className={cn(
-        "grid gap-2 rounded-lg border bg-cartao-kanban p-3 text-card-foreground shadow-xs transition-colors hover:border-ring/50 in-focus-visible:ring-3 in-focus-visible:ring-ring/50",
+        // min-w-0 + overflow-hidden: nada (e-mail, nome de categoria) alarga o cartão além da coluna.
+        "grid min-w-0 gap-2 overflow-hidden rounded-lg border bg-cartao-kanban p-3 text-card-foreground shadow-xs transition-colors hover:border-ring/50 in-focus-visible:ring-3 in-focus-visible:ring-ring/50",
         // Urgente: faixa suave à esquerda, no tom pastel do vermelho.
         a.urgente && "border-l-4 border-l-etiqueta-vermelho-texto/40",
         className,
       )}
     >
-      <p className={cn("text-sm leading-snug font-medium break-words", comMenu && "pr-6")}>
+      <p className={cn("min-w-0 text-sm leading-snug font-medium wrap-anywhere", comMenu && "pr-6")}>
         {a.titulo}
       </p>
 
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-1">
         {a.urgente && (
           <Etiqueta cor="vermelho">
             <SirenIcon aria-hidden className="size-3" />
@@ -811,54 +813,64 @@ function CartaoConteudo({
             {c.nome}
           </Etiqueta>
         ))}
-        {a.comentarios > 0 && (
-          <span
-            title={`${a.comentarios} ${a.comentarios === 1 ? "comentário" : "comentários"}`}
-            className="flex items-center gap-0.5 text-xs text-muted-foreground tabular-nums"
-          >
-            <MessageCircleIcon aria-hidden className="size-3.5" />
-            {a.comentarios}
-            <span className="sr-only">{a.comentarios === 1 ? " comentário" : " comentários"}</span>
-          </span>
-        )}
       </div>
 
-      {(a.responsavel_id || a.prazo) && (
-        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          {a.responsavel_id ? (
-            <span className="flex min-w-0 items-center gap-1.5">
+      {/*
+        Rodapé: o responsável (avatar + nome curto) é o que encolhe, com
+        reticências; prazo e comentários nunca encolhem e, sem espaço, descem
+        para a linha de baixo (flex-wrap), alinhados à direita.
+      */}
+      {(a.responsavel_id || a.prazo || a.comentarios > 0) && (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          {a.responsavel_id && (
+            <span
+              className="flex min-w-0 flex-1 basis-24 items-center gap-1.5"
+              title={tituloUsuario(responsavel)}
+            >
               <span
                 aria-hidden
                 className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[0.625rem] font-semibold text-secondary-foreground"
               >
                 {iniciaisUsuario(responsavel)}
               </span>
-              <span className="truncate">
+              <span className="min-w-0 max-w-full truncate">
                 <span className="sr-only">Responsável: </span>
-                {nomeUsuario(responsavel)}
+                {nomeCurtoUsuario(responsavel)}
               </span>
             </span>
-          ) : (
-            <span />
           )}
-          {a.prazo &&
-            (prazo === "vencido" ? (
-              <Etiqueta cor="vermelho" className="shrink-0">
-                <AlarmClockIcon aria-hidden className="size-3" />
-                Vencido em {formatarDataISO(a.prazo)}
-              </Etiqueta>
-            ) : prazo === "hoje" ? (
-              <Etiqueta cor="amarelo" className="shrink-0">
-                <AlarmClockIcon aria-hidden className="size-3" />
-                Vence hoje
-              </Etiqueta>
-            ) : (
-              <span className="flex shrink-0 items-center gap-1">
-                <CalendarIcon aria-hidden className="size-3" />
-                <span className="sr-only">Prazo: </span>
-                {formatarDataISO(a.prazo)}
-              </span>
-            ))}
+          {(a.prazo || a.comentarios > 0) && (
+            <span className="ml-auto flex shrink-0 items-center gap-2">
+              {a.prazo &&
+                (prazo === "vencido" ? (
+                  <Etiqueta cor="vermelho" className="shrink-0">
+                    <AlarmClockIcon aria-hidden className="size-3" />
+                    Vencido em {formatarDataISO(a.prazo)}
+                  </Etiqueta>
+                ) : prazo === "hoje" ? (
+                  <Etiqueta cor="amarelo" className="shrink-0">
+                    <AlarmClockIcon aria-hidden className="size-3" />
+                    Vence hoje
+                  </Etiqueta>
+                ) : (
+                  <span className="flex shrink-0 items-center gap-1">
+                    <CalendarIcon aria-hidden className="size-3" />
+                    <span className="sr-only">Prazo: </span>
+                    {formatarDataISO(a.prazo)}
+                  </span>
+                ))}
+              {a.comentarios > 0 && (
+                <span
+                  title={`${a.comentarios} ${a.comentarios === 1 ? "comentário" : "comentários"}`}
+                  className="flex shrink-0 items-center gap-0.5 tabular-nums"
+                >
+                  <MessageCircleIcon aria-hidden className="size-3.5" />
+                  {a.comentarios}
+                  <span className="sr-only">{a.comentarios === 1 ? " comentário" : " comentários"}</span>
+                </span>
+              )}
+            </span>
+          )}
         </div>
       )}
     </div>

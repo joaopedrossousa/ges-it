@@ -144,6 +144,31 @@ export function nomeUsuario(u: UsuarioSistema | undefined): string {
   return u.nome || u.email;
 }
 
+/**
+ * Nome curto para espaços estreitos (cartão, tela Início): o nome do
+ * cadastro; sem ele, a parte do e-mail antes do @ com iniciais maiúsculas
+ * ("thiago.bertoldo@..." → "Thiago Bertoldo"). O e-mail completo fica no
+ * title (tituloUsuario) e no painel.
+ */
+export function nomeCurtoUsuario(u: UsuarioSistema | undefined): string {
+  if (!u) return "Usuário removido";
+  if (u.nome) return u.nome;
+  const local = u.email.split("@")[0] ?? u.email;
+  return (
+    local
+      .split(/[._-]+/)
+      .filter(Boolean)
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ") || u.email
+  );
+}
+
+/** Texto do tooltip: "Nome (e-mail)" ou só o e-mail. */
+export function tituloUsuario(u: UsuarioSistema | undefined): string | undefined {
+  if (!u) return undefined;
+  return u.nome ? `${u.nome} (${u.email})` : u.email;
+}
+
 /** Até duas iniciais ("joao.silva@..." → "JS"). */
 export function iniciaisUsuario(u: UsuarioSistema | undefined): string {
   if (!u) return "?";

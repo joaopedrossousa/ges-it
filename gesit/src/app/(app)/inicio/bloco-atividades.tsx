@@ -12,7 +12,13 @@ import {
 import { connection } from "next/server";
 
 import { Etiqueta, SeloPrioridade } from "@/components/atividades/etiquetas";
-import { CLASSES_COR, nomeUsuario, situacaoPrazo, type CategoriaKanban } from "@/lib/atividades";
+import {
+  CLASSES_COR,
+  nomeCurtoUsuario,
+  situacaoPrazo,
+  tituloUsuario,
+  type CategoriaKanban,
+} from "@/lib/atividades";
 import {
   listarCategoriasKanban,
   listarColunasAtivas,
@@ -196,7 +202,7 @@ export async function MeusCards() {
                   a.id ? (
                     <ItemBloco key={a.id} href={hrefAtividade(a.id)}>
                       <span className="grid min-w-0 flex-1 gap-1.5">
-                        <span className="font-medium break-words">{a.titulo}</span>
+                        <span className="min-w-0 font-medium wrap-anywhere">{a.titulo}</span>
                         <span className="flex flex-wrap items-center gap-1">
                           {a.urgente && <SeloUrgente />}
                           {a.prioridade && <SeloPrioridade prioridade={a.prioridade} />}
@@ -311,7 +317,7 @@ export async function Urgentes() {
             a.id ? (
               <ItemBloco key={a.id} href={hrefAtividade(a.id)}>
                 <span className="grid min-w-0 flex-1 gap-1.5">
-                  <span className="font-medium break-words">{a.titulo}</span>
+                  <span className="min-w-0 font-medium wrap-anywhere">{a.titulo}</span>
                   <span className="flex flex-wrap items-center gap-1">
                     {a.coluna_nome && a.coluna_cor && (
                       <SeloColuna nome={a.coluna_nome} cor={a.coluna_cor} />
@@ -325,11 +331,20 @@ export async function Urgentes() {
                     <Prazo prazo={a.prazo} hoje={hoje} />
                     <Comentarios n={a.comentarios} />
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {a.responsavel_id
-                      ? nomeUsuario(usuariosPorId.get(a.responsavel_id))
-                      : "Sem responsável"}
-                    {a.urgente_em && ` · urgente desde ${formatarDataHora(a.urgente_em)}`}
+                  <span className="flex min-w-0 flex-wrap gap-x-1 text-xs text-muted-foreground">
+                    <span
+                      className="min-w-0 max-w-full truncate"
+                      title={
+                        a.responsavel_id ? tituloUsuario(usuariosPorId.get(a.responsavel_id)) : undefined
+                      }
+                    >
+                      {a.responsavel_id
+                        ? nomeCurtoUsuario(usuariosPorId.get(a.responsavel_id))
+                        : "Sem responsável"}
+                    </span>
+                    {a.urgente_em && (
+                      <span className="shrink-0">· urgente desde {formatarDataHora(a.urgente_em)}</span>
+                    )}
                   </span>
                 </span>
               </ItemBloco>
@@ -449,7 +464,7 @@ export async function AtividadesRecentes() {
         <ListaBloco>
           {eventos.map((e) => {
             const a = e.atividadeId ? atividadesPorId.get(e.atividadeId) : undefined;
-            const quem = e.autorId ? nomeUsuario(usuariosPorId.get(e.autorId)) : "Sistema";
+            const quem = e.autorId ? nomeCurtoUsuario(usuariosPorId.get(e.autorId)) : "Sistema";
             const Icone = ICONE_EVENTO[e.tipo];
             const href = !a
               ? "/atividades"
