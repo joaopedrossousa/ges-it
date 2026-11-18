@@ -129,6 +129,16 @@ const s = StyleSheet.create({
     maxHeight: ALTURA_FILTROS - 8,
   },
   filtroRotulo: { fontWeight: 700, color: COR.azulEscuro },
+  // Quadros de resumo (ex.: por responsável e por prioridade), abaixo dos filtros.
+  resumo: {
+    marginBottom: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    borderWidth: 0.75,
+    borderColor: COR.borda,
+    borderLeftWidth: 2,
+    borderLeftColor: COR.azul,
+  },
   linhaCabecalho: { flexDirection: "row", backgroundColor: COR.azul, color: "#FFFFFF", fontWeight: 700 },
   linha: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: COR.borda },
   zebra: { backgroundColor: COR.zebra },
@@ -227,7 +237,12 @@ function itensDoRelatorio(relatorio: Relatorio): Item[] {
         : []),
       {
         tipo: "total",
-        linhas: resumido("Total", linhas, 9, contar(linhas.length, "registro", "registros")),
+        linhas: resumido(
+          "Total",
+          linhas,
+          9,
+          `Total: ${contar(linhas.length, ...(relatorio.unidade ?? ["registro", "registros"]))}`,
+        ),
       },
     ];
   }
@@ -252,6 +267,28 @@ function itensDoRelatorio(relatorio: Relatorio): Item[] {
   ];
 }
 
+/** Quadros de resumo da primeira página, cada um já quebrado em linhas (pelos "·"). */
+function quadrosDoRelatorio(relatorio: Relatorio) {
+  const largura = larguraUtil(relatorio.orientacao) - 12; // padding do quadro
+  return (relatorio.quadrosResumo ?? []).map((q) => {
+    const partes = q.itens.length
+      ? q.itens.map((i) => `${i.rotulo} (${i.valor.toLocaleString("pt-BR")})`)
+      : ["—"];
+    // O título entra na conta da primeira linha e sai do texto (vai em negrito à parte).
+    const prefixo = `${q.titulo}: `;
+    const linhas = quebrar([prefixo + partes[0], ...partes.slice(1)], FONTE, largura);
+    linhas[0] = linhas[0].slice(prefixo.length);
+    return { titulo: q.titulo, linhas };
+  });
+}
+
+/** Altura do quadro de resumo (0 sem quadros); mesma conta de ALTURA_FILTROS. */
+function alturaQuadros(quadros: ReturnType<typeof quadrosDoRelatorio>) {
+  if (quadros.length === 0) return 0;
+  const linhas = quadros.reduce((n, q) => n + q.linhas.length, 0);
+  return 8 + 10 + 1.5 + linhas * FONTE * ENTRELINHA + 4;
+}
+
 /** Altura do item, contando as linhas a mais do subtotal/total que quebrou. */
 function alturaDe(item: Item) {
   if (item.tipo === "subtotal" || item.tipo === "total") {
@@ -265,13 +302,13 @@ function alturaDe(item: Item) {
  * Deixar o react-pdf quebrar uma tabela longa custa tempo quadrático
  * (5.000 linhas: ~5 min); com páginas prontas e alturas fixas, é linear.
  */
-function paginar(itens: Item[], orientacao: Relatorio["orientacao"]): Item[][] {
+function paginar(itens: Item[], orientacao: Relatorio["orientacao"], extraPrimeira = 0): Item[][] {
   const alturaPagina = orientacao === "paisagem" ? A4.curto : A4.longo;
   const util = alturaPagina - MARGEM.topo - MARGEM.base - ALTURA_TOPO - FOLGA;
 
   const paginas: Item[][] = [];
   let atual: Item[] = [];
-  let livre = util - ALTURA_FILTROS;
+  let livre = util - ALTURA_FILTROS - extraPrimeira;
   for (const item of itens) {
     const altura = alturaDe(item);
     if (altura > livre && atual.length) {
@@ -313,8 +350,9 @@ function DocumentoRelatorio({ relatorio, meta }: { relatorio: Relatorio; meta: M
   const colunas = relatorio.colunasPdf ?? relatorio.colunas;
   // No agrupamento, a coluna do grupo vira o título do bloco.
   const colunasTabela = agruparPor ? colunas.filter((c) => c.chave !== agruparPor) : colunas;
+  const quadros = quadrosDoRelatorio(relatorio);
   const paginas = relatorio.linhas.length
-    ? paginar(itensDoRelatorio(relatorio), relatorio.orientacao)
+    ? paginar(itensDoRelatorio(relatorio), relatorio.orientacao, alturaQuadros(quadros))
     : [[]];
   const gerado = `Gerado em ${formatarDataHora(meta.geradoEm)} por ${meta.geradoPor}`;
 
@@ -343,6 +381,17 @@ function DocumentoRelatorio({ relatorio, meta }: { relatorio: Relatorio; meta: M
                 <Text key={f.rotulo}>
                   <Text style={s.filtroRotulo}>{f.rotulo}: </Text>
                   {f.valor}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          {i === 0 && quadros.length > 0 && (
+            <View style={s.resumo}>
+              {quadros.map((q) => (
+                <Text key={q.titulo} style={{ maxLines: q.linhas.length }}>
+                  <Text style={s.filtroRotulo}>{q.titulo}: </Text>
+                  {q.linhas.join("\n")}
                 </Text>
               ))}
             </View>

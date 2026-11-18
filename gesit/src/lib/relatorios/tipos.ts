@@ -37,6 +37,8 @@ export const TIPOS_RELATORIO = [
   "financeiro-despesas-fornecedor",
   "financeiro-pendencias",
   "financeiro-evolucao-fornecedor",
+  // Atividades (dados-atividades.ts)
+  "atividades-concluidas",
 ] as const;
 export type TipoRelatorio = (typeof TIPOS_RELATORIO)[number];
 
@@ -59,6 +61,11 @@ export type Coluna = {
 export type Relatorio = {
   /** Usado no nome do arquivo: gesit-<slug>-AAAA-MM-DD. */
   slug: string;
+  /**
+   * Nome do arquivo sem "gesit-" e sem extensão, quando não for <slug>-<hoje>
+   * (ex.: "atividades-concluidas-2026-11").
+   */
+  arquivo?: string;
   titulo: string;
   /** Nome da aba no Excel (até 31 caracteres). */
   aba: string;
@@ -83,8 +90,26 @@ export type Relatorio = {
    * destaque e fora da contagem de registros. Só em relatório sem `agruparPor`.
    */
   linhaTotal?: Linha;
+  /**
+   * Contagem no total final ("Total: 12 atividades") em vez de "registros".
+   * No Excel, também acrescenta a linha de total (sem `resumo` nem `agruparPor`).
+   */
+  unidade?: [string, string];
+  /**
+   * Quadros de resumo (ex.: total por responsável e por prioridade): no PDF,
+   * no topo da primeira página; no Excel, numa segunda aba "Resumo".
+   */
+  quadrosResumo?: QuadroResumo[];
   /** Texto quando não há linhas. */
   vazio: string;
+};
+
+/** "Por Responsável": [{ rotulo: "Ana Souza", valor: 5 }, ...], já na ordem de exibição. */
+export type QuadroResumo = {
+  titulo: string;
+  /** Cabeçalho das colunas na aba Resumo do Excel: ["Responsável", "Atividades"]. */
+  colunas: [string, string];
+  itens: { rotulo: string; valor: number }[];
 };
 
 /**

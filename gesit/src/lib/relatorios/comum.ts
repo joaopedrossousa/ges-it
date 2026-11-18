@@ -51,3 +51,10 @@ export const dataSemHora = (iso: string | null) => (iso ? new Date(`${iso}T12:00
 
 /** "2026-11-17" → "17/11/2026". */
 export const dataBR = (iso: string) => iso.split("-").reverse().join("/");
+
+/** Dia seguinte, também como "AAAA-MM-DD" (fim exclusivo de um período). */
+export function diaSeguinte(iso: string) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}

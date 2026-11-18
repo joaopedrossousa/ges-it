@@ -3,6 +3,7 @@
 import {
   ArchiveXIcon,
   CalendarRangeIcon,
+  CircleCheckBigIcon,
   FileWarningIcon,
   NetworkIcon,
   StoreIcon,
@@ -24,11 +25,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TODOS } from "@/hooks/use-filtros-url";
+import {
+  PRIORIDADE_LABEL,
+  SEM_RESPONSAVEL,
+  nomeUsuario,
+  type CategoriaKanban,
+  type UsuarioSistema,
+} from "@/lib/atividades";
+import { formatarMes, mesesAoRedor } from "@/lib/financeiro";
+import { TODOS_OS_MESES } from "@/lib/filtros-concluidas";
 import type { LojaOpcao } from "@/lib/lojas";
 import { opcoesLojas } from "@/lib/opcoes-lojas";
 import {
   MOTIVOS_BAIXA,
   MOTIVO_BAIXA_LABEL,
+  PRIORIDADES_ATIVIDADE,
   TIPOS_DISPOSITIVO,
   TIPOS_SERVICO,
   TIPO_DISPOSITIVO_LABEL,
@@ -41,10 +52,25 @@ type Props = {
   periodoPadrao: { de: string; ate: string };
 };
 
+type OpcoesAtividades = {
+  usuarios: UsuarioSistema[];
+  colunas: { id: string; nome: string; arquivada: boolean }[];
+  categorias: CategoriaKanban[];
+};
+
 /** "todos" (sem filtro) vira undefined na query string. */
 const filtro = (valor: string) => (valor === TODOS ? undefined : valor);
 
-export function PainelRelatorios({ lojas, periodoPadrao }: Props) {
+export function PainelRelatorios({
+  lojas,
+  periodoPadrao,
+  mesAtual,
+  atividades,
+}: Props & {
+  /** "AAAA-MM" em Palmas, calculado no servidor. */
+  mesAtual: string;
+  atividades: OpcoesAtividades;
+}) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <PorLoja lojas={lojas} />
@@ -53,6 +79,7 @@ export function PainelRelatorios({ lojas, periodoPadrao }: Props) {
       <SemTermo lojas={lojas} />
       <Servicos lojas={lojas} periodoPadrao={periodoPadrao} />
       <Baixas lojas={lojas} periodoPadrao={periodoPadrao} />
+      <AtividadesConcluidas periodoPadrao={periodoPadrao} mesAtual={mesAtual} opcoes={atividades} />
     </div>
   );
 }
@@ -321,6 +348,161 @@ function Baixas({ lojas, periodoPadrao }: Props) {
         </Select>
       </div>
       <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
+    </CartaoRelatorio>
+  );
+}
+
+const PERIODO_MES = "mes";
+const PERIODO_INTERVALO = "intervalo";
+
+/** Atividades > Concluídas: período por mês (ou todos) ou por intervalo de datas da conclusão. */
+function AtividadesConcluidas({
+  periodoPadrao,
+  mesAtual,
+  opcoes,
+}: {
+  periodoPadrao: Props["periodoPadrao"];
+  mesAtual: string;
+  opcoes: OpcoesAtividades;
+}) {
+  const id = useId();
+  const [tipoPeriodo, setTipoPeriodo] = useState(PERIODO_MES);
+  const [mes, setMes] = useState(mesAtual);
+  const periodo = usePeriodo(periodoPadrao);
+  const [responsavel, setResponsavel] = useState(TODOS);
+  const [coluna, setColuna] = useState(TODOS);
+  const [categoria, setCategoria] = useState(TODOS);
+  const [prioridade, setPrioridade] = useState(TODOS);
+
+  const porMes = tipoPeriodo === PERIODO_MES;
+  // Os últimos 24 meses (conclusão não é futura), do mais recente ao mais antigo.
+  const meses = mesesAoRedor(mesAtual, 24, 0).reverse();
+
+  const opcoesResponsavel = [
+    { value: TODOS, label: "Todos os responsáveis" },
+    { value: SEM_RESPONSAVEL, label: "Sem responsável" },
+    ...opcoes.usuarios.map((u) => ({ value: u.id, label: nomeUsuario(u), descricao: u.email })),
+  ];
+  const opcoesColuna = [
+    { value: TODOS, label: "Todas as colunas" },
+    ...opcoes.colunas.map((c) => ({
+      value: c.id,
+      label: c.arquivada ? `${c.nome} (arquivada)` : c.nome,
+    })),
+  ];
+  const opcoesCategoria = [
+    { value: TODOS, label: "Todas as categorias" },
+    ...opcoes.categorias.map((c) => ({
+      value: c.id,
+      label: c.ativa ? c.nome : `${c.nome} (inativa)`,
+    })),
+  ];
+
+  return (
+    <CartaoRelatorio
+      icone={CircleCheckBigIcon}
+      titulo="Atividades Concluídas"
+      descricao="Atividades do quadro concluídas no período, com responsável, prioridade e quem concluiu. Resumo por responsável e por prioridade."
+      rodape={
+        <ExportarBotoes
+          relatorio="atividades-concluidas"
+          params={{
+            ...(porMes ? { mes } : { de: periodo.de, ate: periodo.ate }),
+            responsavel: filtro(responsavel),
+            coluna: filtro(coluna),
+            categoria: filtro(categoria),
+            prioridade: filtro(prioridade),
+          }}
+          desabilitado={!porMes && Boolean(periodo.erro)}
+        />
+      }
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor={`${id}-tipo-periodo`}>Período da conclusão</Label>
+          <Select value={tipoPeriodo} onValueChange={setTipoPeriodo}>
+            <SelectTrigger id={`${id}-tipo-periodo`} className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={PERIODO_MES}>Por mês</SelectItem>
+              <SelectItem value={PERIODO_INTERVALO}>Intervalo de datas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {porMes && (
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-mes`}>Mês</Label>
+            <Select value={mes} onValueChange={setMes}>
+              <SelectTrigger id={`${id}-mes`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TODOS_OS_MESES}>Todos os meses</SelectItem>
+                {meses.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {formatarMes(m)}
+                    {m === mesAtual && " (atual)"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+      {!porMes && <CamposPeriodo id={id} periodo={periodo} />}
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-responsavel`}>Responsável</Label>
+        <ComboboxLista
+          id={`${id}-responsavel`}
+          opcoes={opcoesResponsavel}
+          value={responsavel}
+          onChange={setResponsavel}
+          placeholderBusca="Buscar usuário..."
+          vazio="Nenhum usuário encontrado."
+        />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor={`${id}-coluna`}>Coluna de origem</Label>
+          <ComboboxLista
+            id={`${id}-coluna`}
+            opcoes={opcoesColuna}
+            value={coluna}
+            onChange={setColuna}
+            placeholderBusca="Buscar coluna..."
+            vazio="Nenhuma coluna encontrada."
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor={`${id}-categoria`}>Categoria</Label>
+          <ComboboxLista
+            id={`${id}-categoria`}
+            opcoes={opcoesCategoria}
+            value={categoria}
+            onChange={setCategoria}
+            placeholderBusca="Buscar categoria..."
+            vazio="Nenhuma categoria encontrada."
+          />
+        </div>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-prioridade`}>Prioridade</Label>
+        <Select value={prioridade} onValueChange={setPrioridade}>
+          <SelectTrigger id={`${id}-prioridade`} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={TODOS}>Todas as prioridades</SelectItem>
+            {PRIORIDADES_ATIVIDADE.map((p) => (
+              <SelectItem key={p} value={p}>
+                {PRIORIDADE_LABEL[p]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <p className="text-xs text-muted-foreground">Padrão: mês atual. Horário de Palmas (TO).</p>
     </CartaoRelatorio>
   );
 }

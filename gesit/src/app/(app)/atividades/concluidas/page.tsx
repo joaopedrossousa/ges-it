@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { AmostraCor, Etiqueta, SeloPrioridade } from "@/components/atividades/etiquetas";
+import { ExportarMenu } from "@/components/exportar";
 import { TabelaCarregando } from "@/components/tabela-carregando";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,11 @@ import {
   listarUsuariosSistema,
 } from "@/lib/atividades-servidor";
 import { formatarMes, mesAtualEmPalmas } from "@/lib/financeiro";
-import { lerFiltrosConcluidas, type FiltrosConcluidas as Filtros } from "@/lib/filtros-concluidas";
+import {
+  TODOS_OS_MESES,
+  lerFiltrosConcluidas,
+  type FiltrosConcluidas as Filtros,
+} from "@/lib/filtros-concluidas";
 import { formatarDataHora } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
@@ -138,10 +143,23 @@ async function TabelaAtividades({ searchParams }: { searchParams: SearchParams }
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-muted-foreground" role="status">
-        {contador(atividades.length, filtros)}
-        {comFiltroExtra && " (com os filtros aplicados)"}.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground" role="status">
+          {contador(atividades.length, filtros)}
+          {comFiltroExtra && " (com os filtros aplicados)"}.
+        </p>
+        {/* Mesmos filtros da tela; o mês vai sempre explícito (o atual também). */}
+        <ExportarMenu
+          relatorio="atividades-concluidas"
+          params={{
+            mes: filtros.mes ?? TODOS_OS_MESES,
+            responsavel: filtros.responsavel || undefined,
+            q: filtros.q || undefined,
+          }}
+          desabilitado={atividades.length === 0}
+          dica="Nenhuma atividade para exportar com esses filtros"
+        />
+      </div>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>

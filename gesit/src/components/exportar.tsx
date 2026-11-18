@@ -105,15 +105,24 @@ type Props = {
   size?: "sm" | "default";
 };
 
-/** Botão "Exportar" com menu PDF / Excel. */
-export function ExportarMenu({ relatorio, params, size = "default" }: Props) {
+/**
+ * Botão "Exportar" com menu PDF / Excel. Com `desabilitado`, a `dica` aparece
+ * ao passar o mouse (no invólucro: o botão desabilitado não recebe o ponteiro).
+ */
+export function ExportarMenu({
+  relatorio,
+  params,
+  size = "default",
+  desabilitado,
+  dica,
+}: Props & { desabilitado?: boolean; dica?: string }) {
   const { gerando, exportar } = useExportar();
 
   return (
-    <>
+    <span className="inline-flex" title={desabilitado ? dica : undefined}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size={size} disabled={gerando !== null}>
+          <Button variant="outline" size={size} disabled={desabilitado || gerando !== null}>
             {gerando ? <Carregando decorativo tamanho="sm" /> : <DownloadIcon />}
             {gerando ? "Gerando..." : "Exportar"}
             {!gerando && <ChevronDownIcon className="opacity-60" />}
@@ -132,7 +141,7 @@ export function ExportarMenu({ relatorio, params, size = "default" }: Props) {
         </DropdownMenuContent>
       </DropdownMenu>
       <AvisoGerando gerando={gerando} />
-    </>
+    </span>
   );
 }
 

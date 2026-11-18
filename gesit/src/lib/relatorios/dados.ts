@@ -54,10 +54,12 @@ import {
   buscarTodas,
   dataBR,
   dataSemHora,
+  diaSeguinte,
   lojaDoParametro,
   nomeDaLoja,
   type Gerador,
 } from "./comum";
+import { GERADORES_ATIVIDADES } from "./dados-atividades";
 import { GERADORES_FINANCEIRO } from "./dados-financeiro";
 import {
   ErroRelatorio,
@@ -550,15 +552,6 @@ const SELECT_MOVIMENTACAO =
 
 const dataSchema = z.iso.date();
 
-/** "2026-11-10" → "10/11/2026". */
-
-/** Dia seguinte, também como "AAAA-MM-DD". */
-function diaSeguinte(iso: string) {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
 /** ?de e ?ate (AAAA-MM-DD); padrão: mês atual em Palmas. */
 export function periodoMovimentacoes(params: URLSearchParams, agora: Date) {
   const hoje = hojeEmPalmas(agora);
@@ -1023,4 +1016,5 @@ export const GERADORES: Record<TipoRelatorio, Gerador> = {
   baixas,
   auditoria,
   ...GERADORES_FINANCEIRO,
+  ...GERADORES_ATIVIDADES,
 };

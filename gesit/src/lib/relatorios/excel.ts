@@ -56,11 +56,7 @@ export async function gerarExcel(relatorio: Relatorio, meta: MetaRelatorio): Pro
     },
   });
 
-  aba.getCell("A1").value = relatorio.titulo;
-  aba.getCell("A1").font = { bold: true, size: 14, color: { argb: AZUL_ESCURO } };
-  aba.getCell("A2").value = `Gerado em ${formatarDataHora(meta.geradoEm)} por ${meta.geradoPor}`;
-  aba.getCell("A3").value = relatorio.filtros.map((f) => `${f.rotulo}: ${f.valor}`).join(" · ");
-  for (const celula of ["A2", "A3"]) aba.getCell(celula).font = { color: { argb: "FF5F6C76" } };
+  escreverContexto(aba, relatorio.titulo, relatorio, meta);
 
   const cabecalho = aba.getRow(LINHA_CABECALHO);
   cabecalho.values = colunas.map((c) => c.titulo);
@@ -136,6 +132,11 @@ export async function gerarExcel(relatorio: Relatorio, meta: MetaRelatorio): Pro
     if (relatorio.linhaTotal && relatorio.linhas.length) adicionar(valoresDa(relatorio.linhaTotal), true);
     if (resumo && relatorio.linhas.length) {
       adicionar(linhaResumo(0, "Total", relatorio.linhas, ""), true);
+    } else if (relatorio.unidade && relatorio.linhas.length) {
+      adicionar(
+        linhaResumo(0, "Total", relatorio.linhas, contar(relatorio.linhas.length, ...relatorio.unidade)),
+        true,
+      );
     }
   }
 
@@ -155,5 +156,71 @@ export async function gerarExcel(relatorio: Relatorio, meta: MetaRelatorio): Pro
     to: { row: Math.max(aba.rowCount, LINHA_CABECALHO), column: colunas.length },
   };
 
+  if (relatorio.quadrosResumo) adicionarAbaResumo(livro, relatorio, meta);
+
   return Buffer.from(await livro.xlsx.writeBuffer());
+}
+
+/** Título, data de geração e filtros nas linhas 1 a 3 da aba. */
+function escreverContexto(aba: ExcelJS.Worksheet, titulo: string, relatorio: Relatorio, meta: MetaRelatorio) {
+  aba.getCell("A1").value = titulo;
+  aba.getCell("A1").font = { bold: true, size: 14, color: { argb: AZUL_ESCURO } };
+  aba.getCell("A2").value = `Gerado em ${formatarDataHora(meta.geradoEm)} por ${meta.geradoPor}`;
+  aba.getCell("A3").value = relatorio.filtros.map((f) => `${f.rotulo}: ${f.valor}`).join(" · ");
+  for (const celula of ["A2", "A3"]) aba.getCell(celula).font = { color: { argb: "FF5F6C76" } };
+}
+
+/**
+ * Aba "Resumo": um quadro por `quadrosResumo` (título, cabeçalho azul, uma
+ * linha por item e o total em destaque), um abaixo do outro.
+ */
+function adicionarAbaResumo(livro: ExcelJS.Workbook, relatorio: Relatorio, meta: MetaRelatorio) {
+  const aba = livro.addWorksheet("Resumo", {
+    pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+  });
+  escreverContexto(aba, `${relatorio.titulo}: Resumo`, relatorio, meta);
+
+  const larguras = [12, 12];
+  let linha = 5;
+  for (const quadro of relatorio.quadrosResumo ?? []) {
+    const titulo = aba.getCell(linha, 1);
+    titulo.value = quadro.titulo;
+    titulo.font = { bold: true, size: 12, color: { argb: AZUL_ESCURO } };
+    linha += 1;
+
+    const cabecalho = aba.getRow(linha);
+    cabecalho.values = quadro.colunas;
+    cabecalho.height = 20;
+    cabecalho.eachCell((celula) => {
+      celula.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      celula.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AZUL } };
+      celula.alignment = { vertical: "middle" };
+    });
+    larguras[0] = Math.max(larguras[0], quadro.colunas[0].length);
+    larguras[1] = Math.max(larguras[1], quadro.colunas[1].length);
+    linha += 1;
+
+    for (const item of quadro.itens) {
+      aba.getRow(linha).values = [item.rotulo, item.valor];
+      larguras[0] = Math.max(larguras[0], item.rotulo.length);
+      linha += 1;
+    }
+    if (quadro.itens.length === 0) {
+      aba.getRow(linha).values = [relatorio.vazio];
+      linha += 1;
+    } else {
+      const total = aba.getRow(linha);
+      total.values = ["Total", quadro.itens.reduce((soma, i) => soma + i.valor, 0)];
+      total.font = { bold: true };
+      total.eachCell((celula) => {
+        celula.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AZUL_CLARO } };
+      });
+      linha += 1;
+    }
+    linha += 1; // linha em branco entre os quadros
+  }
+
+  aba.getColumn(1).width = Math.min(larguras[0] + 2, 60);
+  aba.getColumn(2).width = larguras[1] + 2;
+  aba.getColumn(2).numFmt = FORMATO_NUMERICO.numero ?? "#,##0";
 }

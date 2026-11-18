@@ -59,7 +59,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/relatori
 
     const meta = { geradoEm: agora, geradoPor: email };
     const arquivo = formato === "pdf" ? await gerarPdf(relatorio, meta) : await gerarExcel(relatorio, meta);
-    const nome = `gesit-${relatorio.slug}-${hojeEmPalmas(agora)}.${formato}`;
+    const nome = `gesit-${relatorio.arquivo ?? `${relatorio.slug}-${hojeEmPalmas(agora)}`}.${formato}`;
 
     return new Response(new Uint8Array(arquivo), {
       headers: {
