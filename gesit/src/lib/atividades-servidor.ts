@@ -84,3 +84,10 @@ export async function listarAtividadesAtivas(): Promise<AtividadeQuadro[]> {
   const comentarios = new Map(contagens.map((c) => [c.atividade_id, c.total ?? 0]));
   return linhas.map((l) => paraAtividadeQuadro(l, comentarios.get(l.id) ?? 0));
 }
+
+/** Id do usuário logado (claims do JWT). Uma leitura por requisição. */
+export const usuarioLogadoId = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  return typeof data?.claims.sub === "string" ? data.claims.sub : null;
+});

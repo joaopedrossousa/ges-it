@@ -230,6 +230,12 @@ const CAMPOS_OCULTOS = new Set([
   "autor_id",
 ]);
 
+/**
+ * Flags que nascem falsas e não dizem nada na inclusão ("Removido: Não",
+ * "Arquivada: Não"): só aparecem quando mudam ou nascem verdadeiras.
+ */
+const FLAGS_OCULTAS_NA_INCLUSAO = new Set(["removido", "removida", "arquivada", "urgente"]);
+
 /** Caminhos de arquivo: mostrados como "arquivo anexado/substituído". */
 const CAMPOS_ARQUIVO = new Set(["termo_path", "nota_fiscal_path", "anexo_path", "path"]);
 
@@ -355,6 +361,10 @@ export function descreverAlteracoes(
 
   return linha.campos_alterados
     .filter((campo) => !CAMPOS_OCULTOS.has(campo))
+    .filter(
+      (campo) =>
+        !(linha.acao === "insercao" && FLAGS_OCULTAS_NA_INCLUSAO.has(campo) && depois[campo] === false),
+    )
     .map((campo) => {
       const rotulo = rotuloCampo(linha.tabela, campo);
 

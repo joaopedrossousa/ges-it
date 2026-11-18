@@ -81,6 +81,14 @@ export function detalheFinanceiro({ descricao, identificador }: Nomeavel): strin
 }
 
 /** Nome completo em uma linha (comboboxes, avisos, auditoria, relatórios). */
+/**
+ * Link para a linha do lançamento na tela do mês (destacada pelo #id). Use
+ * com <a>, não <Link>: a navegação completa leva ao #id (a linha chega em
+ * streaming) e ativa o :target.
+ */
+export const hrefLancamento = (id: string, competencia: string) =>
+  `/financeiro/lancamentos?mes=${competencia.slice(0, 7)}#lanc-${id}`;
+
 export function nomeFinanceiro(item: Nomeavel): string {
   return [item.fornecedor || "—", detalheFinanceiro(item)].filter(Boolean).join(" · ");
 }

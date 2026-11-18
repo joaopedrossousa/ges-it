@@ -7,6 +7,7 @@ import {
   FileSpreadsheetIcon,
   ArchiveIcon,
   HistoryIcon,
+  HouseIcon,
   SquareKanbanIcon,
   LayoutDashboardIcon,
   ListChecksIcon,
@@ -31,6 +32,9 @@ type Item = {
 };
 
 type Grupo = { id: string; label: string; itens: Item[] };
+
+/** Tela inicial, aberta logo após o login: primeiro item, fora dos grupos. */
+const INICIO: Item = { href: "/inicio", label: "Início", icon: HouseIcon, exato: true };
 
 const GRUPOS: Grupo[] = [
   {
@@ -104,7 +108,7 @@ function Links({ orientation, pathname }: { orientation: Orientation; pathname: 
   if (orientation === "horizontal") {
     return (
       <nav aria-label="Menu principal" className="flex flex-row gap-1 overflow-x-auto">
-        {GRUPOS.flatMap((g) => g.itens).map((item) => (
+        {[INICIO, ...GRUPOS.flatMap((g) => g.itens)].map((item) => (
           <LinkItem key={item.href} item={item} pathname={pathname} />
         ))}
       </nav>
@@ -133,6 +137,7 @@ function MenuAgrupado({ pathname }: { pathname: string | null }) {
 
   return (
     <nav aria-label="Menu principal" className="flex flex-col gap-3">
+      <LinkItem item={INICIO} pathname={pathname} />
       {GRUPOS.map((g) => {
         const aberto = abertos.has(g.id);
         const listaId = `menu-grupo-${g.id}`;

@@ -20,13 +20,16 @@ const AUTH_ERRORS: Record<string, string> = {
   request_timeout: "O servidor demorou para responder. Tente novamente.",
 };
 
+/** Tela inicial, aberta logo após o login quando não há "next". */
+const INICIO = "/inicio";
+
 /** Aceita apenas caminhos internos, para evitar redirecionamento aberto. */
 function safeNext(next: unknown): string {
-  if (typeof next !== "string") return "/";
+  if (typeof next !== "string") return INICIO;
   if (!next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) {
-    return "/";
+    return INICIO;
   }
-  if (/^\/login(?:[/?#]|$)/.test(next)) return "/";
+  if (/^\/login(?:[/?#]|$)/.test(next)) return INICIO;
   return next;
 }
 

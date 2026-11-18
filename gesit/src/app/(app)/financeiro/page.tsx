@@ -31,6 +31,7 @@ import {
   gastosPorFilial,
   gastosPorMes,
   gastosPorTipo,
+  hrefLancamento,
   lerMes,
   mesAtualEmPalmas,
   mesCurto,
@@ -166,9 +167,6 @@ async function ResumoEGraficos({ searchParams }: { searchParams: SearchParams })
   );
 }
 
-/** Link para a linha do lançamento na tela do mês (destacada pelo #id). */
-const hrefLancamento = (id: string, competencia: string) =>
-  `/financeiro/lancamentos?mes=${competencia.slice(0, 7)}#lanc-${id}`;
 
 async function ListaVencimentos({
   titulo,

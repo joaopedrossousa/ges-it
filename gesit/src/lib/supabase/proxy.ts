@@ -66,7 +66,7 @@ export async function updateSession(request: NextRequest) {
 
   if (isAuthenticated && isPublicPath(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/inicio"; // tela inicial
     url.search = "";
     return redirectWithSession(url, response, authHeaders);
   }
