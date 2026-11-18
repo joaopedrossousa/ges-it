@@ -35,6 +35,13 @@ export default function InicioPage() {
         </Suspense>
       </div>
 
+      {/* Urgentes primeiro, na largura total e em destaque. */}
+      <section aria-label="Urgentes">
+        <Suspense fallback={<BlocoCarregando titulo="Urgentes" icone={SirenIcon} destaque />}>
+          <Urgentes />
+        </Suspense>
+      </section>
+
       <section aria-label="Financeiro" className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <Suspense fallback={<BlocoCarregando titulo="Contas Vencidas" icone={CalendarX2Icon} />}>
           <ContasVencidas />
@@ -46,16 +53,11 @@ export default function InicioPage() {
         </Suspense>
       </section>
 
-      <section aria-label="Atividades" className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      {/* Mesma ordem de antes, sem o Urgentes: Meus Cards, Atividades Recentes e Resumo. */}
+      <section aria-label="Atividades e movimentações" className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <Suspense fallback={<BlocoCarregando titulo="Meus Cards" icone={SquareUserRoundIcon} />}>
           <MeusCards />
         </Suspense>
-        <Suspense fallback={<BlocoCarregando titulo="Urgentes" icone={SirenIcon} />}>
-          <Urgentes />
-        </Suspense>
-      </section>
-
-      <section aria-label="Movimentações" className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <Suspense
           fallback={<BlocoCarregando titulo="Atividades Recentes" icone={HistoryIcon} linhas={6} />}
         >

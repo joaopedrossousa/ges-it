@@ -23,15 +23,43 @@ type Props = {
   acao?: { href: string; rotulo: string };
   children: ReactNode;
   className?: string;
+  /**
+   * Destaque (bloco Urgentes com itens): fundo e contorno no vermelho pastel
+   * das colunas do Kanban (--coluna-vermelho), faixa à esquerda e título no
+   * texto vermelho das etiquetas (contraste validado nos dois temas).
+   */
+  destaque?: boolean;
 };
 
+/** Classes do destaque, por extenso (o Tailwind precisa encontrá-las). */
+const DESTAQUE =
+  "border-l-4 border-l-etiqueta-vermelho-texto/60 bg-coluna-vermelho ring-coluna-vermelho-borda";
+
 /** Cartão de um bloco da tela Início. */
-export function Bloco({ titulo, icone: Icone, corIcone, descricao, acao, children, className }: Props) {
+export function Bloco({
+  titulo,
+  icone: Icone,
+  corIcone,
+  descricao,
+  acao,
+  children,
+  className,
+  destaque,
+}: Props) {
   return (
-    <Card className={cn("min-w-0", className)}>
+    <Card className={cn("min-w-0", destaque && DESTAQUE, className)}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Icone className={cn("size-4 shrink-0 text-muted-foreground", corIcone)} aria-hidden />
+        <CardTitle
+          className={cn("flex items-center gap-2", destaque && "text-etiqueta-vermelho-texto")}
+        >
+          <Icone
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground",
+              corIcone,
+              destaque && "text-etiqueta-vermelho-texto",
+            )}
+            aria-hidden
+          />
           {titulo}
         </CardTitle>
         {descricao && <CardDescription>{descricao}</CardDescription>}
@@ -76,9 +104,19 @@ export function ErroBloco({ titulo, icone }: { titulo: string; icone: LucideIcon
 }
 
 /** Esqueleto enquanto o bloco carrega (fallback do Suspense). */
-export function BlocoCarregando({ titulo, icone, linhas = 4 }: { titulo: string; icone: LucideIcon; linhas?: number }) {
+export function BlocoCarregando({
+  titulo,
+  icone,
+  linhas = 4,
+  destaque,
+}: {
+  titulo: string;
+  icone: LucideIcon;
+  linhas?: number;
+  destaque?: boolean;
+}) {
   return (
-    <Bloco titulo={titulo} icone={icone}>
+    <Bloco titulo={titulo} icone={icone} destaque={destaque}>
       <div className="space-y-3" role="status" aria-label={`Carregando ${titulo}...`}>
         {Array.from({ length: linhas }, (_, i) => (
           <div key={i} className="h-9 animate-pulse rounded bg-muted" />
@@ -88,9 +126,21 @@ export function BlocoCarregando({ titulo, icone, linhas = 4 }: { titulo: string;
   );
 }
 
-/** Lista de itens clicáveis, com divisórias. */
-export function ListaBloco({ children }: { children: ReactNode }) {
-  return <ul className="-mx-2 divide-y">{children}</ul>;
+/**
+ * Lista de itens clicáveis, com divisórias. `grade`: em telas largas, os
+ * itens se dividem em duas colunas (blocos de largura total).
+ */
+export function ListaBloco({ children, grade }: { children: ReactNode; grade?: boolean }) {
+  return (
+    <ul
+      className={cn(
+        "-mx-2",
+        grade ? "grid gap-x-6 lg:grid-cols-2 [&>li]:border-b" : "divide-y",
+      )}
+    >
+      {children}
+    </ul>
+  );
 }
 
 /** Item clicável da lista (o link ocupa a linha inteira). */

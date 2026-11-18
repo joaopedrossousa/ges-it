@@ -258,7 +258,8 @@ export async function Urgentes() {
     <Bloco
       titulo={titulo}
       icone={SirenIcon}
-      corIcone={total > 0 ? "text-etiqueta-vermelho-texto" : undefined}
+      // Destaque só com itens: vazio, o bloco fica neutro ("Tudo em dia").
+      destaque={total > 0}
       descricao={
         total > 0
           ? `${total} ${total === 1 ? "atividade urgente" : "atividades urgentes"} no quadro.`
@@ -270,7 +271,7 @@ export async function Urgentes() {
         <TudoEmDia>Nenhuma atividade urgente.</TudoEmDia>
       ) : (
         <div className="grid gap-3">
-          <ListaBloco>
+          <ListaBloco grade>
             {linhas.map((a) =>
               a.id ? (
                 <ItemBloco key={a.id} href={hrefAtividade(a.id)}>
