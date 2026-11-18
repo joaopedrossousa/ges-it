@@ -45,3 +45,6 @@ supabase/.temp/
 
 # carga de dados reais (CSV e SQL gerado): nunca versionar (repositório público)
 /carga-local/
+
+# arquivos temporários (scripts, saídas intermediárias): apagar ao terminar
+.tmp/

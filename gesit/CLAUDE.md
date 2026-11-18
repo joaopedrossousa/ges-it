@@ -43,6 +43,7 @@ Responda sempre em português do Brasil.
 - Painel /financeiro: cards do mês (Aguardando Aprovação = aguardandoAprovacao em src/lib/financeiro.ts), Evolução Mensal (12 meses, barras empilhadas por tipo) e Gastos por Tipo/Filial em src/components/financeiro/graficos.tsx. Cor fixa por tipo de despesa nos tokens --despesa-* (globals.css), validados com o validate_palette.js da skill dataviz no claro e no escuro: não trocar sem validar de novo. Links do Painel para um lançamento usam <a href="...?mes=AAAA-MM#lanc-<id>"> (a linha tem o id e destaque em :target).
 - Iniciais maiúsculas (partículas em minúsculo: de, da, do, das, dos, e, em, para, por, com, sem, na, no, a, o, como) em menus, títulos de página, seções, cards e diálogos, cabeçalhos de tabela, rótulos de categoria e status (mapas *_LABEL) e títulos/colunas dos relatórios PDF/Excel: "Provedor de Internet", "Situação do Vencimento", "Em Uso". Subtítulos, descrições, botões, rótulos de campo de formulário, opções de filtro e mensagens continuam como frase.
 - Antes de concluir uma tarefa: npm run lint e npm run build sem erros.
+- Nunca criar ou escrever arquivos fora da pasta do projeto (gesit). Para arquivos temporários, usar uma pasta dentro do projeto ignorada pelo Git (ex.: .tmp/, com .tmp/ no .gitignore) e apagar ao terminar.
 
 ## Identidade visual (Produtécnica Agro)
 - Fonte: Roboto (next/font/google, pesos 400, 500 e 700) via --font-sans; Roboto Mono via --font-mono. Definidas em src/app/layout.tsx.
