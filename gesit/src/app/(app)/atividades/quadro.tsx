@@ -43,7 +43,15 @@ import {
   SirenIcon,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState, useTransition, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type KeyboardEvent,
+  type RefObject,
+} from "react";
 import { toast } from "sonner";
 
 import { Etiqueta, SeloPrioridade } from "@/components/atividades/etiquetas";
@@ -119,6 +127,44 @@ function agrupar(colunas: ColunaQuadro[], atividades: AtividadeQuadro[]): Itens 
   return itens;
 }
 
+/**
+ * Altura do quadro = do topo dele até o fim da janela (menos o padding
+ * inferior do <main>), em --altura-quadro. Assim a barra de rolagem
+ * horizontal fica sempre na base da tela e cada coluna rola sozinha. Mede de
+ * novo ao redimensionar e quando o conteúdo acima muda de altura (filtros
+ * quebrando linha). Sem estado do React: só a variável CSS do elemento.
+ */
+function useAlturaAteOFim(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const main = el.closest("main");
+    function medir() {
+      if (!el) return;
+      const topo = el.getBoundingClientRect().top + window.scrollY;
+      // O que fica abaixo do quadro até o fim do <main>: margens inferiores
+      // (no Tailwind 4 o space-y-* põe margem embaixo de cada filho menos o
+      // último, e o dnd-kit insere nós de acessibilidade depois do quadro) e
+      // paddings inferiores dos ancestrais, inclusive o do <main>.
+      let abaixo = 0;
+      for (let n: HTMLElement | null = el; n; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        abaixo += (parseFloat(cs.marginBottom) || 0) + (n === el ? 0 : parseFloat(cs.paddingBottom) || 0);
+        if (n === main) break;
+      }
+      el.style.setProperty("--altura-quadro", `${Math.floor(window.innerHeight - topo - abaixo)}px`);
+    }
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(document.body);
+    window.addEventListener("resize", medir);
+    return () => {
+      observador.disconnect();
+      window.removeEventListener("resize", medir);
+    };
+  }, [ref]);
+}
+
 function colunaDe(id: string, itens: Itens): string | undefined {
   return Object.keys(itens).find((c) => itens[c].includes(id));
 }
@@ -167,6 +213,8 @@ export function Quadro({ colunas, atividades, categorias, usuarios, hoje, usuari
     return id && atividades.some((a) => a.id === id) ? { modo: "editar", id } : null;
   });
   const [editandoColuna, setEditandoColuna] = useState<ColunaQuadro | null>(null);
+  const quadroRef = useRef<HTMLDivElement>(null);
+  useAlturaAteOFim(quadroRef);
   const [arquivandoColuna, setArquivandoColuna] = useState<ColunaQuadro | null>(null);
 
   const colunasPorId = useMemo(() => new Map(colunas.map((c) => [c.id, c])), [colunas]);
@@ -426,8 +474,19 @@ export function Quadro({ colunas, atividades, categorias, usuarios, hoje, usuari
           }}
         >
           <SortableContext items={ordem.map(idColuna)} strategy={horizontalListSortingStrategy}>
-            <div className="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-6 md:px-6">
-              <div className="flex w-max items-start gap-4">
+            {/*
+              Altura de tela (--altura-quadro, medida; calc de reserva) com
+              mínimo: a barra horizontal fica na base da janela e as colunas
+              rolam por dentro. No celular os filtros ocupam muito: o mínimo é
+              quase a tela toda (rola-se a página até o quadro, que então
+              ocupa a tela). O dnd-kit rola sozinho o quadro e as colunas
+              ao arrastar perto das bordas.
+            */}
+            <div
+              ref={quadroRef}
+              className="-mx-4 h-[var(--altura-quadro,calc(100dvh-16rem))] min-h-[calc(100dvh-6rem)] overflow-x-auto overflow-y-hidden px-4 pb-2 md:-mx-6 md:min-h-96 md:px-6"
+            >
+              <div className="flex h-full w-max items-start gap-4">
                 {colunasEmOrdem.map((c, i) => (
                   <ColunaKanban
                     key={c.id}
@@ -561,12 +620,13 @@ function ColunaKanban({
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
         // A cor pinta a coluna inteira, em tom pastel; os cartões ficam neutros.
-        "flex w-72 shrink-0 flex-col rounded-xl border",
+        // max-h-full: a coluna não passa da altura do quadro; a lista rola por dentro.
+        "flex max-h-full w-72 shrink-0 flex-col rounded-xl border",
         CLASSES_COR[coluna.cor].coluna,
         isDragging && "opacity-40",
       )}
     >
-      <header className="flex items-center gap-1.5 p-2 pb-1">
+      <header className="flex shrink-0 items-center gap-1.5 p-2 pb-1">
         <button
           ref={setActivatorNodeRef}
           type="button"
@@ -626,7 +686,10 @@ function ColunaKanban({
       </header>
 
       <SortableContext items={ids.map(idAtividade)} strategy={verticalListSortingStrategy}>
-        <ol className="flex min-h-14 flex-col gap-2 px-2 py-1" aria-labelledby={tituloId}>
+        <ol
+          className="flex min-h-14 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-2 py-1"
+          aria-labelledby={tituloId}
+        >
           {ids.map((id) => {
             const a = atividadesPorId.get(id);
             return a ? (
@@ -650,7 +713,7 @@ function ColunaKanban({
         </ol>
       </SortableContext>
 
-      <div className="p-2 pt-1">
+      <div className="shrink-0 p-2 pt-1">
         <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={onNova}>
           <PlusIcon />
           Nova atividade

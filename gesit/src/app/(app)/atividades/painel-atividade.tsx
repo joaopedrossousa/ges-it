@@ -155,7 +155,7 @@ function FormAtividade({
     control,
     handleSubmit,
     setError,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<AtividadeFormInput, unknown, AtividadeFormData>({
     resolver: zodResolver(atividadeSchema),
     defaultValues: {
@@ -270,8 +270,13 @@ function FormAtividade({
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
+          {/*
+            items-start/content-start: uma célula não estica até a altura da
+            outra (antes, o texto de ajuda da Coluna desalinhava a Prioridade).
+          */}
+          <div className="grid gap-1.5">
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            <div className="grid content-start gap-2">
               <Label htmlFor="at-prioridade">Prioridade</Label>
               <Controller
                 control={control}
@@ -297,7 +302,7 @@ function FormAtividade({
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid content-start gap-2">
               <Label htmlFor="at-coluna">Coluna</Label>
               <Controller
                 control={control}
@@ -326,13 +331,14 @@ function FormAtividade({
                   </Select>
                 )}
               />
-              {atividade && (
-                <p id="at-coluna-ajuda" className="text-xs text-muted-foreground">
-                  Ao trocar, a atividade vai para o fim da coluna.
-                </p>
-              )}
               <MensagemErro id="at-coluna-erro" mensagem={erro("coluna_id")} />
             </div>
+          </div>
+          {atividade && (
+            <p id="at-coluna-ajuda" className="text-xs text-muted-foreground">
+              Ao trocar a coluna, a atividade vai para o fim da nova coluna.
+            </p>
+          )}
           </div>
 
           <div className="grid gap-2">
@@ -356,8 +362,8 @@ function FormAtividade({
             <MensagemErro id="at-categorias-erro" mensagem={erro("categorias")} />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            <div className="grid content-start gap-2">
               <Label htmlFor="at-responsavel">Responsável (opcional)</Label>
               <Controller
                 control={control}
@@ -382,7 +388,7 @@ function FormAtividade({
               <MensagemErro id="at-responsavel-erro" mensagem={erro("responsavel_id")} />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid content-start gap-2">
               <Label htmlFor="at-prazo">Prazo (opcional)</Label>
               <Controller
                 control={control}
@@ -422,26 +428,37 @@ function FormAtividade({
           )}
         </div>
 
-        <SheetFooter>
+        {/*
+          Rodapé fixo (fora da área que rola). Ações à ESQUERDA: o canto
+          inferior direito da tela fica sob o selo "Powered by Netlify" (fixo,
+          fora do app), que cobria o Salvar. Padding inferior (celular) e à
+          direita (telas maiores) deixam tudo fora do selo.
+        */}
+        <SheetFooter className="shrink-0 flex-row flex-wrap items-center gap-2 px-4 pt-3 pb-16 sm:pr-52 sm:pb-5">
+          <Button
+            type="submit"
+            form="form-atividade"
+            disabled={isPending || !isDirty}
+            title={!isDirty && !isPending ? "Nenhuma alteração para salvar" : undefined}
+          >
+            {isPending && <Carregando decorativo tamanho="sm" />}
+            {isPending ? "Salvando..." : "Salvar"}
+          </Button>
+          <Button type="button" variant="outline" onClick={onFechar} disabled={isPending}>
+            Cancelar
+          </Button>
           {atividade && (
             <Button
               type="button"
               variant="destructive"
               onClick={() => setConfirmarArquivo(true)}
               disabled={isPending}
-              className="sm:mr-auto"
+              className="ml-auto"
             >
               <ArchiveIcon />
               Arquivar
             </Button>
           )}
-          <Button type="button" variant="outline" onClick={onFechar} disabled={isPending}>
-            Cancelar
-          </Button>
-          <Button type="submit" form="form-atividade" disabled={isPending}>
-            {isPending && <Carregando decorativo tamanho="sm" />}
-            {isPending ? "Salvando..." : "Salvar"}
-          </Button>
         </SheetFooter>
       </div>
 
