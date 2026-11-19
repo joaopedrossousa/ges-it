@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { NavLinks } from "@/components/layout/nav-links";
+import { RastreadorNavegacao } from "@/components/layout/rastreador-navegacao";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,6 +40,7 @@ async function CurrentUser() {
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-svh w-full">
+      <RastreadorNavegacao />
       <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         {/* Faixa da marca no topo do menu. */}
         <div className="h-1 bg-brand-blue" aria-hidden />

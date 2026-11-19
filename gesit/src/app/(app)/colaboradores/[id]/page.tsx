@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, PencilIcon, UserRoundPlusIcon } from "lucide-react";
+import { PencilIcon, UserRoundPlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
+import { BotaoVoltar } from "@/components/botao-voltar";
 import { CampoDetalhe } from "@/components/campo-detalhe";
 import { DadosPendentesBadge } from "@/components/dados-pendentes-badge";
 import { SecaoAlteracoes, SecaoAlteracoesCarregando } from "@/components/secao-alteracoes";
@@ -54,12 +55,7 @@ export default function ColaboradorPage({
 }: PageProps<"/colaboradores/[id]">) {
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/colaboradores">
-          <ArrowLeftIcon />
-          Colaboradores
-        </Link>
-      </Button>
+      <BotaoVoltar padrao="/colaboradores" />
 
       <Suspense fallback={<DetalheCarregando />}>
         <DetalheColaborador params={params} />

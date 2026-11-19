@@ -1,5 +1,4 @@
 import {
-  ArrowLeftIcon,
   ArrowRightLeftIcon,
   LinkIcon,
   NetworkIcon,
@@ -15,6 +14,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 
 import { AnexarTermoButton } from "@/components/anexar-termo-button";
+import { BotaoVoltar } from "@/components/botao-voltar";
 import { CampoDetalhe } from "@/components/campo-detalhe";
 import { SecaoAlteracoes, SecaoAlteracoesCarregando } from "@/components/secao-alteracoes";
 import { ExportarMenu } from "@/components/exportar";
@@ -67,12 +67,7 @@ export default function DispositivoPage({
 }: PageProps<"/dispositivos/[id]">) {
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link href="/dispositivos">
-          <ArrowLeftIcon />
-          Dispositivos
-        </Link>
-      </Button>
+      <BotaoVoltar padrao="/dispositivos" />
 
       <Suspense fallback={<DetalheCarregando />}>
         <DetalheDispositivo params={params} />
