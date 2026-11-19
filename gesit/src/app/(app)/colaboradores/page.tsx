@@ -117,7 +117,7 @@ async function TabelaColaboradores({
   const linhas = data.map(({ cpf, ...resto }) => ({
     ...resto,
     cpfMascarado: mascararCPF(cpf),
-    pendencias: descreverPendencias({ cpf, email: resto.email, cargo: resto.cargo }),
+    pendencias: descreverPendencias({ cpf, email: resto.email }),
   }));
 
   const total = count ?? linhas.length;

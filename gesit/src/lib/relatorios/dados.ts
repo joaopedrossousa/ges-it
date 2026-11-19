@@ -7,7 +7,7 @@ import {
   identificadorDispositivo,
   nomeDispositivo,
 } from "@/lib/dispositivos";
-import { camposPendentes, type SituacaoColaborador } from "@/lib/colaboradores";
+import { camposEmBranco, type SituacaoColaborador } from "@/lib/colaboradores";
 import { lerFiltrosAuditoria } from "@/lib/filtros-auditoria";
 import {
   condicoesColaboradores,
@@ -554,7 +554,7 @@ const SITUACAO_CABECALHO: Record<SituacaoColaborador, string> = {
   ativos: "Ativos",
   inativos: "Inativos",
   todos: "Todos (Ativos e Inativos)",
-  pendentes: "Dados Pendentes (Ativos sem CPF, E-mail ou Cargo)",
+  pendentes: "Dados Pendentes (Ativos sem CPF ou E-mail)",
 };
 
 /** ?q, ?loja e ?situacao (padrão "ativos"): os mesmos filtros da listagem. */
@@ -628,7 +628,8 @@ const colaboradores: Gerador = async (supabase, params, agora) => {
       // CPF sempre mascarado nos relatórios.
       cpf: mascararCPF(c.cpf),
       situacao: c.ativo ? "Ativo" : "Inativo",
-      pendencias: camposPendentes(c).join(", ") || null,
+      // Pendências (CPF, E-mail) e, como informação, o cargo em branco.
+      pendencias: camposEmBranco(c).join(", ") || null,
       dispositivos: emUso.get(c.id) ?? 0,
     })),
     unidade: ["colaborador", "colaboradores"],

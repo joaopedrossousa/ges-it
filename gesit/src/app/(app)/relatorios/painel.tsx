@@ -294,7 +294,7 @@ function Colaboradores({ lojas }: { lojas: LojaOpcao[] }) {
       </div>
       <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
       <p className="text-xs text-muted-foreground">
-        Dados pendentes: colaboradores ativos sem CPF, sem e-mail ou sem cargo.
+        Dados pendentes: colaboradores ativos sem CPF ou sem e-mail. O cargo em branco aparece na coluna, só como informação.
       </p>
     </CartaoRelatorio>
   );

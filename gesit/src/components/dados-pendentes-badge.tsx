@@ -3,7 +3,7 @@ import { CircleAlertIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 /**
- * Badge âmbar de colaborador sem CPF, sem e-mail ou sem cargo. `detalhe` vem de
+ * Badge âmbar de colaborador sem CPF e/ou sem e-mail. `detalhe` vem de
  * descreverPendencias (src/lib/colaboradores.ts); vazio = não mostra nada.
  */
 export function DadosPendentesBadge({ detalhe }: { detalhe: string }) {
