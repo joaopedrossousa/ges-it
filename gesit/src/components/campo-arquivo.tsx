@@ -20,10 +20,22 @@ type Props = {
   descritoPor?: string;
 };
 
+/** "Termo ... Rodrigues.pdf" → ["Termo ... Rodrigues", ".pdf"]; sem extensão, [nome, ""]. */
+function separarExtensao(nome: string): [string, string] {
+  const ponto = nome.lastIndexOf(".");
+  // Extensão curta (até 8 caracteres) e com algo antes do ponto.
+  return ponto > 0 && nome.length - ponto <= 9 ? [nome.slice(0, ponto), nome.slice(ponto)] : [nome, ""];
+}
+
 /**
  * Campo de arquivo em português: nome do arquivo (ou "Nenhum arquivo
  * selecionado") à esquerda e o botão "Escolher arquivo" à direita; depois de
  * escolher, o botão vira "Remover". O <input type="file"> fica escondido.
+ *
+ * Nome longo: as reticências ficam antes da extensão ("Termo de Respons….pdf")
+ * e o nome completo vai no title. O min-w-0 na raiz é o que impede o campo de
+ * alargar o diálogo: dentro de grid/flex, um item tem min-width: auto, e a
+ * largura mínima de um texto com truncate (sem quebra) é o nome inteiro.
  */
 export function CampoArquivo({
   id,
@@ -44,7 +56,7 @@ export function CampoArquivo({
   return (
     <div
       className={cn(
-        "flex min-h-10 items-center gap-2 rounded-lg border border-input py-1 pr-1 pl-2.5 text-sm dark:bg-input/30",
+        "flex min-h-10 w-full min-w-0 items-center gap-2 rounded-lg border border-input py-1 pr-1 pl-2.5 text-sm dark:bg-input/30",
         invalid && "border-destructive ring-3 ring-destructive/20",
         disabled && "opacity-50",
       )}
@@ -70,10 +82,14 @@ export function CampoArquivo({
       <FileIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       <span
         id={nomeId}
-        className={cn("min-w-0 flex-1 truncate", !arquivo && "text-muted-foreground")}
+        className={cn("flex min-w-0 flex-1", !arquivo && "text-muted-foreground")}
         title={arquivo?.name}
       >
-        {arquivo ? arquivo.name : "Nenhum arquivo selecionado"}
+        {arquivo ? (
+          <NomeArquivo nome={arquivo.name} />
+        ) : (
+          <span className="truncate">Nenhum arquivo selecionado</span>
+        )}
       </span>
       {arquivo ? (
         <Button
@@ -105,5 +121,16 @@ export function CampoArquivo({
         </Button>
       )}
     </div>
+  );
+}
+
+/** Nome com reticências antes da extensão; o leitor de tela lê o nome inteiro. */
+function NomeArquivo({ nome }: { nome: string }) {
+  const [base, extensao] = separarExtensao(nome);
+  return (
+    <>
+      <span className="truncate">{base}</span>
+      {extensao && <span className="shrink-0">{extensao}</span>}
+    </>
   );
 }

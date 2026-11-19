@@ -79,7 +79,7 @@ export function GaleriaAnexos({
 
   return (
     <>
-      <ul className={cn("flex flex-wrap gap-3", className)} aria-label={rotulo}>
+      <ul className={cn("flex min-w-0 flex-wrap gap-3", className)} aria-label={rotulo}>
         {itens.map((item) => (
           <li key={item.chave} className={cn("group relative", t.item)}>
             {item.tipo === "imagem" ? (
@@ -165,7 +165,7 @@ export function GaleriaAnexos({
         >
           {atual && (
             <>
-              <DialogTitle className="truncate pr-8">{atual.legenda || atual.nome}</DialogTitle>
+              <DialogTitle className="min-w-0 truncate pr-8" title={atual.legenda || atual.nome}>{atual.legenda || atual.nome}</DialogTitle>
               <DialogDescription className={atual.detalhe ? undefined : "sr-only"}>
                 {atual.detalhe ??
                   `Imagem ${(aberta ?? 0) + 1} de ${imagens.length}. Use as setas para navegar.`}

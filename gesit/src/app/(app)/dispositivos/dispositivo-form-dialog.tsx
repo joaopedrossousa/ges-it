@@ -645,7 +645,7 @@ function SecaoImagensForm({
 }) {
   if (dispositivo?.status === "baixado") return null;
   return (
-    <fieldset className="grid gap-3 rounded-lg border p-3">
+    <fieldset className="grid min-w-0 gap-3 rounded-lg border p-3">
       <legend className="px-1 text-sm font-medium">Imagens (opcional)</legend>
       {imagens.itens.length > 0 && (
         <div className="grid gap-2 sm:max-w-56">

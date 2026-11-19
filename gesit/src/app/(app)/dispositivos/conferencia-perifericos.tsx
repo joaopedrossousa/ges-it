@@ -58,7 +58,7 @@ export function ConferenciaPerifericos({
 
   return (
     <div className="grid gap-3">
-      <fieldset className="grid gap-2" disabled={disabled}>
+      <fieldset className="grid min-w-0 gap-2" disabled={disabled}>
         <legend className="mb-2 text-sm font-medium">{legenda}</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {opcoes.map((p) => {

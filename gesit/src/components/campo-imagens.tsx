@@ -20,7 +20,7 @@ type Props = {
 export function CampoImagens({ id, rotulo, itens, onChange, disabled }: Props) {
   const ajuda = `${id}-ajuda`;
   return (
-    <div className="grid gap-2">
+    <div className="grid min-w-0 gap-2">
       <Label htmlFor={id}>{rotulo}</Label>
       <CampoAnexos
         id={id}

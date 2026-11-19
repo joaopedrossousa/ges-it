@@ -135,7 +135,8 @@ export function CampoAnexos({
   });
 
   return (
-    <div className="grid gap-3">
+    // min-w-0: nada aqui dentro (nome longo num aviso, miniaturas) alarga o diálogo.
+    <div className="grid min-w-0 gap-3">
       <div
         onDragOver={(e) => {
           if (disabled) return;
@@ -150,7 +151,7 @@ export function CampoAnexos({
           adicionar(Array.from(e.dataTransfer.files));
         }}
         className={cn(
-          "flex flex-col items-center gap-2 rounded-lg border border-dashed border-input px-4 py-5 text-center text-sm dark:bg-input/30",
+          "flex min-w-0 flex-col items-center gap-2 rounded-lg border border-dashed border-input px-4 py-5 text-center text-sm dark:bg-input/30",
           arrastando && "border-brand-green bg-brand-green/10",
           invalid && "border-destructive ring-3 ring-destructive/20",
           disabled && "opacity-50",
@@ -197,7 +198,7 @@ export function CampoAnexos({
       </div>
 
       {avisos.length > 0 && (
-        <ul id={avisosId} role="alert" className="grid gap-0.5 text-sm text-destructive">
+        <ul id={avisosId} role="alert" className="grid min-w-0 gap-0.5 text-sm text-destructive wrap-anywhere">
           {avisos.map((a) => (
             <li key={a}>{a}</li>
           ))}

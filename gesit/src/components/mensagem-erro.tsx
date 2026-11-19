@@ -5,7 +5,7 @@
 export function MensagemErro({ id, mensagem }: { id: string; mensagem?: string }) {
   if (!mensagem) return null;
   return (
-    <p id={id} className="text-sm text-destructive">
+    <p id={id} className="text-sm text-destructive wrap-anywhere">
       {mensagem}
     </p>
   );
