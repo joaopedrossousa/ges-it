@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { z } from "zod";
 
 import { DadosPendentesBadge } from "@/components/dados-pendentes-badge";
+import { ExportarMenu } from "@/components/exportar";
 import { TabelaCarregando } from "@/components/tabela-carregando";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,16 +18,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Paginacao, PaginaInexistente } from "@/components/paginacao";
-import {
-  faixaDaPagina,
-  limparBusca,
-  paginaDoParametro,
-  primeiro,
-} from "@/lib/busca";
-import { descreverPendencias, FILTRO_DADOS_PENDENTES } from "@/lib/colaboradores";
+import { faixaDaPagina, paginaDoParametro, primeiro } from "@/lib/busca";
+import { descreverPendencias, SITUACAO_PADRAO } from "@/lib/colaboradores";
+import { condicoesColaboradores, lerFiltrosColaboradores } from "@/lib/filtros-colaboradores";
 import { listarLojasOpcoes } from "@/lib/lojas";
 import { createClient } from "@/lib/supabase/server";
-import { mascararCPF, somenteDigitos } from "@/lib/validators";
+import { contar } from "@/lib/relatorios/tipos";
+import { mascararCPF } from "@/lib/validators";
 
 import { ColaboradorFormDialog } from "./colaborador-form-dialog";
 import { Filtros } from "./filtros";
@@ -86,10 +83,8 @@ async function TabelaColaboradores({
 }) {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const params = await searchParams;
-  const busca = limparBusca(primeiro(params.q) ?? "").slice(0, 100);
-  const lojaParam = primeiro(params.loja);
-  const lojaId = z.uuid().safeParse(lojaParam).success ? lojaParam : undefined;
-  const pendentes = primeiro(params.pendentes) === "1";
+  const filtros = lerFiltrosColaboradores(params);
+  const { ativo, lojaId, ou } = condicoesColaboradores(filtros);
 
   const pagina = paginaDoParametro(primeiro(params.page));
   const { de, ate } = faixaDaPagina(pagina);
@@ -102,26 +97,9 @@ async function TabelaColaboradores({
     .order("id") // desempate estável entre páginas
     .range(de, ate);
 
+  if (ativo !== undefined) query = query.eq("ativo", ativo);
   if (lojaId) query = query.eq("loja_id", lojaId);
-
-  const filtroBusca: string[] = [];
-  if (busca) {
-    filtroBusca.push(
-      `nome.ilike.%${busca}%`,
-      `cargo.ilike.%${busca}%`,
-      `email.ilike.%${busca}%`,
-    );
-    const digitos = somenteDigitos(busca);
-    if (digitos.length >= 3) filtroBusca.push(`cpf.like.%${digitos}%`);
-  }
-  // Busca e pendências são dois "ou" que precisam valer juntos: um .or só.
-  if (busca && pendentes) {
-    query = query.or(`and(or(${FILTRO_DADOS_PENDENTES}),or(${filtroBusca.join(",")}))`);
-  } else if (busca) {
-    query = query.or(filtroBusca.join(","));
-  } else if (pendentes) {
-    query = query.or(FILTRO_DADOS_PENDENTES);
-  }
+  if (ou) query = query.or(ou);
 
   const { data, count, error } = await query;
 
@@ -139,13 +117,31 @@ async function TabelaColaboradores({
   const linhas = data.map(({ cpf, ...resto }) => ({
     ...resto,
     cpfMascarado: mascararCPF(cpf),
-    pendencias: descreverPendencias({ cpf, email: resto.email }),
+    pendencias: descreverPendencias({ cpf, email: resto.email, cargo: resto.cargo }),
   }));
 
-  const filtrando = Boolean(busca || lojaId || pendentes);
+  const total = count ?? linhas.length;
+  const filtrando = Boolean(filtros.busca || lojaId || filtros.situacao !== SITUACAO_PADRAO);
 
   return (
     <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground" role="status">
+          {contar(total, "colaborador", "colaboradores")}
+          {filtrando && " (com os filtros aplicados)"}.
+        </p>
+        {/* Mesmos filtros da tela; a situação vai sempre explícita (vira o nome do arquivo). */}
+        <ExportarMenu
+          relatorio="colaboradores"
+          params={{
+            q: filtros.busca || undefined,
+            loja: lojaId,
+            situacao: filtros.situacao,
+          }}
+          desabilitado={total === 0}
+          dica="Nenhum colaborador para exportar com esses filtros"
+        />
+      </div>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -167,7 +163,7 @@ async function TabelaColaboradores({
                 >
                   {filtrando
                     ? "Nenhum colaborador encontrado com esses filtros."
-                    : "Nenhum colaborador cadastrado."}
+                    : "Nenhum colaborador ativo cadastrado."}
                 </TableCell>
               </TableRow>
             )}
@@ -219,7 +215,7 @@ async function TabelaColaboradores({
         pathname="/colaboradores"
         params={params}
         pagina={pagina}
-        total={count ?? linhas.length}
+        total={total}
         rotulo={["colaborador", "colaboradores"]}
       />
     </div>

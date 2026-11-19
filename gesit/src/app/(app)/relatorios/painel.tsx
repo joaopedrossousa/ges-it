@@ -7,6 +7,7 @@ import {
   FileWarningIcon,
   NetworkIcon,
   StoreIcon,
+  UsersIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useId, useState } from "react";
@@ -32,6 +33,7 @@ import {
   type CategoriaKanban,
   type UsuarioSistema,
 } from "@/lib/atividades";
+import { OPCOES_SITUACAO_COLABORADOR, SITUACAO_PADRAO } from "@/lib/colaboradores";
 import { formatarMes, mesesAoRedor } from "@/lib/financeiro";
 import { TODOS_OS_MESES } from "@/lib/filtros-concluidas";
 import type { LojaOpcao } from "@/lib/lojas";
@@ -77,6 +79,7 @@ export function PainelRelatorios({
       <Infraestrutura lojas={lojas} />
       <Movimentacoes periodoPadrao={periodoPadrao} />
       <SemTermo lojas={lojas} />
+      <Colaboradores lojas={lojas} />
       <Servicos lojas={lojas} periodoPadrao={periodoPadrao} />
       <Baixas lojas={lojas} periodoPadrao={periodoPadrao} />
       <AtividadesConcluidas periodoPadrao={periodoPadrao} mesAtual={mesAtual} opcoes={atividades} />
@@ -256,6 +259,43 @@ function SemTermo({ lojas }: { lojas: LojaOpcao[] }) {
       rodape={<ExportarBotoes relatorio="vinculos-sem-termo" params={{ loja: filtro(loja) }} />}
     >
       <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
+    </CartaoRelatorio>
+  );
+}
+
+function Colaboradores({ lojas }: { lojas: LojaOpcao[] }) {
+  const id = useId();
+  const [situacao, setSituacao] = useState<string>(SITUACAO_PADRAO);
+  const [loja, setLoja] = useState(TODOS);
+
+  return (
+    <CartaoRelatorio
+      icone={UsersIcon}
+      titulo="Colaboradores"
+      descricao="Colaboradores com filial, cargo, contato, dados pendentes e quantidade de dispositivos em uso."
+      rodape={
+        <ExportarBotoes relatorio="colaboradores" params={{ situacao, loja: filtro(loja) }} />
+      }
+    >
+      <div className="grid gap-2">
+        <Label htmlFor={`${id}-situacao`}>Situação</Label>
+        <Select value={situacao} onValueChange={setSituacao}>
+          <SelectTrigger id={`${id}-situacao`} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {OPCOES_SITUACAO_COLABORADOR.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <SelectLoja id={`${id}-loja`} lojas={lojas} valor={loja} onChange={setLoja} />
+      <p className="text-xs text-muted-foreground">
+        Dados pendentes: colaboradores ativos sem CPF, sem e-mail ou sem cargo.
+      </p>
     </CartaoRelatorio>
   );
 }

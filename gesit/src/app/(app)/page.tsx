@@ -579,13 +579,13 @@ async function VinculosSemTermo() {
 
 const LIMITE_PENDENTES = 10;
 
-/** Colaboradores ativos sem CPF e/ou sem e-mail (opcionais desde a migration 013). */
+/** Colaboradores ativos sem CPF, sem e-mail ou sem cargo (descreverPendencias). */
 async function ColaboradoresComDadosPendentes() {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
   const supabase = await createClient();
   const { data, count, error } = await supabase
     .from("colaboradores")
-    .select("id, nome, cpf, email, loja:lojas(nome)", { count: "exact" })
+    .select("id, nome, cpf, email, cargo, loja:lojas(nome)", { count: "exact" })
     .eq("ativo", true)
     .or(FILTRO_DADOS_PENDENTES)
     .order("nome")
@@ -615,8 +615,8 @@ async function ColaboradoresComDadosPendentes() {
         </CardTitle>
         <CardDescription>
           {total === 0
-            ? "Todos os colaboradores ativos têm CPF e e-mail cadastrados."
-            : `${total} ${total === 1 ? "colaborador ativo" : "colaboradores ativos"} sem CPF ou sem e-mail.`}
+            ? "Todos os colaboradores ativos têm CPF, e-mail e cargo cadastrados."
+            : `${total} ${total === 1 ? "colaborador ativo" : "colaboradores ativos"} sem CPF, sem e-mail ou sem cargo.`}
         </CardDescription>
       </CardHeader>
       {total > 0 && (
@@ -641,7 +641,7 @@ async function ColaboradoresComDadosPendentes() {
           </ul>
           <p className="mt-3 text-xs text-muted-foreground">
             {total > data.length && `Mostrando ${data.length} de ${total}. `}
-            <Link href="/colaboradores?pendentes=1" className="font-medium text-primary hover:underline">
+            <Link href="/colaboradores?situacao=pendentes" className="font-medium text-primary hover:underline">
               Ver na listagem de colaboradores
             </Link>
           </p>

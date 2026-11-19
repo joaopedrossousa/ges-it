@@ -7,7 +7,12 @@ import {
   identificadorDispositivo,
   nomeDispositivo,
 } from "@/lib/dispositivos";
+import { camposPendentes, type SituacaoColaborador } from "@/lib/colaboradores";
 import { lerFiltrosAuditoria } from "@/lib/filtros-auditoria";
+import {
+  condicoesColaboradores,
+  lerFiltrosColaboradores,
+} from "@/lib/filtros-colaboradores";
 import {
   filtroBuscaDispositivos,
   lerFiltrosDispositivos,
@@ -541,6 +546,97 @@ const historicoUsuario: Gerador = async (supabase, params, agora) => {
 };
 
 // ===========================================================================
+// 4b. Colaboradores (listagem /colaboradores e tela Relatórios)
+// ===========================================================================
+
+/** Rótulo da situação no cabeçalho: a opção "Dados pendentes" só alcança os ativos. */
+const SITUACAO_CABECALHO: Record<SituacaoColaborador, string> = {
+  ativos: "Ativos",
+  inativos: "Inativos",
+  todos: "Todos (Ativos e Inativos)",
+  pendentes: "Dados Pendentes (Ativos sem CPF, E-mail ou Cargo)",
+};
+
+/** ?q, ?loja e ?situacao (padrão "ativos"): os mesmos filtros da listagem. */
+const colaboradores: Gerador = async (supabase, params, agora) => {
+  const f = lerFiltrosColaboradores(params);
+  const { ativo, lojaId, ou } = condicoesColaboradores(f);
+
+  const [lista, abertos] = await Promise.all([
+    buscarTodas((de, ate) => {
+      let q = supabase
+        .from("colaboradores")
+        .select("id, nome, cargo, cpf, email, ativo, loja:lojas(nome)")
+        .order("nome")
+        .order("id")
+        .range(de, ate);
+      if (ativo !== undefined) q = q.eq("ativo", ativo);
+      if (lojaId) q = q.eq("loja_id", lojaId);
+      if (ou) q = q.or(ou);
+      return q;
+    }),
+    // Dispositivos em uso = vínculos em aberto (no máximo um por dispositivo).
+    buscarTodas((de, ate) =>
+      supabase
+        .from("vinculos")
+        .select("id, colaborador_id")
+        .is("data_fim", null)
+        .order("id")
+        .range(de, ate),
+    ),
+  ]);
+
+  const emUso = new Map<string, number>();
+  for (const v of abertos) emUso.set(v.colaborador_id, (emUso.get(v.colaborador_id) ?? 0) + 1);
+
+  const filtros = [
+    { rotulo: "Situação", valor: SITUACAO_CABECALHO[f.situacao] },
+    lojaId && { rotulo: "Filial", valor: (await nomeDaLoja(supabase, lojaId)) ?? "" },
+    f.busca && { rotulo: "Busca", valor: `"${f.busca}"` },
+  ].filter((x) => !!x);
+
+  return {
+    slug: "colaboradores",
+    arquivo: `colaboradores-${f.situacao}-${hojeEmPalmas(agora)}`,
+    titulo: "Colaboradores",
+    aba: "Colaboradores",
+    orientacao: "retrato",
+    filtros,
+    colunas: [
+      { chave: "nome", titulo: "Nome" },
+      { chave: "filial", titulo: "Filial" },
+      { chave: "cargo", titulo: "Cargo" },
+      { chave: "email", titulo: "E-mail" },
+      { chave: "cpf", titulo: "CPF" },
+      { chave: "situacao", titulo: "Situação" },
+      { chave: "pendencias", titulo: "Dados Pendentes" },
+      { chave: "dispositivos", titulo: "Dispositivos em Uso", tipo: "numero" },
+    ],
+    // PDF enxuto (retrato): CPF, situação e dispositivos ficam no Excel.
+    colunasPdf: [
+      { chave: "nome", titulo: "Nome", peso: 1.6 },
+      { chave: "filial", titulo: "Filial", peso: 1.1 },
+      { chave: "cargo", titulo: "Cargo", peso: 1.1 },
+      { chave: "email", titulo: "E-mail", peso: 1.6 },
+      { chave: "pendencias", titulo: "Pendências", peso: 0.9 },
+    ],
+    linhas: lista.map((c) => ({
+      nome: c.nome,
+      filial: c.loja?.nome ?? null,
+      cargo: c.cargo,
+      email: c.email,
+      // CPF sempre mascarado nos relatórios.
+      cpf: mascararCPF(c.cpf),
+      situacao: c.ativo ? "Ativo" : "Inativo",
+      pendencias: camposPendentes(c).join(", ") || null,
+      dispositivos: emUso.get(c.id) ?? 0,
+    })),
+    unidade: ["colaborador", "colaboradores"],
+    vazio: "Nenhum colaborador encontrado com esses filtros.",
+  };
+};
+
+// ===========================================================================
 // 5. Movimentações por período
 // ===========================================================================
 
@@ -1010,6 +1106,7 @@ export const GERADORES: Record<TipoRelatorio, Gerador> = {
   "infraestrutura-por-filial": infraestruturaPorFilial,
   "historico-dispositivo": historicoDispositivo,
   "historico-usuario": historicoUsuario,
+  colaboradores,
   movimentacoes,
   "vinculos-sem-termo": vinculosSemTermo,
   servicos,

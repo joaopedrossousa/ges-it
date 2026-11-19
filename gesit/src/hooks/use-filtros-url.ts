@@ -17,9 +17,10 @@ export function useFiltrosUrl() {
     return searchParams.get(chave) ?? padrao;
   }
 
-  function atualizar(chave: string, novo: string) {
+  /** `padrao`: valor que tira o parâmetro da URL (ex.: "ativos" no filtro de situação). */
+  function atualizar(chave: string, novo: string, padrao = TODOS) {
     const params = new URLSearchParams(searchParams.toString());
-    if (novo && novo !== TODOS) params.set(chave, novo);
+    if (novo && novo !== padrao) params.set(chave, novo);
     else params.delete(chave);
     // Filtro novo muda o total: volta para a primeira página.
     if (chave !== "page") params.delete("page");

@@ -10,12 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TODOS, useFiltrosUrl } from "@/hooks/use-filtros-url";
+import { useFiltrosUrl } from "@/hooks/use-filtros-url";
+import { OPCOES_SITUACAO_COLABORADOR, SITUACAO_PADRAO } from "@/lib/colaboradores";
+import { lerFiltrosColaboradores } from "@/lib/filtros-colaboradores";
 import type { LojaOpcao } from "@/lib/lojas";
 import { opcoesLojas } from "@/lib/opcoes-lojas";
 
 export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
   const { valor, atualizar, isPending } = useFiltrosUrl();
+  // Mesma leitura do servidor (valor inválido = "ativos").
+  const { situacao } = lerFiltrosColaboradores({ situacao: valor("situacao", "") });
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -35,13 +39,16 @@ export function Filtros({ lojas }: { lojas: LojaOpcao[] }) {
         className="sm:w-56 sm:shrink-0"
       />
 
-      <Select value={valor("pendentes")} onValueChange={(v) => atualizar("pendentes", v)}>
-        <SelectTrigger className="w-full sm:w-48" aria-label="Filtrar por dados do cadastro">
+      <Select value={situacao} onValueChange={(v) => atualizar("situacao", v, SITUACAO_PADRAO)}>
+        <SelectTrigger className="w-full sm:w-44" aria-label="Filtrar por situação">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={TODOS}>Todos os cadastros</SelectItem>
-          <SelectItem value="1">Dados Pendentes</SelectItem>
+          {OPCOES_SITUACAO_COLABORADOR.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

@@ -26,6 +26,7 @@ export const TIPOS_RELATORIO = [
   "infraestrutura-por-filial",
   "historico-dispositivo",
   "historico-usuario",
+  "colaboradores",
   "movimentacoes",
   "vinculos-sem-termo",
   "servicos",

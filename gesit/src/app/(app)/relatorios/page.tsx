@@ -26,7 +26,11 @@ export default function RelatoriosPage() {
           <Link href="/dispositivos" className="text-primary underline-offset-4 hover:underline">
             Dispositivos
           </Link>
-          , com os filtros da listagem; os históricos, na página de cada dispositivo e colaborador; as
+          , com os filtros da listagem (a lista de colaboradores, também em{" "}
+          <Link href="/colaboradores" className="text-primary underline-offset-4 hover:underline">
+            Colaboradores
+          </Link>
+          ); os históricos, na página de cada dispositivo e colaborador; as
           atividades concluídas, também na tela{" "}
           <Link
             href="/atividades/concluidas"
