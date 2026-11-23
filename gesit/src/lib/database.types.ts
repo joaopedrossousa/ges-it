@@ -50,6 +50,48 @@ export type Database = {
         }
         Relationships: []
       }
+      avisos_execucoes: {
+        Row: {
+          aplicacao: string | null
+          data_referencia: string | null
+          detalhe: Json
+          enviadas: number
+          executado_em: string
+          id: number
+          resultado: string
+          rotina: string
+          turno: string | null
+          usuario_efetivo: string
+          usuario_sessao: string
+        }
+        Insert: {
+          aplicacao?: string | null
+          data_referencia?: string | null
+          detalhe?: Json
+          enviadas?: number
+          executado_em?: string
+          id?: never
+          resultado: string
+          rotina: string
+          turno?: string | null
+          usuario_efetivo: string
+          usuario_sessao: string
+        }
+        Update: {
+          aplicacao?: string | null
+          data_referencia?: string | null
+          detalhe?: Json
+          enviadas?: number
+          executado_em?: string
+          id?: never
+          resultado?: string
+          rotina?: string
+          turno?: string | null
+          usuario_efetivo?: string
+          usuario_sessao?: string
+        }
+        Relationships: []
+      }
       avisos_telegram_log: {
         Row: {
           criado_em: string
