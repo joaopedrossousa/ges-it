@@ -105,6 +105,27 @@ function SeloColuna({ nome, cor }: { nome: string; cor: CorKanban }) {
   );
 }
 
+/**
+ * Categorias de cada atividade, vindas aninhadas na própria consulta da view
+ * (kanban_atividade_categorias(categoria_id)): sem uma segunda ida ao banco.
+ */
+function categoriasPorAtividade(
+  linhas: { id: string | null; kanban_atividade_categorias: { categoria_id: string }[] }[],
+  categorias: CategoriaKanban[],
+) {
+  const categoriasPorId = new Map(categorias.map((c) => [c.id, c]));
+  const categoriasDe = new Map<string, CategoriaKanban[]>();
+  for (const l of linhas) {
+    if (!l.id) continue;
+    const lista = l.kanban_atividade_categorias.flatMap(({ categoria_id }) => {
+      const c = categoriasPorId.get(categoria_id);
+      return c ? [c] : [];
+    });
+    if (lista.length > 0) categoriasDe.set(l.id, lista);
+  }
+  return categoriasDe;
+}
+
 // ===========================================================================
 // Meus cards
 // ===========================================================================
@@ -116,28 +137,16 @@ async function carregarMeusCards() {
   const supabase = await createClient();
   const [uid, minhas, colunas, categorias] = await Promise.all([
     usuarioLogadoId(),
-    supabase.from("vw_minhas_atividades").select("*"),
+    supabase
+      .from("vw_minhas_atividades")
+      .select(
+        "id, titulo, prioridade, prazo, urgente, coluna_id, comentarios, kanban_atividade_categorias(categoria_id)",
+      ),
     listarColunasAtivas(),
     listarCategoriasKanban(),
   ]);
   if (minhas.error) throw minhas.error;
-
-  const ids = minhas.data.flatMap((a) => (a.id ? [a.id] : []));
-  const cats =
-    ids.length > 0
-      ? await supabase
-          .from("kanban_atividade_categorias")
-          .select("atividade_id, categoria_id")
-          .in("atividade_id", ids)
-      : { data: [], error: null };
-  if (cats.error) throw cats.error;
-
-  const categoriasPorId = new Map(categorias.map((c) => [c.id, c]));
-  const categoriasDe = new Map<string, CategoriaKanban[]>();
-  for (const { atividade_id, categoria_id } of cats.data) {
-    const c = categoriasPorId.get(categoria_id);
-    if (c) categoriasDe.set(atividade_id, [...(categoriasDe.get(atividade_id) ?? []), c]);
-  }
+  const categoriasDe = categoriasPorAtividade(minhas.data, categorias);
 
   const hoje = hojeEmPalmas();
   // Urgentes primeiro; depois prazo (sem prazo por último), prioridade e título.
@@ -246,7 +255,7 @@ async function carregarUrgentes() {
     supabase
       .from("vw_atividades_urgentes")
       .select(
-        "id, titulo, prioridade, prazo, urgente_em, responsavel_id, coluna_nome, coluna_cor, comentarios",
+        "id, titulo, prioridade, prazo, urgente_em, responsavel_id, coluna_nome, coluna_cor, comentarios, kanban_atividade_categorias(categoria_id)",
         { count: "exact" },
       )
       .order("urgente_em", { ascending: false })
@@ -256,22 +265,7 @@ async function carregarUrgentes() {
     listarCategoriasKanban(),
   ]);
   if (urgentes.error) throw urgentes.error;
-
-  const ids = urgentes.data.flatMap((a) => (a.id ? [a.id] : []));
-  const cats =
-    ids.length > 0
-      ? await supabase
-          .from("kanban_atividade_categorias")
-          .select("atividade_id, categoria_id")
-          .in("atividade_id", ids)
-      : { data: [], error: null };
-  if (cats.error) throw cats.error;
-  const categoriasPorId = new Map(categorias.map((c) => [c.id, c]));
-  const categoriasDe = new Map<string, CategoriaKanban[]>();
-  for (const { atividade_id, categoria_id } of cats.data) {
-    const c = categoriasPorId.get(categoria_id);
-    if (c) categoriasDe.set(atividade_id, [...(categoriasDe.get(atividade_id) ?? []), c]);
-  }
+  const categoriasDe = categoriasPorAtividade(urgentes.data, categorias);
 
   return {
     linhas: urgentes.data,

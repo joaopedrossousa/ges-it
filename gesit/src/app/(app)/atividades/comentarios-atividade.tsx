@@ -1,12 +1,13 @@
 "use client";
 
+import { cn } from "cn";
 import { MessageCircleIcon, PencilIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { CampoAnexos, type ItemAnexo } from "@/components/campo-anexos";
 import { Carregando } from "@/components/carregando";
-import { GaleriaAnexos } from "@/components/galeria-anexos";
+import { GaleriaAnexos, type ItemGaleria } from "@/components/galeria-anexos";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,7 +24,9 @@ import {
   nomeUsuario,
   tituloUsuario,
   urlAnexoComentario,
+  VALIDADE_URL_COMENTARIOS,
   type ComentarioAtividade,
+  type PaginaComentarios,
   type UsuarioSistema,
 } from "@/lib/atividades";
 import { executarAcao } from "@/lib/executar-acao";
@@ -44,10 +47,135 @@ type Props = {
   usuarios: UsuarioSistema[];
 };
 
+/** Comentários exibidos: do mais antigo ao mais novo (os carregados até agora). */
+type Lista = { comentarios: ComentarioAtividade[]; temAnteriores: boolean; total: number };
+
 type Carga =
   | { estado: "carregando" }
   | { estado: "erro"; mensagem: string }
-  | { estado: "pronto"; comentarios: ComentarioAtividade[] };
+  | ({ estado: "pronto" } & Lista);
+
+/**
+ * Cache em memória (só nesta aba) dos comentários de cada cartão: reabrir o
+ * mesmo cartão mostra a lista na hora e revalida em segundo plano. Vale a
+ * metade da validade das URLs assinadas das imagens, para não exibir uma URL
+ * vencida; depois disso, a lista volta a carregar do zero.
+ */
+const cacheComentarios = new Map<string, { lista: Lista; em: number }>();
+const VALIDADE_CACHE_MS = (VALIDADE_URL_COMENTARIOS / 2) * 1000;
+
+function lerCache(atividadeId: string): Lista | null {
+  const item = cacheComentarios.get(atividadeId);
+  if (!item || Date.now() - item.em > VALIDADE_CACHE_MS) return null;
+  return item.lista;
+}
+
+function gravarCache(atividadeId: string, lista: Lista) {
+  cacheComentarios.set(atividadeId, { lista, em: Date.now() });
+}
+
+/**
+ * Na revalidação, as imagens que já estavam na tela mantêm a URL e a
+ * miniatura anteriores (ainda válidas: o cache dura metade da validade).
+ * Uma URL assinada nova mudaria o endereço e baixaria a miniatura de novo.
+ */
+function manterUrls(novos: ComentarioAtividade[], antigos: ComentarioAtividade[] | null) {
+  if (!antigos) return novos;
+  const porId = new Map(antigos.flatMap((c) => c.anexos).map((a) => [a.id, a]));
+  return novos.map((c) => ({
+    ...c,
+    anexos: c.anexos.map((a) => {
+      const antes = porId.get(a.id);
+      return antes?.url ? { ...a, url: antes.url, miniatura: antes.miniatura } : a;
+    }),
+  }));
+}
+
+function cargaInicial(atividadeId: string): Carga {
+  const lista = lerCache(atividadeId);
+  return lista ? { estado: "pronto", ...lista } : { estado: "carregando" };
+}
+
+const mensagemDe = (e: unknown) =>
+  e instanceof Error ? e.message : "Não foi possível carregar os comentários.";
+
+/** Uma página de comentários: sem `antes`, os mais recentes; com ele, os anteriores a ele. */
+async function buscarPagina(
+  atividadeId: string,
+  antes?: ComentarioAtividade,
+): Promise<PaginaComentarios> {
+  const params = new URLSearchParams({ atividade: atividadeId });
+  if (antes) {
+    params.set("antesEm", antes.created_at);
+    params.set("antesId", antes.id);
+  }
+  const res = await fetch(`/api/atividades/comentarios?${params}`, {
+    headers: { Accept: "application/json" },
+    redirect: "manual",
+  });
+  if (res.type === "opaqueredirect" || res.status === 401) {
+    throw new Error("Sua sessão expirou. Recarregue a página e entre novamente.");
+  }
+  const json: unknown = await res.json();
+  if (!res.ok || typeof json !== "object" || json === null || !("comentarios" in json)) {
+    throw new Error("Não foi possível carregar os comentários.");
+  }
+  return json as PaginaComentarios;
+}
+
+/**
+ * Imagem do comentário na galeria: miniatura reduzida (otimizador do Next) e
+ * a URL assinada do lote para ampliar. Se faltarem ou expirarem, a reserva
+ * (/api/atividades/anexo) gera uma URL nova.
+ */
+function itemGaleria(a: ComentarioAtividade["anexos"][number]): ItemGaleria {
+  const reserva = urlAnexoComentario(a.id);
+  return {
+    chave: a.id,
+    nome: a.nome,
+    tipo: "imagem",
+    url: a.url ?? reserva,
+    miniatura: a.miniatura,
+    reserva,
+  };
+}
+
+/** Acima disto o texto vem recolhido, com "Ver mais". */
+const LIMITE_CARACTERES = 600;
+const LIMITE_LINHAS = 8;
+
+/** Texto do comentário; longo (caracteres ou linhas) aparece recolhido em 6 linhas. */
+function TextoComentario({ texto }: { texto: string }) {
+  const id = useId();
+  const [aberto, setAberto] = useState(false);
+  const longo = texto.length > LIMITE_CARACTERES || texto.split("\n").length > LIMITE_LINHAS;
+  return (
+    <div className="grid justify-items-start gap-1">
+      <p
+        id={id}
+        className={cn(
+          "w-full text-sm break-words whitespace-pre-wrap",
+          longo && !aberto && "line-clamp-6",
+        )}
+      >
+        {texto}
+      </p>
+      {longo && (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto p-0"
+          aria-expanded={aberto}
+          aria-controls={id}
+          onClick={() => setAberto((v) => !v)}
+        >
+          {aberto ? "Ver menos" : "Ver mais"}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 /**
  * Envia as imagens que ainda não subiram (reduzidas no navegador) para
@@ -81,35 +209,43 @@ async function enviarImagens(
  * autor; remover só marca (fica no log de auditoria).
  */
 export function ComentariosAtividade({ atividadeId, usuarioId, usuarios }: Props) {
-  const [carga, setCarga] = useState<Carga>({ estado: "carregando" });
+  // Do cache, se houver: o cartão reaberto mostra os comentários na hora.
+  const [carga, setCarga] = useState<Carga>(() => cargaInicial(atividadeId));
+  const [atividadeVista, setAtividadeVista] = useState(atividadeId);
   const [versao, setVersao] = useState(0);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [carregandoAnteriores, setCarregandoAnteriores] = useState(false);
+  const [erroAnteriores, setErroAnteriores] = useState<string | null>(null);
   const usuariosPorId = new Map(usuarios.map((u) => [u.id, u]));
 
+  // Outro cartão no mesmo painel: troca a lista durante a renderização, sem
+  // efeito (https://react.dev/learn/you-might-not-need-an-effect).
+  if (atividadeId !== atividadeVista) {
+    setAtividadeVista(atividadeId);
+    setCarga(cargaInicial(atividadeId));
+    setErroAnteriores(null);
+  }
+
+  // Sempre busca os mais recentes: carrega ou revalida o cache em segundo plano.
   useEffect(() => {
     let ativo = true;
-    fetch(`/api/atividades/comentarios?atividade=${atividadeId}`, {
-      headers: { Accept: "application/json" },
-      redirect: "manual",
-    })
-      .then(async (res) => {
-        if (res.type === "opaqueredirect" || res.status === 401) {
-          throw new Error("Sua sessão expirou. Recarregue a página e entre novamente.");
-        }
-        const json: unknown = await res.json();
-        if (!res.ok || typeof json !== "object" || json === null || !("comentarios" in json)) {
-          throw new Error("Não foi possível carregar os comentários.");
-        }
-        return json.comentarios as ComentarioAtividade[];
+    buscarPagina(atividadeId)
+      .then((p) => {
+        const lista: Lista = {
+          comentarios: manterUrls(p.comentarios, lerCache(atividadeId)?.comentarios ?? null),
+          temAnteriores: p.temAnteriores,
+          total: p.total ?? p.comentarios.length,
+        };
+        gravarCache(atividadeId, lista);
+        if (ativo) setCarga({ estado: "pronto", ...lista });
       })
-      .then((comentarios) => ativo && setCarga({ estado: "pronto", comentarios }))
-      .catch((e: unknown) =>
-        ativo &&
-        setCarga({
-          estado: "erro",
-          mensagem: e instanceof Error ? e.message : "Não foi possível carregar os comentários.",
-        }),
-      );
+      .catch((e: unknown) => {
+        if (!ativo) return;
+        // Com a lista do cache na tela, mantém a lista (a revalidação falhou em silêncio).
+        setCarga((atual) =>
+          atual.estado === "pronto" ? atual : { estado: "erro", mensagem: mensagemDe(e) },
+        );
+      });
     return () => {
       ativo = false;
     };
@@ -117,13 +253,41 @@ export function ComentariosAtividade({ atividadeId, usuarioId, usuarios }: Props
 
   const recarregar = () => setVersao((v) => v + 1);
 
+  /** "Carregar anteriores": a página antes do comentário mais antigo exibido. */
+  async function carregarAnteriores() {
+    if (carga.estado !== "pronto" || carga.comentarios.length === 0) return;
+    const doCartao = atividadeId;
+    const cursor = carga.comentarios[0];
+    setCarregandoAnteriores(true);
+    setErroAnteriores(null);
+    try {
+      const p = await buscarPagina(doCartao, cursor);
+      setCarga((atual) => {
+        // Só junta se a lista ainda começa no cursor (outro cartão ou recarga no meio: descarta).
+        if (atual.estado !== "pronto" || atual.comentarios[0]?.id !== cursor.id) return atual;
+        const vistos = new Set(atual.comentarios.map((c) => c.id));
+        const lista: Lista = {
+          comentarios: [...p.comentarios.filter((c) => !vistos.has(c.id)), ...atual.comentarios],
+          temAnteriores: p.temAnteriores,
+          total: atual.total,
+        };
+        gravarCache(doCartao, lista);
+        return { estado: "pronto", ...lista };
+      });
+    } catch (e: unknown) {
+      setErroAnteriores(mensagemDe(e));
+    } finally {
+      setCarregandoAnteriores(false);
+    }
+  }
+
   return (
     <section aria-labelledby="comentarios-titulo" className="grid gap-3 border-t pt-4">
       <h3 id="comentarios-titulo" className="flex items-center gap-2 text-sm font-medium">
         <MessageCircleIcon className="size-4 text-muted-foreground" aria-hidden />
         Comentários
         {carga.estado === "pronto" && (
-          <span className="font-normal text-muted-foreground">({carga.comentarios.length})</span>
+          <span className="font-normal text-muted-foreground">({carga.total})</span>
         )}
       </h3>
 
@@ -140,20 +304,43 @@ export function ComentariosAtividade({ atividadeId, usuarioId, usuarios }: Props
         (carga.comentarios.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum comentário ainda.</p>
         ) : (
-          <ol className="grid gap-3">
-            {carga.comentarios.map((c) => (
-              <ItemComentario
-                key={c.id}
-                comentario={c}
-                atividadeId={atividadeId}
-                autor={c.autor_id ? usuariosPorId.get(c.autor_id) : undefined}
-                meu={Boolean(usuarioId) && c.autor_id === usuarioId}
-                editando={editandoId === c.id}
-                onEditar={(v) => setEditandoId(v ? c.id : null)}
-                onAlterado={recarregar}
-              />
-            ))}
-          </ol>
+          <>
+            {carga.temAnteriores && (
+              <div className="grid justify-items-start gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={carregarAnteriores}
+                  disabled={carregandoAnteriores}
+                >
+                  {carregandoAnteriores && <Carregando decorativo tamanho="sm" />}
+                  {carregandoAnteriores
+                    ? "Carregando..."
+                    : `Carregar anteriores (${Math.max(0, carga.total - carga.comentarios.length)})`}
+                </Button>
+                {erroAnteriores && (
+                  <p role="alert" className="text-sm text-destructive">
+                    {erroAnteriores}
+                  </p>
+                )}
+              </div>
+            )}
+            <ol className="grid gap-3">
+              {carga.comentarios.map((c) => (
+                <ItemComentario
+                  key={c.id}
+                  comentario={c}
+                  atividadeId={atividadeId}
+                  autor={c.autor_id ? usuariosPorId.get(c.autor_id) : undefined}
+                  meu={Boolean(usuarioId) && c.autor_id === usuarioId}
+                  editando={editandoId === c.id}
+                  onEditar={(v) => setEditandoId(v ? c.id : null)}
+                  onAlterado={recarregar}
+                />
+              ))}
+            </ol>
+          </>
         ))}
 
       <NovoComentario
@@ -403,12 +590,7 @@ function ItemComentario({
           />
           <GaleriaAnexos
             rotulo="Imagens do comentário"
-            itens={anexosVisiveis.map((a) => ({
-              chave: a.id,
-              nome: a.nome,
-              tipo: "imagem",
-              url: urlAnexoComentario(a.id),
-            }))}
+            itens={anexosVisiveis.map(itemGaleria)}
             onRemover={(id) => setRemovidas((r) => [...r, id])}
             disabled={isPending}
           />
@@ -444,16 +626,8 @@ function ItemComentario({
         </div>
       ) : (
         <>
-          {c.texto && <p className="text-sm break-words whitespace-pre-wrap">{c.texto}</p>}
-          <GaleriaAnexos
-            rotulo="Imagens do comentário"
-            itens={c.anexos.map((a) => ({
-              chave: a.id,
-              nome: a.nome,
-              tipo: "imagem",
-              url: urlAnexoComentario(a.id),
-            }))}
-          />
+          {c.texto && <TextoComentario texto={c.texto} />}
+          <GaleriaAnexos rotulo="Imagens do comentário" itens={c.anexos.map(itemGaleria)} />
         </>
       )}
 

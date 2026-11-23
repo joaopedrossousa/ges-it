@@ -36,6 +36,7 @@ import {
   listarServicosFinanceirosOpcoes,
   type LancamentoLinha,
 } from "@/lib/financeiro-servidor";
+import { listarUsuariosSistema } from "@/lib/atividades-servidor";
 import { lerFiltrosLancamentos } from "@/lib/filtros-financeiro";
 import { formatarDataISO, formatarMoeda } from "@/lib/format";
 import { listarLojasOpcoes } from "@/lib/lojas";
@@ -164,6 +165,9 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
     buscarLancamentosDoMes(filtros),
     listarLojasOpcoes(),
     listarServicosFinanceirosOpcoes(),
+    // Usuários do sistema junto (cache da requisição): nomesDeUsuarios, logo
+    // abaixo, já os encontra prontos, sem outra ida ao banco.
+    listarUsuariosSistema().catch(() => []),
   ]);
 
   if (error) {

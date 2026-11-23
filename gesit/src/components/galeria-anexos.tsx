@@ -8,7 +8,7 @@ import {
   FileTextIcon,
   XIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +25,15 @@ export type ItemGaleria = {
   nome: string;
   /** Imagem: miniatura e ampliação; PDF: ícone e abre em nova aba. */
   tipo: "imagem" | "pdf";
-  /** blob: (arquivo local) ou rota que redireciona para URL assinada. */
+  /** blob: (arquivo local), URL assinada ou rota que redireciona para uma URL assinada. */
   url: string;
+  /** Versão reduzida para a miniatura (sem ela, a miniatura usa `url`). */
+  miniatura?: string;
+  /**
+   * Rota que gera uma URL assinada nova a cada pedido: usada se `url` (ou a
+   * miniatura) falhar, ex.: URL assinada expirada, e no "Abrir em nova aba".
+   */
+  reserva?: string;
   /** Linha secundária (ex.: data e autor). */
   detalhe?: string;
   /** Legenda editável (com `onLegenda`). */
@@ -46,6 +53,20 @@ type Props = {
   /** Rótulo da lista para leitores de tela. */
   rotulo?: string;
 };
+
+/**
+ * Se a imagem falhar, tenta a próxima fonte (miniatura → url → reserva), uma
+ * vez cada. O índice da tentativa fica no próprio elemento.
+ */
+function tentarProxima(e: SyntheticEvent<HTMLImageElement>, fontes: (string | undefined)[]) {
+  const img = e.currentTarget;
+  const lista = [...new Set(fontes.filter((f): f is string => Boolean(f)))];
+  const proxima = Number(img.dataset.tentativa ?? "0") + 1;
+  if (proxima < lista.length) {
+    img.dataset.tentativa = String(proxima);
+    img.src = lista[proxima];
+  }
+}
 
 const TAMANHOS = {
   sm: { item: "w-24", quadro: "size-24" },
@@ -92,9 +113,16 @@ export function GaleriaAnexos({
                 )}
                 aria-label={`Ampliar ${item.nome}`}
               >
-                {/* blob: e URLs assinadas: o otimizador do next/image não se aplica. */}
+                {/* blob: e URLs assinadas: a miniatura reduzida vem pronta em `miniatura`. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.url} alt="" loading="lazy" className="size-full object-cover" />
+                <img
+                  src={item.miniatura ?? item.url}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => tentarProxima(e, [item.miniatura ?? item.url, item.url, item.reserva])}
+                  className="size-full object-cover"
+                />
               </button>
             ) : (
               <a
@@ -173,14 +201,16 @@ export function GaleriaAnexos({
               <div className="flex items-center justify-center rounded-lg bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
+                  key={atual.chave}
                   src={atual.url}
                   alt={atual.legenda || atual.nome}
+                  onError={(e) => tentarProxima(e, [atual.url, atual.reserva])}
                   className="max-h-[70vh] w-auto max-w-full object-contain"
                 />
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Button asChild variant="outline" size="sm">
-                  <a href={atual.url} target="_blank" rel="noopener noreferrer">
+                  <a href={atual.reserva ?? atual.url} target="_blank" rel="noopener noreferrer">
                     <ExternalLinkIcon />
                     Abrir em nova aba
                   </a>

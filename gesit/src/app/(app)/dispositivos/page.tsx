@@ -129,7 +129,36 @@ async function BarraDeFiltros() {
 }
 
 /** Linhas da view vêm com colunas anuláveis; só edita se os dados básicos existirem. */
-function paraEdicao(d: VwDispositivoRow): DispositivoEditavel | null {
+/**
+ * Colunas da listagem: as da tabela, as do diálogo de edição e, aninhada, a
+ * baixa registrada (migration 019; 1:1, objeto ou null), que antes era uma
+ * segunda consulta depois da lista.
+ */
+const SELECT_LISTA =
+  "id, tipo, marca, equipamento, modelo, serial_number, imei1, imei2, numero_patrimonio, numero_linha, operadora, data_compra, fim_vida_util, nota_fiscal_path, loja_estoque_id, observacao, status, situacao_vida_util, colaborador_nome, loja_nome, loja_atual_nome, dispositivo_baixas(dispositivo_id)";
+
+type CamposEdicao = Pick<
+  VwDispositivoRow,
+  | "id"
+  | "tipo"
+  | "marca"
+  | "equipamento"
+  | "modelo"
+  | "serial_number"
+  | "imei1"
+  | "imei2"
+  | "numero_patrimonio"
+  | "numero_linha"
+  | "operadora"
+  | "data_compra"
+  | "fim_vida_util"
+  | "nota_fiscal_path"
+  | "loja_estoque_id"
+  | "observacao"
+  | "status"
+>;
+
+function paraEdicao(d: CamposEdicao): DispositivoEditavel | null {
   if (!d.id || !d.tipo || d.modelo === null) return null;
   return {
     id: d.id,
@@ -168,7 +197,7 @@ async function TabelaDispositivos({
   const supabase = await createClient();
   let query = supabase
     .from("vw_dispositivos")
-    .select("*", { count: "exact" })
+    .select(SELECT_LISTA, { count: "exact" })
     .order("tipo")
     .order("marca")
     .order("equipamento") // infraestrutura não tem marca
@@ -203,16 +232,7 @@ async function TabelaDispositivos({
   const filtrando = Boolean(busca || tipo || status || lojaId || vidaUtil);
 
   // Baixados com registro de baixa (migration 019) não saem de "Baixado".
-  const idsBaixados = data.flatMap((d) => (d.status === "baixado" && d.id ? [d.id] : []));
-  const comBaixa = new Set<string>();
-  if (idsBaixados.length) {
-    const { data: baixas, error: erroBaixas } = await supabase
-      .from("dispositivo_baixas")
-      .select("dispositivo_id")
-      .in("dispositivo_id", idsBaixados);
-    if (erroBaixas) console.error("Erro ao carregar baixas:", erroBaixas);
-    baixas?.forEach((b) => comBaixa.add(b.dispositivo_id));
-  }
+  const comBaixa = new Set(data.flatMap((d) => (d.id && d.dispositivo_baixas ? [d.id] : [])));
 
   return (
     <div className="space-y-2">

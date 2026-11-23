@@ -9,6 +9,7 @@ import {
   type NomesAuditoria,
 } from "@/lib/auditoria";
 import { nomeCurtoUsuario, nomeUsuario } from "@/lib/atividades";
+import { listarUsuariosSistema } from "@/lib/atividades-servidor";
 import type { Json } from "@/lib/database.types";
 import { descricaoDispositivo } from "@/lib/dispositivos";
 import { formatarCompetenciaCurta, nomeFinanceiro } from "@/lib/financeiro";
@@ -128,22 +129,22 @@ export async function montarLinhasAuditoria(
 ): Promise<LinhaAuditoria[]> {
   const porTabela = (t: string) => unicos(linhas.filter((l) => l.tabela === t).map((l) => l.registro_id));
 
-  // Vínculos e serviços apontam para dispositivos/colaboradores: busca-os primeiro.
-  // Lançamentos aparecem pela descrição e competência.
-  // Imagens: o dispositivo e o momento vêm da própria linha (a remoção só
-  // traz removida/removida_em no log).
-  const imagensLista = await emLotes(porTabela("dispositivo_imagens"), (lote) =>
-    supabase.from("dispositivo_imagens").select("id, dispositivo_id, momento").in("id", lote),
-  );
-  const imagensMap = new Map(imagensLista.map((i) => [i.id, i]));
-
-  // Comentários: a atividade vem da própria linha (edição e remoção não a trazem no log).
-  const comentariosLista = await emLotes(porTabela("kanban_comentarios"), (lote) =>
-    supabase.from("kanban_comentarios").select("id, atividade_id").in("id", lote),
-  );
-  const comentariosMap = new Map(comentariosLista.map((c) => [c.id, c]));
-
-  const [vinculosLista, servicosLista, lancamentosLista] = await Promise.all([
+  // 1ª etapa (tudo em paralelo; só depende das linhas do log):
+  // - Vínculos, serviços e imagens apontam para dispositivos/colaboradores:
+  //   busca-os antes dos nomes. Imagens: o dispositivo e o momento vêm da
+  //   própria linha (a remoção só traz removida/removida_em no log).
+  // - Comentários: a atividade vem da própria linha (edição e remoção não a
+  //   trazem no log).
+  // - Lançamentos aparecem pela descrição e competência.
+  // - Nomes de exibição de todos os usuários do sistema (Administração >
+  //   Usuários): quem fez, responsável, quem marcou urgente e perfis.
+  const [imagensLista, comentariosLista, vinculosLista, servicosLista, lancamentosLista, usuariosSistema] = await Promise.all([
+    emLotes(porTabela("dispositivo_imagens"), (lote) =>
+      supabase.from("dispositivo_imagens").select("id, dispositivo_id, momento").in("id", lote),
+    ),
+    emLotes(porTabela("kanban_comentarios"), (lote) =>
+      supabase.from("kanban_comentarios").select("id, atividade_id").in("id", lote),
+    ),
     emLotes(unicos([...porTabela("vinculos"), ...idsDoCampo(linhas, "vinculo_id")]), (lote) =>
       supabase.from("vinculos").select("id, dispositivo_id, colaborador_id").in("id", lote),
     ),
@@ -156,7 +157,11 @@ export async function montarLinhasAuditoria(
         .select("id, fornecedor, descricao, competencia")
         .in("id", lote),
     ),
+    // Cache da requisição: o filtro de usuários da tela já buscou a mesma lista.
+    listarUsuariosSistema(),
   ]);
+  const imagensMap = new Map(imagensLista.map((i) => [i.id, i]));
+  const comentariosMap = new Map(comentariosLista.map((c) => [c.id, c]));
   const vinculos = new Map(vinculosLista.map((v) => [v.id, v]));
   const servicos = new Map(servicosLista.map((s) => [s.id, s]));
   const lancamentos = new Map(lancamentosLista.map((l) => [l.id, l]));
@@ -188,6 +193,7 @@ export async function montarLinhasAuditoria(
     ...porTabela("kanban_categorias"),
     ...idsDaLista(linhas, "categorias"),
   ]);
+  // 2ª etapa: os nomes de tudo o que foi citado.
   const [
     lojas,
     colaboradores,
@@ -197,7 +203,6 @@ export async function montarLinhasAuditoria(
     atividadesLista,
     colunasKanban,
     categoriasKanban,
-    usuariosSistema,
   ] = await Promise.all([
     emLotes(idsLojas, (lote) => supabase.from("lojas").select("id, nome").in("id", lote)),
     emLotes(idsColaboradores, (lote) =>
@@ -226,12 +231,6 @@ export async function montarLinhasAuditoria(
     emLotes(idsCategoriasKanban, (lote) =>
       supabase.from("kanban_categorias").select("id, nome").in("id", lote),
     ),
-    // Nomes de exibição de todos os usuários do sistema (Administração >
-    // Usuários): quem fez, responsável, quem marcou urgente e perfis.
-    supabase.rpc("usuarios_sistema").then(({ data, error }) => {
-      if (error) throw new Error(error.message);
-      return data;
-    }),
   ]);
   const atividades = new Map(atividadesLista.map((a) => [a.id, a]));
 

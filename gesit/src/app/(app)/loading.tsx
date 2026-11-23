@@ -1,5 +1,6 @@
-import { CarregandoPagina } from "@/components/carregando";
+import { EsqueletoPagina } from "@/components/esqueleto-pagina";
 
+/** Dashboard ("/") e qualquer tela sem loading.tsx próprio. */
 export default function Loading() {
-  return <CarregandoPagina />;
+  return <EsqueletoPagina variante="painel" />;
 }

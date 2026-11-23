@@ -21,8 +21,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Suspense, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 type Item = {
   href: string;
@@ -78,6 +78,30 @@ const GRUPOS: Grupo[] = [
   },
 ];
 
+/** Todas as rotas do menu (o Início e as dos grupos). */
+const ROTAS_MENU = [INICIO, ...GRUPOS.flatMap((g) => g.itens)].map((i) => i.href);
+
+/**
+ * Pré-carrega o shell de todas as telas do menu quando o navegador fica
+ * ocioso. O <Link> só faz isso quando o link aparece na tela, e os itens dos
+ * grupos recolhidos ficam ocultos (hidden): sem isto, a primeira ida a essas
+ * telas esperaria o servidor antes de mostrar qualquer coisa. Com o Partial
+ * Prefetching (next.config.ts), cada pré-carga traz só o shell estático
+ * (títulos e esqueletos), não os dados.
+ */
+function usePrecarregarMenu() {
+  const router = useRouter();
+  useEffect(() => {
+    const precarregar = () => ROTAS_MENU.forEach((href) => router.prefetch(href));
+    if ("requestIdleCallback" in window) {
+      const id = window.requestIdleCallback(precarregar, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(precarregar, 1000);
+    return () => clearTimeout(id);
+  }, [router]);
+}
+
 function isActive(pathname: string, { href, exato }: Item) {
   return exato ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -120,6 +144,7 @@ function Links({ orientation, pathname }: { orientation: Orientation; pathname: 
 }
 
 function MenuAgrupado({ pathname }: { pathname: string | null }) {
+  usePrecarregarMenu();
   const atual = grupoDaRota(pathname);
   const [abertos, setAbertos] = useState<Set<string>>(() => new Set(atual ? [atual] : []));
   // Ao navegar para outro grupo, ele abre sozinho (os demais ficam como estão).

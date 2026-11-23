@@ -135,10 +135,30 @@ export type ComentarioAtividade = {
   autor_id: string | null;
   created_at: string;
   editado_em: string | null;
-  anexos: { id: string; nome: string }[];
+  /**
+   * url: URL assinada da imagem (lote, VALIDADE_URL_COMENTARIOS); miniatura:
+   * a mesma imagem reduzida pelo otimizador do Next. Sem elas (falha ao
+   * assinar), a galeria usa urlAnexoComentario.
+   */
+  anexos: { id: string; nome: string; url?: string; miniatura?: string }[];
 };
 
-/** Imagem do comentário: URL assinada de 60 s gerada no clique/carga. */
+/** Uma página de comentários: os mais recentes primeiro na busca, exibidos do mais antigo ao mais novo. */
+export type PaginaComentarios = {
+  comentarios: ComentarioAtividade[];
+  /** Há comentários mais antigos que o primeiro desta página. */
+  temAnteriores: boolean;
+  /** Total de comentários da atividade (só na primeira página; null nas seguintes). */
+  total: number | null;
+};
+
+/** Comentários por página no painel ("Carregar anteriores" traz a página seguinte). */
+export const COMENTARIOS_POR_PAGINA = 20;
+
+/** Validade, em segundos, das URLs assinadas que vêm junto com os comentários. */
+export const VALIDADE_URL_COMENTARIOS = 600;
+
+/** Imagem do comentário: URL assinada de 60 s gerada no clique (reserva quando a do lote expira). */
 export const urlAnexoComentario = (id: string) => `/api/atividades/anexo?id=${id}`;
 
 /**

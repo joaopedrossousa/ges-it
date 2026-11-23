@@ -189,9 +189,5 @@ export async function contarComentarios(supabase: Supabase, ids: string[]): Prom
   return mapa;
 }
 
-/** Id do usuário logado (claims do JWT). Uma leitura por requisição. */
-export const usuarioLogadoId = cache(async (): Promise<string | null> => {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  return typeof data?.claims.sub === "string" ? data.claims.sub : null;
-});
+/** Id do usuário logado: mesma leitura da sessão do layout (src/lib/sessao.ts). */
+export { usuarioLogadoId } from "@/lib/sessao";

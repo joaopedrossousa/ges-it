@@ -8,6 +8,7 @@ import {
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { listarUsuariosSistema } from "@/lib/atividades-servidor";
 import { nomeDispositivo } from "@/lib/dispositivos";
 import { formatarDataHora } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
@@ -92,6 +93,9 @@ async function carregarMovimentacoes() {
         .gte("data_fim", desde)
         .eq("observacao_devolucao", ENCERRADO_POR_TRANSFERENCIA),
       supabase.from("dispositivo_baixas").select("id", contar).gte("created_at", desde),
+      // Usuários do sistema junto (cache da requisição): nomesDeUsuarios, no
+      // fim, já os encontra prontos, sem outra ida ao banco.
+      listarUsuariosSistema().catch(() => []),
     ]);
   const erro = [criados, encerrados, baixas, nCriados, nEncerrados, nTransferencias, nBaixas].find(
     (r) => r.error,

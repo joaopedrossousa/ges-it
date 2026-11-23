@@ -142,6 +142,12 @@ async function ResumoEGraficos({ searchParams }: { searchParams: SearchParams })
   const mes = lerMes(primeiro((await searchParams).mes));
   const inicio = somarMeses(mes, -11);
 
+  // Lojas em paralelo com os lançamentos (antes, só depois deles).
+  const lojasPromise = listarLojasOpcoes();
+  // A Evolução por Fornecedor fica dentro deste bloco e só renderiza quando
+  // ele termina: dispara a consulta já (cache da requisição), para correr
+  // em paralelo. Os erros são tratados no próprio bloco.
+  buscarLancamentosEvolucao().catch(() => {});
   let linhas: Awaited<ReturnType<typeof buscarGastosPeriodo>>;
   try {
     linhas = await buscarGastosPeriodo(inicio, mes);
@@ -149,7 +155,7 @@ async function ResumoEGraficos({ searchParams }: { searchParams: SearchParams })
     console.error("Erro ao carregar o painel financeiro:", e);
     return <p className="text-destructive">Não foi possível carregar os lançamentos.</p>;
   }
-  const lojas = await listarLojasOpcoes();
+  const lojas = await lojasPromise;
 
   const doMes = linhas.filter((l) => l.competencia?.slice(0, 7) === mes);
   const resumo = resumirLancamentos(doMes);

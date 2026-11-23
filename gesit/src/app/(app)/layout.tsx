@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { NavLinks } from "@/components/layout/nav-links";
 import { RastreadorNavegacao } from "@/components/layout/rastreador-navegacao";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server";
+import { obterClaims } from "@/lib/sessao";
 
 import { signOut } from "./actions";
 
@@ -22,13 +22,13 @@ function Marca() {
 
 async function CurrentUser() {
   await connection(); // sessão (o Supabase lê Date.now()) e horário: só na requisição
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
+  // Mesma leitura (cache por requisição) usada pelas páginas e blocos.
+  const claims = await obterClaims();
 
   // O proxy já redireciona; esta verificação é uma segunda barreira.
-  if (!data?.claims) redirect("/login");
+  if (!claims) redirect("/login");
 
-  const email = typeof data.claims.email === "string" ? data.claims.email : "";
+  const email = typeof claims.email === "string" ? claims.email : "";
 
   return (
     <span className="truncate text-sm text-muted-foreground" title={email}>
