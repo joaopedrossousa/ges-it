@@ -15,13 +15,20 @@ import { signOut } from "./actions";
 function Marca() {
   return (
     <span className="flex items-center gap-2">
-      {/* No escuro, o símbolo azul ganha um fundo claro para não sumir no menu. */}
+      {/* O azul da marca some no fundo escuro: no tema escuro, a versão clara. */}
       <Image
         src="/brand/simbolo.png"
         alt=""
         width={24}
         height={24}
-        className="size-6 dark:rounded-md dark:bg-white dark:p-0.5"
+        className="size-6 dark:hidden"
+      />
+      <Image
+        src="/brand/simbolo-escuro.png"
+        alt=""
+        width={24}
+        height={24}
+        className="hidden size-6 dark:block"
       />
       <span className="font-bold tracking-tight text-brand-navy dark:text-foreground">GesIT</span>
     </span>

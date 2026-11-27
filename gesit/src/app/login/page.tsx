@@ -21,6 +21,7 @@ export default function LoginPage() {
     <main className="flex min-h-svh items-center justify-center bg-muted/60 p-4">
       <Card className="w-full max-w-sm border-t-4 border-t-primary">
         <CardHeader className="text-center">
+          {/* Logo com texto azul: no tema escuro, a versão clara (só uma aparece). */}
           <Image
             src="/brand/logo-horizontal.png"
             alt="Produtécnica Agro"
@@ -28,8 +29,15 @@ export default function LoginPage() {
             height={1418}
             sizes="16rem"
             preload
-            // Logo com texto azul: no escuro, vai sobre uma placa clara.
-            className="mx-auto h-auto w-64 dark:rounded-lg dark:bg-white dark:px-3 dark:py-2"
+            className="mx-auto h-auto w-64 dark:hidden"
+          />
+          <Image
+            src="/brand/logo-horizontal-escuro.png"
+            alt="Produtécnica Agro"
+            width={3626}
+            height={1418}
+            sizes="16rem"
+            className="mx-auto hidden h-auto w-64 dark:block"
           />
           <CardTitle className="text-xl">GesIT</CardTitle>
           <CardDescription>Entre com seu e-mail e senha.</CardDescription>
