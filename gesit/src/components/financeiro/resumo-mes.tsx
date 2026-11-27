@@ -67,11 +67,11 @@ export function ResumoMes({
         rotulo="Total do Mês"
         total={resumo.total}
         icone={WalletIcon}
-        corIcone="text-brand-blue"
+        corIcone="text-brand-blue dark:text-primary"
         extra={comparacao}
       />
       <Cartao rotulo="Pago" total={resumo.pago} icone={CircleCheckIcon} corIcone="text-brand-green" />
-      <Cartao rotulo="Em Aberto" total={resumo.aberto} icone={ClockIcon} corIcone="text-amber-600" />
+      <Cartao rotulo="Em Aberto" total={resumo.aberto} icone={ClockIcon} corIcone="text-amber-600 dark:text-amber-400" />
       <Cartao
         rotulo="Vencido"
         total={resumo.vencido}

@@ -218,7 +218,7 @@ async function Conteudo({ searchParams }: { searchParams: SearchParams }) {
           {filtrando && " Totais calculados com os filtros aplicados."}
         </p>
         {filtroPainel && (
-          <p className="flex flex-wrap items-center gap-2 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 py-2 text-sm">
+          <p className="flex flex-wrap items-center gap-2 rounded-lg border border-brand-blue/30 bg-brand-blue/5 px-3 dark:border-primary/30 dark:bg-primary/10 py-2 text-sm">
             <span>
               Mostrando só <strong className="font-medium">{filtroPainel}</strong>.
             </span>

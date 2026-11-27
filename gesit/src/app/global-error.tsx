@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
+
+import { CHAVE_TEMA } from "@/components/tema/provedor-tema";
 
 import "./globals.css";
 
@@ -16,8 +18,24 @@ export default function ErroGlobal({
     console.error(error);
   }, [error]);
 
+  // Este documento substitui o layout raiz (e o next-themes com ele): aplica
+  // o tema escolhido (ou o do sistema) antes da pintura.
+  useLayoutEffect(() => {
+    let escolha: string | null = null;
+    try {
+      escolha = localStorage.getItem(CHAVE_TEMA);
+    } catch {
+      // localStorage bloqueado: segue o sistema.
+    }
+    const escuro =
+      escolha === "dark" ||
+      (escolha !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.classList.toggle("dark", escuro);
+    document.documentElement.style.colorScheme = escuro ? "dark" : "light";
+  }, []);
+
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className="flex min-h-svh items-center justify-center p-4">
         <div role="alert" className="max-w-md space-y-4 text-center">
           <h1 className="text-xl font-semibold">Algo deu errado</h1>

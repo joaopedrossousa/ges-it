@@ -28,7 +28,8 @@ export default function LoginPage() {
             height={1418}
             sizes="16rem"
             preload
-            className="mx-auto h-auto w-64"
+            // Logo com texto azul: no escuro, vai sobre uma placa clara.
+            className="mx-auto h-auto w-64 dark:rounded-lg dark:bg-white dark:px-3 dark:py-2"
           />
           <CardTitle className="text-xl">GesIT</CardTitle>
           <CardDescription>Entre com seu e-mail e senha.</CardDescription>

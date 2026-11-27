@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto, Roboto_Mono } from "next/font/google";
+import { ProvedorTema } from "@/components/tema/provedor-tema";
 import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
@@ -24,13 +25,18 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // suppressHydrationWarning: o script do next-themes põe a classe do tema
+    // (e o color-scheme) no <html> antes da hidratação.
     <html
       lang="pt-BR"
+      suppressHydrationWarning
       className={`${roboto.variable} ${robotoMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster richColors position="top-right" />
+        <ProvedorTema>
+          {children}
+          <Toaster richColors position="top-right" />
+        </ProvedorTema>
       </body>
     </html>
   );

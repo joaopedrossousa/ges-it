@@ -1,7 +1,9 @@
 import { cn } from "cn";
 
-// Sobre fundo azul (botão primário) os pontos azuis assumem a cor do texto.
-const AZUL = "bg-brand-blue in-data-[variant=default]:bg-current";
+// No escuro, o azul da marca some no fundo: usa o primário claro do tema.
+// Sobre fundo azul (botão primário) os pontos azuis assumem a cor do texto
+// (com !, para vencer o dark: no botão primário do tema escuro).
+const AZUL = "bg-brand-blue dark:bg-primary in-data-[variant=default]:bg-current!";
 const PONTOS = [AZUL, "bg-brand-green", AZUL] as const;
 
 /**

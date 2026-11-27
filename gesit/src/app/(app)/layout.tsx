@@ -6,6 +6,7 @@ import { Suspense } from "react";
 
 import { NavLinks } from "@/components/layout/nav-links";
 import { RastreadorNavegacao } from "@/components/layout/rastreador-navegacao";
+import { SeletorTema } from "@/components/tema/seletor-tema";
 import { Button } from "@/components/ui/button";
 import { obterClaims } from "@/lib/sessao";
 
@@ -14,7 +15,14 @@ import { signOut } from "./actions";
 function Marca() {
   return (
     <span className="flex items-center gap-2">
-      <Image src="/brand/simbolo.png" alt="" width={24} height={24} className="size-6" />
+      {/* No escuro, o símbolo azul ganha um fundo claro para não sumir no menu. */}
+      <Image
+        src="/brand/simbolo.png"
+        alt=""
+        width={24}
+        height={24}
+        className="size-6 dark:rounded-md dark:bg-white dark:p-0.5"
+      />
       <span className="font-bold tracking-tight text-brand-navy dark:text-foreground">GesIT</span>
     </span>
   );
@@ -62,6 +70,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <Suspense fallback={null}>
               <CurrentUser />
             </Suspense>
+            <SeletorTema />
             <form action={signOut}>
               <Button type="submit" variant="outline" size="sm">
                 <LogOutIcon />
